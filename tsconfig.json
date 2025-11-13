@@ -25,5 +25,5 @@
   },
   "include": [
     "./frontend"
-, "DefaultHome.tsx"  ]
+, "DefaultHome.tsx", "frontend/api"  ]
 }

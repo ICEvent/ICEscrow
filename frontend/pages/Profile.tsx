@@ -14,7 +14,7 @@ import CardMedia from '@mui/material/CardMedia';
 import Typography from '@mui/material/Typography';
 
 
-import { Profile } from "../api/profile/profile.did.d";
+import { Profile } from "../api/profile/profile.did";
 
 import { useGlobalContext, useOneblock } from "../components/Store";
 import { ProfileForm } from "../components/profile/ProfileForm";
