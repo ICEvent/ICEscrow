@@ -66,10 +66,13 @@ const UserItems = () => {
   }, [escrow, userId]);
 
   return (
-    <div className="mt-8">
-      <h1 className="mb-3 text-2xl font-semibold text-slate-900">
-        Listed items by {userId}
-      </h1>
+    <div className="mt-4">
+      <div className="mb-4 rounded-2xl border border-white/50 bg-white/75 p-4 shadow-sm backdrop-blur">
+        <p className="text-xs font-bold uppercase tracking-[0.18em] text-cyan-700">User Marketplace</p>
+        <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-900">
+          Listed items by {userId}
+        </h1>
+      </div>
 
       {loading && <p className="text-slate-600">Loading items...</p>}
       {!loading && error && <p className="text-rose-600">{error}</p>}

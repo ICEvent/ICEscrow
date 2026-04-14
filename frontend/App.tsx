@@ -56,7 +56,9 @@ export default () => {
   return (
     <BrowserRouter>
       <Store>
-        <div className="min-h-screen w-full px-[2%] pb-[10vh] pt-[1%]">
+        <div className="fade-in relative min-h-screen w-full overflow-x-hidden px-[3%] pb-[10vh] pt-20">
+          <div className="pointer-events-none absolute -left-24 top-24 h-64 w-64 rounded-full bg-cyan-300/20 blur-3xl" />
+          <div className="pointer-events-none absolute -right-20 top-40 h-72 w-72 rounded-full bg-emerald-300/20 blur-3xl" />
           <Header/>
           <ToastContainer />
           <Routes>

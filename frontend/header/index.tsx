@@ -91,8 +91,9 @@ const Header: FC = () => {
 
   return (
     <>
-      <header className="fixed left-0 right-0 top-0 z-40 border-b border-slate-200 bg-white/95 backdrop-blur">
-        <div className="mx-auto flex h-16 items-center gap-2 px-4">
+      <header className="fade-in fixed left-0 right-0 top-0 z-40 border-b border-slate-200 bg-white/95 backdrop-blur">
+        <div className="absolute inset-0 bg-gradient-to-r from-cyan-100/40 via-white/70 to-emerald-100/40" />
+        <div className="relative mx-auto flex h-16 items-center gap-2 px-4">
           <DarkModeToggle />
           <button
             type="button"
@@ -101,17 +102,17 @@ const Header: FC = () => {
           />
           <button
             type="button"
-            className="flex-1 text-left text-lg font-semibold text-slate-800"
+            className="flex-1 text-left text-lg font-bold tracking-tight text-slate-800"
             onClick={() => setMenu(MENU_HOME)}
           >
-            BlockList
+            ICEscrow
           </button>
 
           {isAuthed && (
             <button
               type="button"
               onClick={handleClick}
-              className="rounded-md border border-slate-300 px-3 py-1 text-sm font-medium text-slate-700 transition hover:border-cyan-500 hover:text-cyan-700"
+              className="btn-modern-secondary rounded-full border border-slate-300/80 bg-white/80 px-4 py-1.5 text-sm font-semibold text-slate-700 shadow-sm transition hover:-translate-y-0.5 hover:border-cyan-500 hover:text-cyan-700"
             >
               Account
             </button>
@@ -119,25 +120,25 @@ const Header: FC = () => {
           {!isAuthed && <LoginButton />}
 
           {openMenu && (
-            <div className="absolute right-4 top-14 z-50 min-w-[180px] rounded-lg border border-slate-200 bg-white p-1 shadow-lg">
+            <div className="reveal-up absolute right-4 top-14 z-50 min-w-[190px] rounded-2xl border border-slate-200 bg-white/95 p-2 shadow-xl backdrop-blur">
               <button
                 type="button"
                 onClick={openProfile}
-                className="block w-full rounded-md px-3 py-2 text-left text-sm text-slate-700 transition hover:bg-slate-100"
+                className="block w-full rounded-xl px-3 py-2 text-left text-sm font-medium text-slate-700 transition hover:bg-slate-100"
               >
                 Profile
               </button>
               <button
                 type="button"
                 onClick={openOrders}
-                className="block w-full rounded-md px-3 py-2 text-left text-sm text-slate-700 transition hover:bg-slate-100"
+                className="block w-full rounded-xl px-3 py-2 text-left text-sm font-medium text-slate-700 transition hover:bg-slate-100"
               >
                 Orders
               </button>
               <button
                 type="button"
                 onClick={logout}
-                className="block w-full rounded-md px-3 py-2 text-left text-sm text-rose-600 transition hover:bg-rose-50"
+                className="block w-full rounded-xl px-3 py-2 text-left text-sm font-medium text-rose-600 transition hover:bg-rose-50"
               >
                 Logout
               </button>

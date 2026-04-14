@@ -1,23 +1,101 @@
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap');
+
+:root {
+    --bg-soft: #f4f7fb;
+    --bg-accent: #e9f7f7;
+    --text-main: #14233b;
+    --card-bg: rgba(255, 255, 255, 0.86);
+    --card-border: rgba(15, 23, 42, 0.08);
+    --ease-smooth: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
 body {
     margin: 0;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen",
-    "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue",
-    sans-serif;
+    font-family: "Manrope", "Segoe UI", sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    color: #424242;
-    background: #f8fafc;
+    color: var(--text-main);
+    background:
+        radial-gradient(1200px 500px at -10% -20%, #d7f0f3 0%, rgba(215, 240, 243, 0) 60%),
+        radial-gradient(900px 480px at 105% -10%, #e7f3ff 0%, rgba(231, 243, 255, 0) 62%),
+        linear-gradient(180deg, var(--bg-soft) 0%, #eef3fa 100%);
     transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 :root[data-theme='dark'] body,
 body.dark-theme {
-    background: #0f172a;
-    color: #e2e8f0;
+    color: #dbe7f8;
+    background:
+        radial-gradient(1200px 500px at -10% -20%, rgba(56, 189, 248, 0.18) 0%, rgba(56, 189, 248, 0) 60%),
+        radial-gradient(900px 480px at 105% -10%, rgba(16, 185, 129, 0.14) 0%, rgba(16, 185, 129, 0) 62%),
+        linear-gradient(180deg, #0c1528 0%, #08111f 100%);
 }
 
 button {
     font-weight: 600;
+    font-family: "Space Grotesk", "Manrope", sans-serif;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+    font-family: "Space Grotesk", "Manrope", sans-serif;
+    letter-spacing: -0.01em;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+.fade-in {
+    animation: fadeIn 0.55s var(--ease-smooth) both;
+}
+
+.reveal-up {
+    animation: revealUp 0.55s var(--ease-smooth) both;
+}
+
+.reveal-delay-1 {
+    animation-delay: 70ms;
+}
+
+.reveal-delay-2 {
+    animation-delay: 120ms;
+}
+
+.soft-hover-card {
+    transition: transform 220ms var(--ease-smooth), box-shadow 220ms var(--ease-smooth), border-color 220ms var(--ease-smooth), background-color 220ms var(--ease-smooth);
+}
+
+.soft-hover-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 16px 40px rgba(15, 23, 42, 0.12);
+}
+
+.btn-modern-primary {
+    transition: transform 180ms var(--ease-smooth), box-shadow 180ms var(--ease-smooth), filter 180ms var(--ease-smooth);
+}
+
+.btn-modern-primary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 12px 28px rgba(8, 145, 178, 0.28);
+    filter: saturate(1.05);
+}
+
+.btn-modern-secondary {
+    transition: transform 180ms var(--ease-smooth), border-color 180ms var(--ease-smooth), color 180ms var(--ease-smooth), background-color 180ms var(--ease-smooth);
+}
+
+.btn-modern-secondary:hover {
+    transform: translateY(-1px);
+}
+
+::selection {
+    background: #99f6e4;
+    color: #042f2e;
 }
 
 .slogan {
@@ -118,5 +196,27 @@ button {
     100% {
         transform: scale(0.97);
         opacity: 0;
+    }
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes revealUp {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
     }
 }

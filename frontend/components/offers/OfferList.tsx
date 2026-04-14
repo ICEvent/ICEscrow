@@ -92,18 +92,18 @@ export default () => {
   return (
     <React.Fragment>
 
-      <div className="mb-4 mt-1 flex flex-wrap gap-2">
+      <div className="reveal-up mb-5 mt-1 flex flex-wrap gap-2">
         {isAuthed && (
           <>
             <button
               onClick={() => setOpenListForm(true)}
-              className="min-w-[160px] rounded-md bg-cyan-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-cyan-700"
+              className="btn-modern-primary min-w-[170px] rounded-xl bg-gradient-to-r from-cyan-600 to-emerald-500 px-4 py-2.5 text-sm font-semibold text-white shadow-md transition hover:-translate-y-0.5 hover:shadow-lg"
             >
               List Item
             </button>
             <button
               onClick={() => setOpenOrderForm(true)}
-              className="min-w-[160px] rounded-md border border-cyan-600 px-4 py-2 text-sm font-semibold text-cyan-700 transition hover:bg-cyan-50"
+              className="btn-modern-secondary min-w-[170px] rounded-xl border border-cyan-500/70 bg-white/80 px-4 py-2.5 text-sm font-semibold text-cyan-700 shadow-sm transition hover:-translate-y-0.5 hover:bg-cyan-50"
             >
               New Escrow Order
             </button>
@@ -112,28 +112,28 @@ export default () => {
       </div>
 
       <ItemList items={offers} />
-      <div className="flex items-center justify-center gap-3 p-2">
+      <div className="reveal-up reveal-delay-1 mt-3 flex items-center justify-center gap-3 p-2">
         <button
           onClick={() => setPage(p => p - 1)}
           disabled={page === 1}
-          className="rounded-md border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-cyan-500 hover:text-cyan-700 disabled:cursor-not-allowed disabled:opacity-50"
+          className="btn-modern-secondary rounded-xl border border-slate-300 bg-white/80 px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-cyan-500 hover:text-cyan-700 disabled:cursor-not-allowed disabled:opacity-50"
         >
           Previous
         </button>
-        <p className="text-sm font-medium text-slate-700">
+        <p className="rounded-full border border-slate-200 bg-white/70 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-slate-700">
           Page {page}
         </p>
         <button
           onClick={() => setPage(p => p + 1)}
-          className="rounded-md border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-cyan-500 hover:text-cyan-700"
+          className="btn-modern-secondary rounded-xl border border-slate-300 bg-white/80 px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-cyan-500 hover:text-cyan-700"
         >
           Next
         </button>
       </div>
 
       {openListForm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setOpenListForm(false)}>
-          <div className="relative max-h-[90vh] w-full max-w-4xl overflow-auto rounded-lg bg-white p-4" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/55 p-4 backdrop-blur-sm" onClick={() => setOpenListForm(false)}>
+          <div className="reveal-up relative max-h-[90vh] w-full max-w-4xl overflow-auto rounded-2xl border border-white/40 bg-white/95 p-5 shadow-2xl" onClick={(e) => e.stopPropagation()}>
             <button
               type="button"
               onClick={() => setOpenListForm(false)}
@@ -141,15 +141,15 @@ export default () => {
             >
               x
             </button>
-            <h3 className="mb-4 text-lg font-semibold text-slate-900">Input Item Information</h3>
+            <h3 className="mb-4 text-lg font-bold text-slate-900">Input Item Information</h3>
             <ListItemForm submit={saveList} itype={itemType} />
           </div>
         </div>
       )}
 
       {openOrderForm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setOpenOrderForm(false)}>
-          <div className="relative max-h-[90vh] w-full max-w-4xl overflow-auto rounded-lg bg-white p-4" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/55 p-4 backdrop-blur-sm" onClick={() => setOpenOrderForm(false)}>
+          <div className="reveal-up relative max-h-[90vh] w-full max-w-4xl overflow-auto rounded-2xl border border-white/40 bg-white/95 p-5 shadow-2xl" onClick={(e) => e.stopPropagation()}>
             <button
               type="button"
               onClick={() => setOpenOrderForm(false)}
@@ -157,7 +157,7 @@ export default () => {
             >
               x
             </button>
-            <h3 className="mb-4 text-lg font-semibold text-slate-900">New Escrow Contract</h3>
+            <h3 className="mb-4 text-lg font-bold text-slate-900">New Escrow Contract</h3>
             <OrderForm buy={buy} sell={sell} />
           </div>
         </div>

@@ -17,7 +17,7 @@ const Home = () => {
   const { menu } = useMenu();
 
   return (
-    <div className="mt-8">
+    <div className="mt-4">
         {!menu || menu == MENU_HOME && <OfferList  />}
         {menu == MENU_ORDERS && <OrderList />}
         {menu == MENU_PROFILE && <ProfilePage />}

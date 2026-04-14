@@ -19,16 +19,16 @@ const ItemList: React.FC<ItemListProps> = ({ items, onItemClick, defaultFilter }
     }, [items, activeFilter]);
 
     return (
-        <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-            <div className="mb-3 flex flex-wrap gap-2">
+        <div className="reveal-up rounded-2xl border border-white/60 bg-white/70 p-4 shadow-lg backdrop-blur">
+            <div className="mb-4 flex flex-wrap gap-2 reveal-delay-1">
                 {filters.map((filter) => (
                     <button
                         key={filter}
                         type="button"
                         onClick={() => setActiveFilter(filter)}
-                        className={`rounded-full px-3 py-1 text-sm font-medium transition ${
+                        className={`btn-modern-secondary rounded-full px-3 py-1.5 text-xs font-semibold uppercase tracking-wide transition ${
                             activeFilter === filter
-                                ? 'bg-cyan-600 text-white'
+                                ? 'bg-gradient-to-r from-cyan-600 to-emerald-500 text-white shadow-md'
                                 : 'border border-slate-300 bg-white text-slate-700 hover:border-cyan-400 hover:text-cyan-700'
                         }`}
                     >
@@ -37,7 +37,7 @@ const ItemList: React.FC<ItemListProps> = ({ items, onItemClick, defaultFilter }
                 ))}
             </div>
 
-            <div className="space-y-2">
+            <div className="space-y-3">
                 {filteredItems.map((item) => (
                     <OfferItem key={item.id} offer={item}  />
                 ))}

@@ -58,23 +58,23 @@ export default (props) => {
     };
 
     return (
-        <div className="relative rounded-lg bg-white p-6 shadow-sm">
+        <div className="reveal-up relative rounded-2xl border border-white/50 bg-gradient-to-b from-white to-slate-50 p-6 shadow-xl">
             <button
                 onClick={(e) => {
                     e.stopPropagation();
                     props.close?.();
                 }}
-                className="absolute right-2 top-2 h-8 w-8 rounded-full text-slate-500 transition hover:bg-slate-100 hover:text-slate-700"
+                className="absolute right-3 top-3 h-8 w-8 rounded-full text-slate-500 transition hover:bg-slate-100 hover:text-slate-700"
                 aria-label="Close"
             >
                 x
             </button>
 
-            <div className="mb-4">
-                <h2 className="text-xl font-semibold text-slate-900">{props.offer.name}</h2>
+            <div className="mb-5">
+                <h2 className="text-2xl font-bold tracking-tight text-slate-900">{props.offer.name}</h2>
                 <div className="mt-2 flex items-center gap-2">
-                    <p className="text-lg font-medium text-slate-800">${currency} {price}</p>
-                    <span className="rounded-full border border-cyan-600 px-2 py-0.5 text-xs font-semibold uppercase tracking-wide text-cyan-700">
+                    <p className="text-lg font-semibold text-slate-800">${currency} {price}</p>
+                    <span className="rounded-full border border-cyan-500/70 bg-cyan-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-cyan-700">
                         {Object.getOwnPropertyNames(props.offer.itype)[0]}
                     </span>
                 </div>
@@ -82,7 +82,7 @@ export default (props) => {
 
             {props.offer.image && (
                 <img
-                    className="mb-4 h-[300px] w-full rounded-md bg-slate-100 object-contain"
+                    className="mb-4 h-[300px] w-full rounded-xl bg-slate-100 object-contain ring-1 ring-slate-200"
                     src={props.offer.image}
                     alt={props.offer.name}
                 />
@@ -108,7 +108,7 @@ export default (props) => {
                     <button
                         disabled={loading || !isAuthed}
                         onClick={buyit}
-                        className="rounded-md bg-cyan-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-cyan-700 disabled:cursor-not-allowed disabled:bg-slate-300"
+                        className="btn-modern-primary rounded-xl bg-gradient-to-r from-cyan-600 to-emerald-500 px-4 py-2 text-sm font-semibold text-white shadow-md transition hover:-translate-y-0.5 hover:shadow-lg disabled:cursor-not-allowed disabled:bg-slate-300"
                     >
                         Buy Now
                     </button>
@@ -117,7 +117,7 @@ export default (props) => {
                 {principal && props.offer.owner.toString() === principal.toString() && (
                     <button
                         onClick={unlist}
-                        className="rounded-md border border-rose-500 px-4 py-2 text-sm font-semibold text-rose-600 transition hover:bg-rose-50"
+                        className="btn-modern-secondary rounded-xl border border-rose-500 px-4 py-2 text-sm font-semibold text-rose-600 transition hover:bg-rose-50"
                     >
                         Unlist Item
                     </button>

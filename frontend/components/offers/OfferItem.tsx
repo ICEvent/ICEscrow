@@ -15,27 +15,27 @@ export default (props) => {
             <div
             key={Number(props.offer.id)}
             onClick={() => setOpenOfferDetail(true)}
-            className="flex cursor-pointer items-center gap-4 rounded-lg border border-slate-200 bg-white px-4 py-3 transition hover:border-cyan-300 hover:bg-cyan-50/30"
+            className="soft-hover-card group flex cursor-pointer items-center gap-4 rounded-2xl border border-white/60 bg-white/90 px-4 py-3 shadow-sm transition hover:-translate-y-0.5 hover:border-cyan-300 hover:bg-white hover:shadow-lg"
         >
                 {props.offer.image ? (
                     <img
                         src={props.offer.image}
                         alt={props.offer.name}
-                        className="h-14 w-14 rounded-md object-cover"
+                        className="h-14 w-14 rounded-xl object-cover ring-1 ring-slate-200"
                     />
                 ) : (
-                    <div className="flex h-14 w-14 items-center justify-center rounded-md bg-slate-200 text-xs text-slate-500">
+                    <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-slate-200 text-xs text-slate-500 ring-1 ring-slate-200">
                         No image
                     </div>
                 )}
                 <div className="w-full">
                     <div className="flex items-center justify-between gap-3">
                         <div>
-                            <p className="font-medium text-slate-900">{props.offer.name}</p>
+                            <p className="font-semibold text-slate-900 group-hover:text-cyan-700">{props.offer.name}</p>
                             <p className="text-sm text-slate-600">{"$" + currency + " " + price}</p>
                         </div>
                         <div className="flex items-center gap-3">
-                            <span className="rounded-full border border-cyan-600 px-2 py-0.5 text-xs font-semibold uppercase text-cyan-700">
+                            <span className="rounded-full border border-cyan-500/70 bg-cyan-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-cyan-700">
                                 {Object.getOwnPropertyNames(props.offer.itype)[0]}
                             </span>
                             <span className="text-xs text-slate-500">
@@ -48,10 +48,10 @@ export default (props) => {
 
             {openOfferDetail && (
                 <div
-                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+                    className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/55 p-4 backdrop-blur-sm"
                     onClick={() => setOpenOfferDetail(false)}
                 >
-                    <div className="max-h-[90vh] w-full max-w-3xl overflow-auto rounded-lg bg-white" onClick={(e) => e.stopPropagation()}>
+                    <div className="reveal-up max-h-[90vh] w-full max-w-3xl overflow-auto rounded-2xl border border-white/40 bg-white/95 shadow-2xl" onClick={(e) => e.stopPropagation()}>
                         <OfferDetail offer={props.offer} close={() => setOpenOfferDetail(false)} />
                     </div>
                 </div>
