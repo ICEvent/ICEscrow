@@ -21,7 +21,7 @@ export default function ListItemForm(props) {
 
     const list = () => {
         if (!values.name || values.name == "") { toast.warn("name is required") }
-        else if (values.price <= 0) { toast.warn("Price is not correct") }
+        else if (values.price < 0) { toast.warn("Price cannot be negative") }
         else {
             const currency = values.currency == CURRENCY_ICET ? { "ICET": null } : { "ICP": null };
             const listype = values.itype == LIST_ITEM_NFT ? {"nft": null}:
@@ -123,7 +123,7 @@ export default function ListItemForm(props) {
                     <button
                         type="button"
                         onClick={list}
-                        disabled={!values.name || values.price == 0}
+                        disabled={!values.name}
                         className="rounded-md bg-cyan-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-cyan-700 disabled:cursor-not-allowed disabled:bg-slate-300"
                     >
                         List

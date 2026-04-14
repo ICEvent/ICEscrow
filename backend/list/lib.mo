@@ -124,6 +124,31 @@ module{
             items.remove(id);
         };
 
+        public func changeOwner(id: Nat, newOwner: Principal): Result.Result<Nat, Text>{
+            let fitem = items.get(id);
+            switch(fitem){
+                case(?fitem){
+                    let udata = {
+                        id = fitem.id;
+                        name = fitem.name;
+                        description = fitem.description;
+                        image = fitem.image;
+                        itype = fitem.itype;
+                        price  = fitem.price;
+                        currency  = fitem.currency;
+                        status = #sold;
+                        owner = newOwner;
+                        listime = fitem.listime;
+                    };
+                    items.put(id, udata);
+                    #ok(1)
+                };
+                case(_){
+                    #err("no item found")
+                };
+            };
+        };
+
         public func getUserItems(user: Principal) : [Item] {
             let msgArr =   Iter.toArray(items.vals());
             Array.filter(msgArr, func(l: Item):Bool{
