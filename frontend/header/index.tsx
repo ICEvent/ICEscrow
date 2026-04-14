@@ -91,54 +91,87 @@ const Header: FC = () => {
 
   return (
     <>
-      <header className="fade-in fixed left-0 right-0 top-0 z-40 border-b border-slate-200 bg-white/95 backdrop-blur">
-        <div className="absolute inset-0 bg-gradient-to-r from-cyan-100/40 via-white/70 to-emerald-100/40" />
-        <div className="relative mx-auto flex h-16 items-center gap-2 px-4">
-          <DarkModeToggle />
+      <header className="fade-in fixed left-0 right-0 top-0 z-40 px-4 pt-3 sm:px-6 lg:px-10">
+        <div className="glass-panel mx-auto flex h-16 w-full max-w-7xl items-center gap-2 rounded-2xl px-3 sm:px-4">
+          <div className="hidden sm:block">
+            <DarkModeToggle />
+          </div>
+
           <button
             type="button"
-            className="mr-2 h-8 w-8 rounded-md"
-            aria-hidden="true"
-          />
-          <button
-            type="button"
-            className="flex-1 text-left text-lg font-bold tracking-tight text-slate-800"
+            className="mr-2 flex items-center gap-2"
             onClick={() => setMenu(MENU_HOME)}
           >
-            ICEscrow
+            <span className="commerce-gradient flex h-9 w-9 items-center justify-center rounded-xl text-sm font-black text-white">
+              I
+            </span>
+            <span className="text-left">
+              <span className="block text-base font-extrabold leading-none text-slate-900">ICEscrow</span>
+              <span className="block text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-500">Marketplace</span>
+            </span>
           </button>
 
-          {isAuthed && (
+          <nav className="hidden items-center gap-1 rounded-xl bg-slate-100/80 p-1 md:flex">
             <button
               type="button"
-              onClick={handleClick}
-              className="btn-modern-secondary rounded-full border border-slate-300/80 bg-white/80 px-4 py-1.5 text-sm font-semibold text-slate-700 shadow-sm transition hover:-translate-y-0.5 hover:border-cyan-500 hover:text-cyan-700"
+              onClick={() => setMenu(MENU_HOME)}
+              className={`rounded-lg px-3 py-1.5 text-xs font-bold uppercase tracking-wide transition ${menu == MENU_HOME ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}
             >
-              Account
+              Shop
             </button>
-          )}
-          {!isAuthed && <LoginButton />}
+            <button
+              type="button"
+              onClick={() => setMenu(MENU_ORDERS)}
+              className={`rounded-lg px-3 py-1.5 text-xs font-bold uppercase tracking-wide transition ${menu == MENU_ORDERS ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}
+            >
+              Orders
+            </button>
+            <button
+              type="button"
+              onClick={() => setMenu(MENU_PROFILE)}
+              className={`rounded-lg px-3 py-1.5 text-xs font-bold uppercase tracking-wide transition ${menu == MENU_PROFILE ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}
+            >
+              Profile
+            </button>
+          </nav>
+
+          <div className="ml-auto flex items-center gap-2">
+            <div className="sm:hidden">
+              <DarkModeToggle />
+            </div>
+
+            {isAuthed && (
+              <button
+                type="button"
+                onClick={handleClick}
+                className="btn-modern-secondary rounded-full border border-slate-300/80 bg-white px-4 py-1.5 text-sm font-semibold text-slate-700 shadow-sm"
+              >
+                Account
+              </button>
+            )}
+            {!isAuthed && <LoginButton />}
+          </div>
 
           {openMenu && (
-            <div className="reveal-up absolute right-4 top-14 z-50 min-w-[190px] rounded-2xl border border-slate-200 bg-white/95 p-2 shadow-xl backdrop-blur">
+            <div className="reveal-up absolute right-4 top-16 z-50 min-w-[210px] rounded-2xl border border-slate-200 bg-white/95 p-2 shadow-xl backdrop-blur">
               <button
                 type="button"
                 onClick={openProfile}
-                className="block w-full rounded-xl px-3 py-2 text-left text-sm font-medium text-slate-700 transition hover:bg-slate-100"
+                className="block w-full rounded-xl px-3 py-2 text-left text-sm font-semibold text-slate-700 transition hover:bg-slate-100"
               >
                 Profile
               </button>
               <button
                 type="button"
                 onClick={openOrders}
-                className="block w-full rounded-xl px-3 py-2 text-left text-sm font-medium text-slate-700 transition hover:bg-slate-100"
+                className="block w-full rounded-xl px-3 py-2 text-left text-sm font-semibold text-slate-700 transition hover:bg-slate-100"
               >
                 Orders
               </button>
               <button
                 type="button"
                 onClick={logout}
-                className="block w-full rounded-xl px-3 py-2 text-left text-sm font-medium text-rose-600 transition hover:bg-rose-50"
+                className="block w-full rounded-xl px-3 py-2 text-left text-sm font-semibold text-rose-600 transition hover:bg-rose-50"
               >
                 Logout
               </button>

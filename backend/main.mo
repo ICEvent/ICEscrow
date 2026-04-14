@@ -40,7 +40,7 @@ import Items "./list";
 
 import UpgradeTypes "./list/upgradeTypes";
 
-actor class EscrowService() = this {
+persistent actor class EscrowService() = this {
 
     type Order = Types.Order;
     type NewOrder = Types.NewOrder;
@@ -49,8 +49,8 @@ actor class EscrowService() = this {
     type Comment = Types.Comment;
 
     // transfer fee ICP
-    let FEE : Nat64 = 10_000;
-    let E8S : Nat64 = 10_000_000;
+    transient let FEE : Nat64 = 10_000;
+    transient let E8S : Nat64 = 10_000_000;
 
     stable var default_page_size = 20;
 
@@ -71,9 +71,9 @@ actor class EscrowService() = this {
 
     // LEDGER
 
-    let ICET = "ot4zw-oaaaa-aaaag-qabaa-cai";
-    let ICPLedger : Types.Ledger = actor ("ryjl3-tyaaa-aaaaa-aaaba-cai");
-    let ICETLedger : ICETTypes.Self = actor "ot4zw-oaaaa-aaaag-qabaa-cai";
+    transient let ICET = "ot4zw-oaaaa-aaaag-qabaa-cai";
+    transient let ICPLedger : Types.Ledger = actor ("ryjl3-tyaaa-aaaaa-aaaba-cai");
+    transient let ICETLedger : ICETTypes.Self = actor "ot4zw-oaaaa-aaaag-qabaa-cai";
 
     type AccountIdAndTime = {
         accountId : AccountIdText;
@@ -90,10 +90,10 @@ actor class EscrowService() = this {
     //backukp
     stable var backupItems : [UpgradeTypes.U_Item] = [];
 
-    var orders = TrieMap.TrieMap<Nat, Order>(Nat.equal, Hash.hash);
+    transient var orders = TrieMap.TrieMap<Nat, Order>(Nat.equal, Hash.hash);
     orders := TrieMap.fromEntries<Nat, Order>(Iter.fromArray(upgradeOrders), Nat.equal, Hash.hash);
 
-    let items = Items.Items(_upgradeItemId, _upgradeItems);
+    transient let items = Items.Items(_upgradeItemId, _upgradeItems);
 
     public shared ({ caller }) func buy(newOrder : NewOrder) : async Result.Result<Nat, Text> {
 

@@ -91,41 +91,49 @@ export default () => {
 
   return (
     <React.Fragment>
+      <section className="reveal-up glass-panel rounded-3xl p-4 sm:p-5">
+        <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-orange-700">Featured Catalog</p>
+            <h2 className="mt-1 text-2xl font-extrabold tracking-tight text-slate-900">Explore Live Listings</h2>
+            <p className="mt-1 text-sm text-slate-600">Handpicked offers with escrow-first checkout protection.</p>
+          </div>
 
-      <div className="reveal-up mb-5 mt-1 flex flex-wrap gap-2">
-        {isAuthed && (
-          <>
-            <button
-              onClick={() => setOpenListForm(true)}
-              className="btn-modern-primary min-w-[170px] rounded-xl bg-gradient-to-r from-cyan-600 to-emerald-500 px-4 py-2.5 text-sm font-semibold text-white shadow-md transition hover:-translate-y-0.5 hover:shadow-lg"
-            >
-              List Item
-            </button>
-            <button
-              onClick={() => setOpenOrderForm(true)}
-              className="btn-modern-secondary min-w-[170px] rounded-xl border border-cyan-500/70 bg-white/80 px-4 py-2.5 text-sm font-semibold text-cyan-700 shadow-sm transition hover:-translate-y-0.5 hover:bg-cyan-50"
-            >
-              New Escrow Order
-            </button>
-          </>
-        )}
-      </div>
+          {isAuthed && (
+            <div className="flex flex-wrap gap-2">
+              <button
+                onClick={() => setOpenListForm(true)}
+                className="btn-modern-primary commerce-gradient min-w-[170px] rounded-xl px-4 py-2.5 text-sm font-semibold text-white shadow-md"
+              >
+                List New Product
+              </button>
+              <button
+                onClick={() => setOpenOrderForm(true)}
+                className="btn-modern-secondary min-w-[170px] rounded-xl border border-teal-600/60 bg-white px-4 py-2.5 text-sm font-semibold text-teal-700 shadow-sm"
+              >
+                Start Escrow Order
+              </button>
+            </div>
+          )}
+        </div>
+      </section>
 
       <ItemList items={offers} />
-      <div className="reveal-up reveal-delay-1 mt-3 flex items-center justify-center gap-3 p-2">
+
+      <div className="reveal-up reveal-delay-1 mt-4 flex items-center justify-center gap-3 p-2">
         <button
           onClick={() => setPage(p => p - 1)}
           disabled={page === 1}
-          className="btn-modern-secondary rounded-xl border border-slate-300 bg-white/80 px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-cyan-500 hover:text-cyan-700 disabled:cursor-not-allowed disabled:opacity-50"
+          className="btn-modern-secondary rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-orange-500 hover:text-orange-700 disabled:cursor-not-allowed disabled:opacity-50"
         >
           Previous
         </button>
-        <p className="rounded-full border border-slate-200 bg-white/70 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-slate-700">
+        <p className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold uppercase tracking-wide text-slate-700">
           Page {page}
         </p>
         <button
           onClick={() => setPage(p => p + 1)}
-          className="btn-modern-secondary rounded-xl border border-slate-300 bg-white/80 px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-cyan-500 hover:text-cyan-700"
+          className="btn-modern-secondary rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-orange-500 hover:text-orange-700"
         >
           Next
         </button>

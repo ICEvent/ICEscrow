@@ -20,8 +20,8 @@ export default (props) => {
     },[])
   
     return (
-        <div className="mt-8">
-        {offer && <OfferDetail offer={offer}/>}
+        <div className="mt-4 rounded-3xl border border-white/50 bg-white/75 p-4 shadow-sm backdrop-blur sm:p-5">
+            {offer && <OfferDetail offer={offer} />}
         </div>
     );
 }

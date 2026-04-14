@@ -4,7 +4,8 @@ import path from "path"
 import dfxJson from "./dfx.json"
 import fs from "fs"
 
-const isDev = false;//process.env["DFX_NETWORK"] !== "ic"
+const networkName = (process.env["DFX_NETWORK"] ?? "local") as Network
+const isDev = networkName !== "ic"
 
 type Network = "ic" | "local"
 
@@ -12,14 +13,13 @@ interface CanisterIds {
   [key: string]: { [key in Network]: string }
 }
 
-let canisterIds: CanisterIds
+let canisterIds: CanisterIds = {}
 try {
+  const canisterIdsPath = isDev
+    ? `.dfx/${networkName}/canister_ids.json`
+    : "./canister_ids.json"
   canisterIds = JSON.parse(
-    fs
-      .readFileSync(
-        isDev ? ".dfx/local/canister_ids.json" : "./canister_ids.json",
-      )
-      .toString(),
+    fs.readFileSync(canisterIdsPath).toString(),
   )
 } catch (e) {
     console.error("\n⚠️  Before starting the dev server run: dfx deploy\n\n")
@@ -29,8 +29,6 @@ try {
 // This will allow us to: import { canisterName } from "canisters/canisterName"
 const aliases = Object.entries(dfxJson.canisters).reduce(
   (acc, [name, _value]) => {
-    // Get the network name, or `local` by default.
-    const networkName = process.env["DFX_NETWORK"] ?? "local"
     const outputRoot = path.join(
       __dirname,
       ".dfx",
@@ -53,8 +51,8 @@ const canisterDefinitions = Object.entries(canisterIds).reduce(
   (acc, [key, val]) => ({
     ...acc,
     [`process.env.${key.toUpperCase()}_CANISTER_ID`]: isDev
-      ? JSON.stringify(val.local)
-      : JSON.stringify(val.ic),
+      ? JSON.stringify(val.local ?? "")
+      : JSON.stringify(val.ic ?? ""),
   }),
   {},
 )

@@ -58,7 +58,7 @@ export default (props) => {
     };
 
     return (
-        <div className="reveal-up relative rounded-2xl border border-white/50 bg-gradient-to-b from-white to-slate-50 p-6 shadow-xl">
+        <div className="reveal-up relative rounded-2xl border border-white/50 bg-gradient-to-b from-white to-orange-50/30 p-6 shadow-xl">
             <button
                 onClick={(e) => {
                     e.stopPropagation();
@@ -74,7 +74,7 @@ export default (props) => {
                 <h2 className="text-2xl font-bold tracking-tight text-slate-900">{props.offer.name}</h2>
                 <div className="mt-2 flex items-center gap-2">
                     <p className="text-lg font-semibold text-slate-800">${currency} {price}</p>
-                    <span className="rounded-full border border-cyan-500/70 bg-cyan-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-cyan-700">
+                    <span className="rounded-full border border-orange-500/60 bg-orange-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-orange-700">
                         {Object.getOwnPropertyNames(props.offer.itype)[0]}
                     </span>
                 </div>
@@ -108,7 +108,7 @@ export default (props) => {
                     <button
                         disabled={loading || !isAuthed}
                         onClick={buyit}
-                        className="btn-modern-primary rounded-xl bg-gradient-to-r from-cyan-600 to-emerald-500 px-4 py-2 text-sm font-semibold text-white shadow-md transition hover:-translate-y-0.5 hover:shadow-lg disabled:cursor-not-allowed disabled:bg-slate-300"
+                        className="btn-modern-primary commerce-gradient rounded-xl px-4 py-2 text-sm font-semibold text-white shadow-md transition hover:-translate-y-0.5 hover:shadow-lg disabled:cursor-not-allowed disabled:bg-slate-300"
                     >
                         Buy Now
                     </button>

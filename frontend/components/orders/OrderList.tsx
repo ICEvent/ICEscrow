@@ -81,32 +81,29 @@ export default () => {
     )
     return (
         <>
-            <div className="mb-4 mt-1 flex flex-wrap gap-2">
+            <div className="mb-4 mt-1 rounded-2xl border border-white/50 bg-white/75 p-3 shadow-sm backdrop-blur">
+                <p className="mb-2 text-xs font-bold uppercase tracking-[0.18em] text-orange-700">Escrow Orders</p>
+                <div className="flex flex-wrap gap-2">
                 <button
                     type="button"
                     onClick={() => setOpenOrderForm(true)}
-                    className="min-w-[160px] rounded-md bg-cyan-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-cyan-700"
+                    className="btn-modern-primary commerce-gradient min-w-[160px] rounded-xl px-4 py-2 text-sm font-semibold text-white shadow-sm"
                 >
                     Create An Order
                 </button>
                 <button
                     type="button"
                     onClick={loadAllOrders}
-                    className="min-w-[160px] rounded-md border border-cyan-600 px-4 py-2 text-sm font-semibold text-cyan-700 transition hover:bg-cyan-50"
+                    className="btn-modern-secondary min-w-[160px] rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-orange-500 hover:text-orange-700"
                 >
                     All Orders ({page})
                 </button>
+                </div>
             </div>
 
             {!loading && (
-                <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
-                    <div className="grid grid-cols-12 gap-2 border-b border-slate-200 bg-slate-50 px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-600">
-                        <div className="col-span-2">ID</div>
-                        <div className="col-span-4">Order Item</div>
-                        <div className="col-span-3 text-right">Amount</div>
-                        <div className="col-span-3 text-right">Order Time</div>
-                    </div>
-                    <div className="divide-y divide-slate-100">{ol}</div>
+                <div className="space-y-3">
+                    {ol}
                 </div>
             )}
 
@@ -119,7 +116,7 @@ export default () => {
 
             {openOrderForm && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setOpenOrderForm(false)}>
-                    <div className="relative max-h-[90vh] w-full max-w-3xl overflow-auto rounded-lg bg-white p-4" onClick={(e) => e.stopPropagation()}>
+                    <div className="relative max-h-[90vh] w-full max-w-3xl overflow-auto rounded-2xl border border-white/40 bg-white/95 p-4 shadow-2xl" onClick={(e) => e.stopPropagation()}>
                         <button
                             type="button"
                             onClick={() => setOpenOrderForm(false)}
