@@ -1,14 +1,17 @@
 import * as React from 'react';
 
-import { useParams } from "react-router-dom";
-import { useEscrow } from '../components/Store';
+import { useNavigate, useParams } from "react-router-dom";
+import { useEscrow, useMenu } from '../components/Store';
 import OfferDetail from '../components/offers/OfferDetail';
 import { Item } from 'frontend/api/escrow/escrow.did';
+import { MENU_HOME } from '../lib/constants';
 
 
 
 export default (props) => {
     const escrow = useEscrow();
+    const navigate = useNavigate();
+    const { setMenu } = useMenu();
     const params =  useParams();
 
     const [offer, setOffer] = React.useState<Item|null>();
@@ -20,8 +23,28 @@ export default (props) => {
     },[])
   
     return (
-        <div className="mt-4 rounded-3xl border border-white/50 bg-white/75 p-4 shadow-sm backdrop-blur sm:p-5">
-            {offer && <OfferDetail offer={offer} />}
-        </div>
+        <section className="mt-4 space-y-4">
+            <div className="glass-panel rounded-2xl p-3 sm:p-4">
+                <button
+                    type="button"
+                    onClick={() => {
+                        setMenu(MENU_HOME);
+                        navigate('/');
+                    }}
+                    className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:border-orange-500 hover:text-orange-700"
+                >
+                    Back to Marketplace
+                </button>
+                <p className="mt-2 text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Product Detail</p>
+            </div>
+
+            {offer ? (
+                <OfferDetail offer={offer} />
+            ) : (
+                <div className="rounded-3xl border border-white/50 bg-white/75 p-6 text-sm text-slate-600 shadow-sm backdrop-blur">
+                    Loading item details...
+                </div>
+            )}
+        </section>
     );
 }

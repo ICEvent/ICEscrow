@@ -32,8 +32,19 @@ const ProfilePage = () => {
   };
 
   return (
+    <section className="space-y-4">
+      <div className="glass-panel rounded-3xl p-5 sm:p-6">
+        <p className="text-xs font-bold uppercase tracking-[0.18em] text-orange-700">Account Center</p>
+        <h1 className="mt-1 text-3xl font-extrabold tracking-tight text-slate-900">Profile Settings</h1>
+        <p className="mt-2 max-w-2xl text-sm text-slate-600">
+          Manage your public seller identity, profile link, and storefront details for buyers.
+        </p>
+      </div>
 
-    <ProfileForm profile={profile} reload={loadProfile} />
+      <div className="rounded-3xl border border-white/60 bg-white/75 p-4 shadow-sm backdrop-blur sm:p-6">
+        <ProfileForm profile={profile} reload={loadProfile} />
+      </div>
+    </section>
     // <Card >
     //   {profile &&
     //     <CardMedia

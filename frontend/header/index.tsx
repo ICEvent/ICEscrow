@@ -35,11 +35,18 @@ const Header: FC = () => {
   const openOrders = () => {
     handleClose();
     setMenu(MENU_ORDERS)
+    navigate("/", { replace: true });
   }
 
   const openProfile = () => {
     handleClose();
     setMenu(MENU_PROFILE)
+    navigate("/", { replace: true });
+  }
+
+  const openShop = () => {
+    setMenu(MENU_HOME);
+    navigate("/", { replace: true });
   }
   useEffect(() => {
     if (!menu) setMenu(MENU_HOME);
@@ -93,14 +100,10 @@ const Header: FC = () => {
     <>
       <header className="fade-in fixed left-0 right-0 top-0 z-40 px-4 pt-3 sm:px-6 lg:px-10">
         <div className="glass-panel mx-auto flex h-16 w-full max-w-7xl items-center gap-2 rounded-2xl px-3 sm:px-4">
-          <div className="hidden sm:block">
-            <DarkModeToggle />
-          </div>
-
           <button
             type="button"
             className="mr-2 flex items-center gap-2"
-            onClick={() => setMenu(MENU_HOME)}
+            onClick={openShop}
           >
             <span className="commerce-gradient flex h-9 w-9 items-center justify-center rounded-xl text-sm font-black text-white">
               I
@@ -114,31 +117,33 @@ const Header: FC = () => {
           <nav className="hidden items-center gap-1 rounded-xl bg-slate-100/80 p-1 md:flex">
             <button
               type="button"
-              onClick={() => setMenu(MENU_HOME)}
+              onClick={openShop}
               className={`rounded-lg px-3 py-1.5 text-xs font-bold uppercase tracking-wide transition ${menu == MENU_HOME ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}
             >
               Shop
             </button>
-            <button
-              type="button"
-              onClick={() => setMenu(MENU_ORDERS)}
-              className={`rounded-lg px-3 py-1.5 text-xs font-bold uppercase tracking-wide transition ${menu == MENU_ORDERS ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}
-            >
-              Orders
-            </button>
-            <button
-              type="button"
-              onClick={() => setMenu(MENU_PROFILE)}
-              className={`rounded-lg px-3 py-1.5 text-xs font-bold uppercase tracking-wide transition ${menu == MENU_PROFILE ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}
-            >
-              Profile
-            </button>
+            {isAuthed && (
+              <>
+                <button
+                  type="button"
+                  onClick={openOrders}
+                  className={`rounded-lg px-3 py-1.5 text-xs font-bold uppercase tracking-wide transition ${menu == MENU_ORDERS ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}
+                >
+                  Orders
+                </button>
+                <button
+                  type="button"
+                  onClick={openProfile}
+                  className={`rounded-lg px-3 py-1.5 text-xs font-bold uppercase tracking-wide transition ${menu == MENU_PROFILE ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}
+                >
+                  Profile
+                </button>
+              </>
+            )}
           </nav>
 
           <div className="ml-auto flex items-center gap-2">
-            <div className="sm:hidden">
-              <DarkModeToggle />
-            </div>
+            <DarkModeToggle />
 
             {isAuthed && (
               <button
