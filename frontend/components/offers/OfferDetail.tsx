@@ -3,7 +3,7 @@ import { useGlobalContext, useEscrow } from '../Store';
 import { toast } from 'react-toastify';
 import moment from 'moment';
 import { CURRENCY_ICET, CURRENCY_ICP, LEDGER_E6S, LEDGER_E8S, ORDER_DEFAULT_EXPIRED_DAYS } from '../../lib/constants';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 
 
@@ -14,11 +14,13 @@ export default (props) => {
         principal
     } } = useGlobalContext();
     const escrow = useEscrow();
+    const navigate = useNavigate();
 
     const [loading, setLoading] = React.useState(false);
     const currency = Object.getOwnPropertyNames(props.offer.currency)[0] == CURRENCY_ICP ? CURRENCY_ICP : CURRENCY_ICET;
 
     const price = currency == CURRENCY_ICP ? parseInt(props.offer.price) / LEDGER_E8S : parseInt(props.offer.price) / LEDGER_E6S;
+    const isFree = price === 0;
 
     const buyit = () => {
         if (!isAuthed) {
@@ -44,6 +46,29 @@ export default (props) => {
         }
     };
 
+    const claimFree = () => {
+        if (!isAuthed) {
+            toast.warn("Please login first");
+        } else {
+            setLoading(true);
+            escrow.create({
+                seller: props.offer.owner,
+                memo: props.offer.name,
+                amount: props.offer.price,
+                currency: props.offer.currency,
+                expiration: BigInt(moment().add(ORDER_DEFAULT_EXPIRED_DAYS, "days").unix())
+            }).then(res => {
+                setLoading(false);
+                if (res["ok"]) {
+                    toast.success("Claim order created! Check your order list — the seller will deliver once ready.");
+                } else {
+                    toast.error(res["err"] ? res["err"] : "Failed to claim item");
+                }
+                props.close ? props.close() : null;
+            });
+        }
+    };
+
     const unlist = () => {
         setLoading(true)
         escrow.changeItemStatus(props.offer.id, { "sold": null }).then(res => {
@@ -57,6 +82,7 @@ export default (props) => {
         })
     };
 
+    const isOwner = principal && props.offer.owner.toString() === principal.toString();
     const listedDate = moment.unix(Number(props.offer.listime) / 1000000000).format('MMMM DD, YYYY');
     const itemType = Object.getOwnPropertyNames(props.offer.itype)[0];
 
@@ -85,9 +111,15 @@ export default (props) => {
                     <span className="rounded-full border border-orange-500/60 bg-orange-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-orange-700">
                         {itemType}
                     </span>
-                    <span className="rounded-full border border-slate-300 bg-white px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-slate-600">
-                        Escrow Protected
-                    </span>
+                    {isFree ? (
+                        <span className="rounded-full bg-emerald-500 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">
+                            FREE
+                        </span>
+                    ) : (
+                        <span className="rounded-full border border-slate-300 bg-white px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-slate-600">
+                            Escrow Protected
+                        </span>
+                    )}
                 </div>
             </div>
 
@@ -116,7 +148,11 @@ export default (props) => {
                 <div className="lg:col-span-5">
                     <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
                         <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-500">Price</p>
-                        <p className="mt-2 text-3xl font-extrabold tracking-tight text-slate-900">${currency} {price}</p>
+                        {isFree ? (
+                            <p className="mt-2 text-3xl font-extrabold tracking-tight text-emerald-600">FREE</p>
+                        ) : (
+                            <p className="mt-2 text-3xl font-extrabold tracking-tight text-slate-900">${currency} {price}</p>
+                        )}
 
                         <div className="mt-4 space-y-2 rounded-xl border border-slate-200 bg-slate-50 p-3">
                             <p className="text-xs text-slate-600">Listed on: <span className="font-semibold text-slate-800">{listedDate}</span></p>
@@ -132,18 +168,41 @@ export default (props) => {
                             {loading ? (
                                 <div className="mx-auto h-6 w-6 animate-spin rounded-full border-2 border-slate-300 border-t-cyan-600" />
                             ) : (
+                                <>
+                                    {!isOwner && isFree && (
+                                        <button
+                                            disabled={loading || !isAuthed}
+                                            onClick={claimFree}
+                                            className="w-full rounded-xl bg-emerald-500 px-4 py-3 text-sm font-semibold text-white shadow-md transition hover:-translate-y-0.5 hover:bg-emerald-600 hover:shadow-lg disabled:cursor-not-allowed disabled:bg-slate-300"
+                                        >
+                                            Claim for Free
+                                        </button>
+                                    )}
+
+                                    {!isOwner && !isFree && (
+                                        <button
+                                            disabled={loading || !isAuthed}
+                                            onClick={buyit}
+                                            className="btn-modern-primary commerce-gradient w-full rounded-xl px-4 py-3 text-sm font-semibold text-white shadow-md transition hover:-translate-y-0.5 hover:shadow-lg disabled:cursor-not-allowed disabled:bg-slate-300"
+                                        >
+                                            Place Escrow Order
+                                        </button>
+                                    )}
+                                </>
+                            )}
+
+                            {!isAuthed && <p className="text-center text-xs text-slate-500">Login required to {isFree ? 'claim' : 'place an order'}.</p>}
+
+                            {isOwner && (
                                 <button
-                                    disabled={loading || !isAuthed}
-                                    onClick={buyit}
-                                    className="btn-modern-primary commerce-gradient w-full rounded-xl px-4 py-3 text-sm font-semibold text-white shadow-md transition hover:-translate-y-0.5 hover:shadow-lg disabled:cursor-not-allowed disabled:bg-slate-300"
+                                    onClick={() => navigate(`/giveaway/${props.offer.id}`)}
+                                    className="w-full rounded-xl border border-emerald-500 px-4 py-2.5 text-sm font-semibold text-emerald-700 transition hover:bg-emerald-50"
                                 >
-                                    Place Escrow Order
+                                    Give Away to Someone
                                 </button>
                             )}
 
-                            {!isAuthed && <p className="text-center text-xs text-slate-500">Login required to place an order.</p>}
-
-                            {principal && props.offer.owner.toString() === principal.toString() && (
+                            {isOwner && (
                                 <button
                                     onClick={unlist}
                                     className="btn-modern-secondary w-full rounded-xl border border-rose-500 px-4 py-2.5 text-sm font-semibold text-rose-600 transition hover:bg-rose-50"
@@ -153,12 +212,20 @@ export default (props) => {
                             )}
                         </div>
 
-                        <div className="mt-4 grid grid-cols-1 gap-2 text-xs text-slate-600 sm:grid-cols-2">
-                            <div className="rounded-lg border border-slate-200 bg-white px-3 py-2">Escrow contract flow</div>
-                            <div className="rounded-lg border border-slate-200 bg-white px-3 py-2">On-chain settlement</div>
-                            <div className="rounded-lg border border-slate-200 bg-white px-3 py-2">Seller identity visible</div>
-                            <div className="rounded-lg border border-slate-200 bg-white px-3 py-2">Transparent item terms</div>
-                        </div>
+                        {!isFree && (
+                            <div className="mt-4 grid grid-cols-1 gap-2 text-xs text-slate-600 sm:grid-cols-2">
+                                <div className="rounded-lg border border-slate-200 bg-white px-3 py-2">Escrow contract flow</div>
+                                <div className="rounded-lg border border-slate-200 bg-white px-3 py-2">On-chain settlement</div>
+                                <div className="rounded-lg border border-slate-200 bg-white px-3 py-2">Seller identity visible</div>
+                                <div className="rounded-lg border border-slate-200 bg-white px-3 py-2">Transparent item terms</div>
+                            </div>
+                        )}
+
+                        {isFree && (
+                            <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-xs text-emerald-800">
+                                This item is free. Claiming it starts an order: the giver delivers, you confirm receipt — no payment at any step.
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>
