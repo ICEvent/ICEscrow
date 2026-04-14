@@ -25,6 +25,7 @@ import OfferList from './OfferList';
 import { toast } from 'react-toastify';
 import moment from 'moment';
 import { CURRENCY_ICET, CURRENCY_ICP, LEDGER_E6S, LEDGER_E8S, ORDER_DEFAULT_EXPIRED_DAYS } from '../../lib/constants';
+import { Link } from 'react-router-dom';
 
 
 
@@ -137,7 +138,10 @@ export default (props) => {
                         Listed on: {moment.unix(Number(props.offer.listime) / 1000000000).format('MMMM DD, YYYY')}
                     </Typography>
                     <Typography variant="caption" display="block">
-                        Owner: {props.offer.owner.toString()}
+                        Owner:{" "}
+                        <Link to={`/userid/${props.offer.owner.toString()}`}>
+                            {props.offer.owner.toString()}
+                        </Link>
                     </Typography>
                 </Box>
 
