@@ -1,15 +1,7 @@
 import * as React from 'react';
 import { Principal } from '@dfinity/principal';
-
-import Paper from '@mui/material/Paper';
 import moment from 'moment';
-import {
-    Button, Dialog, DialogTitle, Grid, TextField, FormControl, FormLabel, RadioGroup, FormControlLabel, Radio, InputLabel, Select, MenuItem, Alert,
-    Box, Stepper, Step, StepLabel
 
-} from '@mui/material';
-
-import OrderDetail from './OrderDetail';
 import { CURRENCY_ICET, CURRENCY_ICP, LEDGER_E6S, LEDGER_E8S, ORDER_DEFAULT_EXPIRED_DAYS } from '../../lib/constants';
 import { useGlobalContext } from '../Store';
 
@@ -47,120 +39,107 @@ export default (props) => {
                 setState({ ...state, "yourside": value, "seller": principal.toText(), "buyer": "" });
             }
         } else {
-            setState({ ...state, [name]: value });
-        }
-    }
+            <div className="space-y-4">
+                <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900">
+                    <p className="mb-3">
+                        Create a custom order to guard your fund with your buyer/seller in escrow smart contract. (e.g. house rental deposit, sale deposit...)
+                    </p>
+                    <div className="grid gap-2 text-xs sm:grid-cols-4">
+                        <div className="rounded-md bg-white px-3 py-2 text-center font-medium text-slate-700">Deposit Fund in Escrow</div>
+                        <div className="rounded-md bg-white px-3 py-2 text-center font-medium text-slate-700">Seller Deliver Item</div>
+                        <div className="rounded-md bg-white px-3 py-2 text-center font-medium text-slate-700">Buyer Receive Item</div>
+                        <div className="rounded-md bg-white px-3 py-2 text-center font-medium text-slate-700">Release Fund to Seller</div>
+                    </div>
+                </div>
 
-    function createOrder() {
-        let currency = state.currency == CURRENCY_ICP ? {"ICP": null}: {"ICET": null};
-        let amount = state.currency == CURRENCY_ICP ? Number(state.amount * LEDGER_E8S): Number(state.amount * LEDGER_E6S)
-        if(state.yourside == "buyer"){
-            let order =
-            {
-                seller: Principal.fromText(state.seller),
-                memo: state.item,
-                amount: amount,
-                currency: currency,
-                expiration: BigInt(moment().add(ORDER_DEFAULT_EXPIRED_DAYS, "days").unix())
-            }
-            console.log(order)
-            props.buy? props.buy(order): null;
-        }else{
-            let order =
-            {
-                buyer: Principal.fromText(state.buyer),
-                memo: state.item,
-                amount: amount,
-                currency: currency,
-                expiration: BigInt(moment().add(ORDER_DEFAULT_EXPIRED_DAYS, "days").unix())
-            }
-            console.log(order)
-            props.sell? props.sell(order): null;
-        };
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-12">
+                    <div className="sm:col-span-12">
+                        <label className="mb-1 block text-sm font-medium text-slate-700">Describe your ordering item</label>
+                        <input
+                            name="item"
+                            value={state.item}
+                            onChange={handleChange}
+                            className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-cyan-500"
+                        />
+                    </div>
 
-        
-    }
+                    <div className="sm:col-span-4">
+                        <p className="mb-1 text-sm font-medium text-slate-700">Are you?</p>
+                        <div className="flex gap-4 text-sm">
+                            <label className="inline-flex items-center gap-2">
+                                <input type="radio" name="yourside" value="buyer" checked={state.yourside == "buyer"} onChange={handleChange} />
+                                Buyer
+                            </label>
+                            <label className="inline-flex items-center gap-2">
+                                <input type="radio" name="yourside" value="seller" checked={state.yourside == "seller"} onChange={handleChange} />
+                                Seller
+                            </label>
+                        </div>
+                    </div>
 
-    return (
-        <Grid container spacing={3}>
-            <Grid item xs={12}>
-                <Alert severity="success">
-                    Create a custom order to guard your fund with your buyer/seller in escrow smart contract.(e.g. house rental deposit, sale deposit... )
-                
-                <Box sx={{ width: '100%' }}>
-                    <Stepper activeStep={1} alternativeLabel>
+                    {state.yourside == "seller" && (
+                        <div className="sm:col-span-8">
+                            <label className="mb-1 block text-sm font-medium text-slate-700">the principal of buyer</label>
+                            <input
+                                name="buyer"
+                                value={state.buyer}
+                                onChange={handleChange}
+                                className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-cyan-500"
+                            />
+                        </div>
+                    )}
 
-                        <Step key="deposit">
-                            <StepLabel>Deposit Fund in Escrow</StepLabel>
-                        </Step>
-                        <Step key="deliver">
-                            <StepLabel>Seller Deliver Item</StepLabel>
-                        </Step>
-                        <Step key="receive">
-                            <StepLabel>Buyer Receive Item</StepLabel>
-                        </Step>
-                        <Step key="release">
-                            <StepLabel>Release Fund to Seller</StepLabel>
-                        </Step>
+                    {state.yourside == "buyer" && (
+                        <div className="sm:col-span-8">
+                            <label className="mb-1 block text-sm font-medium text-slate-700">the principal of seller</label>
+                            <input
+                                name="seller"
+                                value={state.seller}
+                                onChange={handleChange}
+                                className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-cyan-500"
+                            />
+                        </div>
+                    )}
 
-                    </Stepper>
-                </Box>
-                </Alert>
-            </Grid>
-            <Grid item xs={12}>
-                <TextField
-                    autoFocus
-                    margin="dense"
-                    name="item"
-                    label="Describe your ordering item"
-                    fullWidth
-                    variant="standard"
-                    onChange={handleChange}
-                    value={state.item}
-                />
-            </Grid>
-            <Grid item xs={12} sm={4}>
-                <FormControl>
-                    <FormLabel id="demo-row-radio-buttons-group-label">Are you ?</FormLabel>
-                    <RadioGroup
-                        row
-                        aria-labelledby="demo-row-radio-buttons-group-label"
-                        name="yourside"
-                        onChange={handleChange}
-                    >
+                    <div className="sm:col-span-6">
+                        <label className="mb-1 block text-sm font-medium text-slate-700">the amount of order</label>
+                        <input
+                            name="amount"
+                            type="number"
+                            value={state.amount}
+                            onChange={handleChange}
+                            className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-cyan-500"
+                        />
+                    </div>
 
-                        <FormControlLabel value="buyer" control={<Radio checked={state.yourside == "buyer"} />} label="Buyer" />
-                        <FormControlLabel value="seller" control={<Radio checked={state.yourside == "seller"} />} label="Seller" />
+                    <div className="sm:col-span-6">
+                        <label className="mb-1 block text-sm font-medium text-slate-700">Currency</label>
+                        <select
+                            name="currency"
+                            value={state.currency}
+                            onChange={(e) => handleChange(e as unknown as React.ChangeEvent<HTMLInputElement>)}
+                            className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-cyan-500"
+                        >
+                            <option value={CURRENCY_ICP}>{CURRENCY_ICP}</option>
+                            <option value={CURRENCY_ICET}>{CURRENCY_ICET}</option>
+                            <option disabled>USDT</option>
+                            <option disabled>USDC</option>
+                            <option disabled>BTC</option>
+                            <option disabled>ETH</option>
+                        </select>
+                    </div>
 
-                    </RadioGroup>
-                </FormControl>
-            </Grid>
-            {state.yourside == "seller" && <Grid item xs={12} sm={8}>
-                <TextField
-                    autoFocus
-                    margin="dense"
-                    name="buyer"
-                    label="the principal of buyer"
-                    fullWidth
-                    variant="standard"
-                    onChange={handleChange}
-                    value={state.buyer}
-                />
-            </Grid>}
-            {state.yourside == "buyer" && <Grid item xs={12} sm={8}>
-                <TextField
-                    autoFocus
-                    margin="dense"
-                    name="seller"
-                    label="the principal of seller"
-                    fullWidth
-                    variant="standard"
-                    onChange={handleChange}
-                    value={state.seller}
-                />
-            </Grid>}
-            <Grid item xs={12} sm={6}>
-                <TextField
+                    <div className="sm:col-span-12">
+                        <button
+                            type="button"
+                            onClick={createOrder}
+                            className="rounded-md bg-cyan-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-cyan-700"
+                        >
+                            Create
+                        </button>
+                    </div>
+                </div>
+            </div>
                     autoFocus
                     margin="dense"
                     name="amount"

@@ -1,31 +1,10 @@
 import * as React from 'react';
-
-
-import Table from '@mui/material/Table';
-import TableBody from '@mui/material/TableBody';
-import TableCell from '@mui/material/TableCell';
-import TableContainer from '@mui/material/TableContainer';
-import TableHead from '@mui/material/TableHead';
-import TableRow from '@mui/material/TableRow';
-import Paper from '@mui/material/Paper';
-import Box from '@mui/material/Box';
-import Skeleton from '@mui/material/Skeleton';
-import { Button, Dialog, DialogContent, DialogTitle, IconButton } from '@mui/material';
-import CloseIcon from '@mui/icons-material/Close';
-import AddIcon from '@mui/icons-material/Add';
-import ListIcon from '@mui/icons-material/List';
 import { toast } from 'react-toastify';
 
 import { useEscrow } from '../Store';
 import OrderListItem from './OrderListItem';
 import OrderForm from './OrderForm';
 import { NewOrder, NewSellOrder } from '../../api/escrow/escrow.did';
-
-export interface DialogTitleProps {
-    id: string;
-    children?: React.ReactNode;
-    onClose: () => void;
-}
 
 export default () => {
     const escrow = useEscrow();
@@ -96,103 +75,63 @@ export default () => {
         };
 
     };
-    function BootstrapDialogTitle(props: DialogTitleProps) {
-        const { children, onClose, ...other } = props;
 
-        return (
-            <DialogTitle sx={{ m: 0, p: 2 }} {...other}>
-                {children}
-                {onClose ? (
-                    <IconButton
-                        aria-label="close"
-                        onClick={onClose}
-                        sx={{
-                            position: 'absolute',
-                            right: 8,
-                            top: 8,
-                            color: (theme) => theme.palette.grey[500],
-                        }}
-                    >
-                        <CloseIcon />
-                    </IconButton>
-                ) : null}
-            </DialogTitle>
-        );
-    }
     let ol = orders.map(o =>
         <OrderListItem key={o.id} order={o} />
     )
     return (
         <>
-            <Box sx={{ 
-  display: 'flex', 
-  gap: 2,
-  mb: 3,
-  mt: 1 
-}}>
-  <Button 
-    variant="contained" 
-    onClick={() => setOpenOrderForm(true)}
-    startIcon={<AddIcon />}
-    sx={{ minWidth: '160px' }}
-  >
-    Create An Order
-  </Button>
-  <Button 
-    variant="outlined"
-    onClick={loadAllOrders}
-    startIcon={<ListIcon />}
-    sx={{ minWidth: '160px' }}
-  >
-    All Orders ({page})
-  </Button>
-</Box>
+            <div className="mb-4 mt-1 flex flex-wrap gap-2">
+                <button
+                    type="button"
+                    onClick={() => setOpenOrderForm(true)}
+                    className="min-w-[160px] rounded-md bg-cyan-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-cyan-700"
+                >
+                    Create An Order
+                </button>
+                <button
+                    type="button"
+                    onClick={loadAllOrders}
+                    className="min-w-[160px] rounded-md border border-cyan-600 px-4 py-2 text-sm font-semibold text-cyan-700 transition hover:bg-cyan-50"
+                >
+                    All Orders ({page})
+                </button>
+            </div>
 
-            {!loading && <TableContainer component={Paper}>
-                <Table sx={{ minWidth: 650 }} aria-label="simple table">
-                    <TableHead>
-                        <TableRow>
-                            <TableCell>ID</TableCell>
-                            <TableCell>Order Item</TableCell>
-                            <TableCell align="right">Amount</TableCell>
-                            <TableCell align="right">Order Time</TableCell>
-                            <TableCell align="right"></TableCell>
+            {!loading && (
+                <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
+                    <div className="grid grid-cols-12 gap-2 border-b border-slate-200 bg-slate-50 px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-600">
+                        <div className="col-span-2">ID</div>
+                        <div className="col-span-4">Order Item</div>
+                        <div className="col-span-3 text-right">Amount</div>
+                        <div className="col-span-3 text-right">Order Time</div>
+                    </div>
+                    <div className="divide-y divide-slate-100">{ol}</div>
+                </div>
+            )}
 
+            {loading && (
+                <div className="space-y-2">
+                    <div className="h-8 animate-pulse rounded bg-slate-200" />
+                    <div className="h-8 animate-pulse rounded bg-slate-100" />
+                </div>
+            )}
 
-                        </TableRow>
-                    </TableHead>
-                    <TableBody>
-                        {ol}
-                    </TableBody>
-                </Table>
-            </TableContainer>}
-
-            {loading && <Box sx={{ minWidth: 650 }}>
-                <Skeleton />
-                <Skeleton animation="wave" />
-
-            </Box>}
-
-            <Dialog
-                maxWidth="md"
-                fullWidth
-                disableEscapeKeyDown={true}
-
-                onClose={(event, reason) => {
-                    if (reason !== 'backdropClick') {
-                        setOpenOrderForm(false);
-                    }
-                }}
-                open={openOrderForm}
-            >
-                <BootstrapDialogTitle id="customized-dialog-title" onClose={() => setOpenOrderForm(false)}>
-                    New Escrow Contract
-                </BootstrapDialogTitle>
-                <DialogContent>
-                    <OrderForm buy={buy} sell={sell} />
-                </DialogContent>
-
-            </Dialog>
+            {openOrderForm && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setOpenOrderForm(false)}>
+                    <div className="relative max-h-[90vh] w-full max-w-3xl overflow-auto rounded-lg bg-white p-4" onClick={(e) => e.stopPropagation()}>
+                        <button
+                            type="button"
+                            onClick={() => setOpenOrderForm(false)}
+                            className="absolute right-3 top-3 h-8 w-8 rounded-full text-slate-500 transition hover:bg-slate-100"
+                        >
+                            x
+                        </button>
+                        <h3 className="mb-4 text-lg font-semibold text-slate-900">New Escrow Contract</h3>
+                        <OrderForm buy={buy} sell={sell} />
+                    </div>
+                </div>
+            )}
 
         </>
     )

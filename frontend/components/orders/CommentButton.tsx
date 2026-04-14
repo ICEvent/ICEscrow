@@ -1,6 +1,4 @@
 import React, { useState } from "react";
-
-import { Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField } from "@mui/material";
 import { useEscrow, useGlobalContext, useLoading } from '../Store';
 import { toast } from 'react-toastify';
 export default (props) => {
@@ -33,27 +31,43 @@ export default (props) => {
     }
     return (
         <React.Fragment>
-            <Button onClick={() => setOpenCommentForm(true)}>Comment</Button>
-            <Dialog
-                maxWidth="md"
-                fullWidth
-                open={openCommentForm} onClose={() => setOpenCommentForm(false)}>
-                <DialogTitle>Leave your comment</DialogTitle>
-                <DialogContent>
-                    <TextField
-                        id="standard-multiline-static"
+            <button
+                type="button"
+                onClick={() => setOpenCommentForm(true)}
+                className="rounded-md border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700 transition hover:border-cyan-500 hover:text-cyan-700"
+            >
+                Comment
+            </button>
 
-                        defaultValue=""
-                        variant="standard"
-                        fullWidth
-                        onChange={e => setComment(e.target.value)}
-                    />
-                </DialogContent>
-                <DialogActions>
-                    <Button onClick={() => setOpenCommentForm(false)}>Cancel</Button>
-                    <Button disabled={!comment} onClick={saveComment}>Post</Button>
-                </DialogActions>
-            </Dialog>
+            {openCommentForm && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setOpenCommentForm(false)}>
+                    <div className="w-full max-w-2xl rounded-lg bg-white p-4" onClick={(e) => e.stopPropagation()}>
+                        <h3 className="mb-3 text-lg font-semibold text-slate-900">Leave your comment</h3>
+                        <textarea
+                            defaultValue=""
+                            className="min-h-[120px] w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-cyan-500"
+                            onChange={e => setComment(e.target.value)}
+                        />
+                        <div className="mt-4 flex justify-end gap-2">
+                            <button
+                                type="button"
+                                onClick={() => setOpenCommentForm(false)}
+                                className="rounded-md border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                type="button"
+                                disabled={!comment}
+                                onClick={saveComment}
+                                className="rounded-md bg-cyan-600 px-3 py-2 text-sm font-semibold text-white transition hover:bg-cyan-700 disabled:cursor-not-allowed disabled:bg-slate-300"
+                            >
+                                Post
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </React.Fragment>
     )
 }

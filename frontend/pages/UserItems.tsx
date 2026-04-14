@@ -1,6 +1,5 @@
 import * as React from "react";
 import { useParams } from "react-router-dom";
-import { Container, Typography } from "@mui/material";
 import ItemList from "../components/items/ItemList";
 import { useEscrow } from "../components/Store";
 
@@ -67,18 +66,18 @@ const UserItems = () => {
   }, [escrow, userId]);
 
   return (
-    <Container sx={{ mt: 8 }}>
-      <Typography variant="h5" sx={{ mb: 2 }}>
+    <div className="mt-8">
+      <h1 className="mb-3 text-2xl font-semibold text-slate-900">
         Listed items by {userId}
-      </Typography>
+      </h1>
 
-      {loading && <Typography>Loading items...</Typography>}
-      {!loading && error && <Typography color="error">{error}</Typography>}
+      {loading && <p className="text-slate-600">Loading items...</p>}
+      {!loading && error && <p className="text-rose-600">{error}</p>}
       {!loading && !error && items.length === 0 && (
-        <Typography>No listed items found for this user.</Typography>
+        <p className="text-slate-600">No listed items found for this user.</p>
       )}
       {!loading && !error && items.length > 0 && <ItemList items={items} />}
-    </Container>
+    </div>
   );
 };
 

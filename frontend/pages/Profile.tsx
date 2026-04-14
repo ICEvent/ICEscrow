@@ -1,17 +1,4 @@
 import React, { useEffect, useState } from "react"
-import { useParams } from "react-router-dom";
-
-import moment from "moment";
-
-import Box from '@mui/material/Box';
-import Container from '@mui/material/Container';
-
-
-import Card from '@mui/material/Card';
-
-import CardContent from '@mui/material/CardContent';
-import CardMedia from '@mui/material/CardMedia';
-import Typography from '@mui/material/Typography';
 
 
 import { Profile } from "../api/profile/profile.did";

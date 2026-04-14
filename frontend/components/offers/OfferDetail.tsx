@@ -1,27 +1,5 @@
 import * as React from 'react';
-import { styled } from '@mui/material/styles';
-import Card from '@mui/material/Card';
-import CardHeader from '@mui/material/CardHeader';
-import CardMedia from '@mui/material/CardMedia';
-import CardActions from '@mui/material/CardActions';
-import CardContent from '@mui/material/CardContent';
-import Typography from '@mui/material/Typography';
-import { Button, Chip } from '@mui/material';
-import IconButton, { IconButtonProps } from '@mui/material/IconButton';
-import Grid from '@mui/material/Grid';
-import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
-import PersonIcon from '@mui/icons-material/Person';
-import { Tooltip } from '@mui/material';
-import Snackbar, { SnackbarOrigin } from '@mui/material/Snackbar';
-import Alert from '@mui/material';
-import CircularProgress from '@mui/material/CircularProgress';
-import Box from '@mui/material/Box';
-import FilterListOffIcon from '@mui/icons-material/FilterListOff';
-
-import CloseIcon from '@mui/icons-material/Close';
-
 import { useGlobalContext, useEscrow } from '../Store';
-import OfferList from './OfferList';
 import { toast } from 'react-toastify';
 import moment from 'moment';
 import { CURRENCY_ICET, CURRENCY_ICP, LEDGER_E6S, LEDGER_E8S, ORDER_DEFAULT_EXPIRED_DAYS } from '../../lib/constants';
@@ -80,102 +58,71 @@ export default (props) => {
     };
 
     return (
-        <Card elevation={0}>
-            <IconButton
+        <div className="relative rounded-lg bg-white p-6 shadow-sm">
+            <button
                 onClick={(e) => {
                     e.stopPropagation();
                     props.close?.();
-                  }}
-                sx={{
-                    position: 'absolute',
-                    right: 8,
-                    top: 8,
-                    zIndex: 1
                 }}
+                className="absolute right-2 top-2 h-8 w-8 rounded-full text-slate-500 transition hover:bg-slate-100 hover:text-slate-700"
+                aria-label="Close"
             >
-                <CloseIcon />
-            </IconButton>
+                x
+            </button>
 
-            <CardHeader
+            <div className="mb-4">
+                <h2 className="text-xl font-semibold text-slate-900">{props.offer.name}</h2>
+                <div className="mt-2 flex items-center gap-2">
+                    <p className="text-lg font-medium text-slate-800">${currency} {price}</p>
+                    <span className="rounded-full border border-cyan-600 px-2 py-0.5 text-xs font-semibold uppercase tracking-wide text-cyan-700">
+                        {Object.getOwnPropertyNames(props.offer.itype)[0]}
+                    </span>
+                </div>
+            </div>
 
-                title={props.offer.name}
-                subheader={
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <Typography variant="subtitle1">
-                            ${currency} {price}
-                        </Typography>
-                        <Chip
-                            label={Object.getOwnPropertyNames(props.offer.itype)[0]}
-                            color="primary"
-                            size="small"
-                            variant="outlined"
-                        />
-                    </Box>
-                }
-            />
             {props.offer.image && (
-                <CardMedia
-                    component="img"
-                    sx={{
-                        height: 300,
-                        objectFit: 'contain',
-                        bgcolor: 'grey.100',
-                        borderRadius: 1
-                    }}
-                    image={props.offer.image}
+                <img
+                    className="mb-4 h-[300px] w-full rounded-md bg-slate-100 object-contain"
+                    src={props.offer.image}
                     alt={props.offer.name}
                 />
             )}
-            <CardContent>
 
+            <div className="mb-6 space-y-2">
+                <p className="text-sm leading-6 text-slate-600">{props.offer.description}</p>
+                <p className="text-xs text-slate-500">
+                    Listed on: {moment.unix(Number(props.offer.listime) / 1000000000).format('MMMM DD, YYYY')}
+                </p>
+                <p className="text-xs text-slate-500">
+                    Owner:{" "}
+                    <Link className="font-medium text-cyan-700 hover:text-cyan-800 hover:underline" to={`/userid/${props.offer.owner.toString()}`}>
+                        {props.offer.owner.toString()}
+                    </Link>
+                </p>
+            </div>
 
-                <Box sx={{ mb: 2 }}>
-
-                    <Typography variant="body1" color="text.secondary" sx={{ mb: 2 }}>
-                        {props.offer.description}
-                    </Typography>
-                    <Typography variant="caption" display="block">
-                        Listed on: {moment.unix(Number(props.offer.listime) / 1000000000).format('MMMM DD, YYYY')}
-                    </Typography>
-                    <Typography variant="caption" display="block">
-                        Owner:{" "}
-                        <Link to={`/userid/${props.offer.owner.toString()}`}>
-                            {props.offer.owner.toString()}
-                        </Link>
-                    </Typography>
-                </Box>
-
-            </CardContent>
-
-            <CardActions sx={{ justifyContent: 'flex-end', gap: 1, p: 2 }}>
+            <div className="flex justify-end gap-2">
                 {loading ? (
-                    <CircularProgress size={24} />
+                    <div className="h-6 w-6 animate-spin rounded-full border-2 border-slate-300 border-t-cyan-600" />
                 ) : (
-                    <Button
-                        variant="contained"
+                    <button
                         disabled={loading || !isAuthed}
                         onClick={buyit}
-                        startIcon={<ShoppingCartIcon />}
+                        className="rounded-md bg-cyan-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-cyan-700 disabled:cursor-not-allowed disabled:bg-slate-300"
                     >
                         Buy Now
-                    </Button>
+                    </button>
                 )}
 
                 {principal && props.offer.owner.toString() === principal.toString() && (
-                    <Button
-                        variant="outlined"
-                        color="error"
+                    <button
                         onClick={unlist}
-                        startIcon={<FilterListOffIcon />}
+                        className="rounded-md border border-rose-500 px-4 py-2 text-sm font-semibold text-rose-600 transition hover:bg-rose-50"
                     >
                         Unlist Item
-                    </Button>
+                    </button>
                 )}
-            </CardActions>
-
-
-        </Card>
-
-
+            </div>
+        </div>
     );
 }

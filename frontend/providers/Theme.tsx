@@ -1,7 +1,5 @@
 import React from "react"
-import { FC, useContext, useMemo } from 'react'
-import CssBaseline from '@mui/material/CssBaseline'
-import { ThemeProvider as MuiThemeProvider, createTheme } from '@mui/material/styles'
+import { FC, useContext, useEffect } from 'react'
 
 import { ChosenTheme } from './ChosenTheme'
 interface Props {
@@ -10,35 +8,13 @@ interface Props {
 
 export const ThemeProvider: FC<Props> = ({ children }) => {
   const { theme } = useContext(ChosenTheme)
-  const muiTheme = useMemo(() => createThemeHelper(theme), [theme])
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme)
+    document.body.classList.toggle('dark-theme', theme === 'dark')
+  }, [theme])
 
   return (
-    <MuiThemeProvider theme={muiTheme}>
-      <CssBaseline />
-      {children}
-    </MuiThemeProvider>
+    <>{children}</>
   )
-}
-
-const brandColor = '#00b8d4'
-const createThemeHelper = (theme: 'dark' | 'light') => {
-  const isDark = theme === 'dark'
-  return createTheme({
-    palette: {
-      mode: theme,
-      background: {
-        default: isDark ? '#303030;' : '#f0f0f0',
-        paper: isDark ? '#242526' : '#ffffff'
-      },
-      primary: {
-        main: brandColor
-      },
-      error: {
-        main: 'rgb(232, 51, 51)'
-      },
-      success: {
-        main: 'rgb(76,175,80)'
-      }
-    }
-  })
 }

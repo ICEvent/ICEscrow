@@ -1,26 +1,5 @@
 import React, { useEffect, useState } from "react"
 
-import Box from '@mui/material/Box';
-
-import TextField from '@mui/material/TextField';
-import Paper from '@mui/material/Paper';
-
-import { styled } from '@mui/material/styles';
-import Button from "@mui/material/Button";
-
-import Divider from '@mui/material/Divider';
-import IconButton from '@mui/material/IconButton';
-
-import DeleteIcon from '@mui/icons-material/Delete';
-import Dialog from '@mui/material/Dialog';
-import DialogActions from '@mui/material/DialogActions';
-import DialogContent from '@mui/material/DialogContent';
-
-import DialogTitle from '@mui/material/DialogTitle';
-import CircularProgress from '@mui/material/CircularProgress';
-import List from '@mui/material/List';
-import ListItem from '@mui/material/ListItem';
-
 import { useOneblock } from "./Store";
 import { Link } from "../api/profile/profile.did";
 
@@ -45,25 +24,17 @@ const LinkDialog = (props) => {
     linkurl: ''
   });
 
-  const Item = styled(Paper)(({ theme }) => ({
-    backgroundColor: theme.palette.mode === 'dark' ? '#1A2027' : '#fff',
-    ...theme.typography.body2,
-    padding: theme.spacing(1),
-    textAlign: 'center',
-    color: theme.palette.text.secondary,
-  }));
-
-
-
   const linklist = links.map((link,index) =>
-    <Box key={index}>
-    <ListItem secondaryAction={
-      <IconButton onClick={()=>deleteLink(link.name)} edge="end" aria-label="delete">
-        <DeleteIcon />
-      </IconButton>
-    }>{link.name} - {link.url}</ListItem>
-    <Divider/>
-    </Box>
+    <div key={index} className="flex items-center justify-between rounded-md border border-slate-200 bg-white px-3 py-2 text-sm">
+      <span className="truncate text-slate-700">{link.name} - {link.url}</span>
+      <button
+        type="button"
+        onClick={()=>deleteLink(link.name)}
+        className="ml-3 rounded-md border border-rose-300 px-2 py-1 text-xs font-semibold text-rose-600 transition hover:bg-rose-50"
+      >
+        Delete
+      </button>
+    </div>
   )
   const handleChange =
     (prop: keyof State) => (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -110,52 +81,63 @@ const LinkDialog = (props) => {
     });
   }
   return (
-
-    <Box sx={{
-      maxWidth: '100%'
-    }}>
-
-     <List>
+    <div className="max-w-full space-y-3">
+      <div className="space-y-2">
         {linklist}
-     </List>
-      <Box p={5}>
-        <Button variant="contained" onClick={handleClickOpen}>
+      </div>
+      <div className="pt-2">
+        <button
+          type="button"
+          className="rounded-md bg-cyan-600 px-3 py-2 text-sm font-semibold text-white transition hover:bg-cyan-700"
+          onClick={handleClickOpen}
+        >
           Add
-        </Button>
-      </Box>
-      <Dialog open={open} onClose={handleClose}>
-        <DialogTitle>New Link</DialogTitle>
-        <DialogContent>
-          <TextField
-            autoFocus
-            margin="dense"
-            id="linkname"
-            label="Name"
-            fullWidth
-            required
-            variant="standard"
-            onChange={handleChange('linkname')}
-          />
-          <TextField
-            autoFocus
-            margin="dense"
-            id="url"
-            label="URL"
-            fullWidth
-            required
-            variant="standard"
-            onChange={handleChange('linkurl')}
-      
-          />
-        </DialogContent>
+        </button>
+      </div>
 
-        <DialogActions>
-          <Button onClick={handleClose}>Cancel</Button>
-          <Button onClick={addLink} disabled={progress}>{progress ? <CircularProgress /> : "Add"} </Button>
-
-        </DialogActions>
-      </Dialog>
-    </Box>
+      {open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={handleClose}>
+          <div className="w-full max-w-lg rounded-lg bg-white p-4" onClick={(e) => e.stopPropagation()}>
+            <h3 className="mb-3 text-lg font-semibold text-slate-900">New Link</h3>
+            <div className="space-y-3">
+              <div>
+                <label className="mb-1 block text-sm font-medium text-slate-700">Name</label>
+                <input
+                  id="linkname"
+                  className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-cyan-500"
+                  onChange={handleChange('linkname')}
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-sm font-medium text-slate-700">URL</label>
+                <input
+                  id="url"
+                  className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-cyan-500"
+                  onChange={handleChange('linkurl')}
+                />
+              </div>
+            </div>
+            <div className="mt-4 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={handleClose}
+                className="rounded-md border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={addLink}
+                disabled={progress}
+                className="rounded-md bg-cyan-600 px-3 py-2 text-sm font-semibold text-white transition hover:bg-cyan-700 disabled:cursor-not-allowed disabled:bg-slate-300"
+              >
+                {progress ? "Adding..." : "Add"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
 
   )
 }

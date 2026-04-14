@@ -1,43 +1,17 @@
 import * as React from "react"
 
-import Grid from "@mui/material/Grid"
-import DialogTitle from "@mui/material/DialogTitle"
-import Dialog from "@mui/material/Dialog"
-import OfferCard from "./OfferCard"
-import NavigateNextIcon from "@mui/icons-material/NavigateNext";
-import NavigateBeforeIcon from "@mui/icons-material/NavigateBefore"
-import { Button, DialogContent, Divider, List, Typography } from "@mui/material"
-import CloseIcon from "@mui/icons-material/Close"
 import ListItemForm from "./ListItemForm"
 import { toast } from "react-toastify"
-import Backdrop from "@mui/material/Backdrop"
-import CircularProgress from "@mui/material/CircularProgress"
-import IconButton from "@mui/material/IconButton"
-import AddIcon from '@mui/icons-material/Add';
 import { useEscrow, useLoading, useGlobalContext } from "../Store"
 import ItemList from "../items/ItemList";
-import { Tabs, Tab } from '@mui/material';
 
-
-import { Itype, NewOrder, NewSellOrder } from "../../api/escrow/escrow.did"
+import { NewOrder, NewSellOrder } from "../../api/escrow/escrow.did"
 import { Item } from "../../api/escrow/escrow.did"
 import {
   LIST_ITEM_NFT,
-  LIST_ITEM_COIN,
-  LIST_ITEM_MERCHANDISE,
-  LIST_ITEM_SERVICE,
-  LIST_ITEM_OTHER,
-  LIST_ITEM_INSCRIPTION,
 } from "../../lib/constants"
-import OfferItem from "./OfferItem"
-import { Box } from "@mui/system"
 import OrderForm from "../orders/OrderForm"
 
-export interface DialogTitleProps {
-  id: string
-  children?: React.ReactNode
-  onClose: () => void
-}
 export default () => {
   const {
     state: { isAuthed },
@@ -47,11 +21,9 @@ export default () => {
   const [openListForm, setOpenListForm] = React.useState(false)
   const [openOrderForm, setOpenOrderForm] = React.useState(false)
 
-  const [itemType, setItemType] = React.useState(LIST_ITEM_NFT)
+  const [itemType] = React.useState(LIST_ITEM_NFT)
   const [offers, setOffers] = React.useState<Item[]>([])
-  const [tabValue, setTabValue] = React.useState(0);
   const [page, setPage] = React.useState(1);
-  const [itemsPerPage] = React.useState(10);
 
   React.useEffect(() => {
 
@@ -116,112 +88,80 @@ export default () => {
       toast.error(err.toString())
     }
   }
-  function BootstrapDialogTitle(props: DialogTitleProps) {
-    const { children, onClose, ...other } = props
-
-    return (
-      <DialogTitle sx={{ m: 0, p: 2 }} {...other}>
-        {children}
-        {onClose ? (
-          <IconButton
-            aria-label="close"
-            onClick={onClose}
-            sx={{
-              position: "absolute",
-              right: 8,
-              top: 8,
-              color: (theme) => theme.palette.grey[500],
-            }}
-          >
-            <CloseIcon />
-          </IconButton>
-        ) : null}
-      </DialogTitle>
-    )
-  }
-
 
   return (
     <React.Fragment>
 
-      <Box sx={{
-        display: 'flex',
-        gap: 2,
-        mb: 3,
-        mt: 1
-      }}>
+      <div className="mb-4 mt-1 flex flex-wrap gap-2">
         {isAuthed && (
           <>
-            <Button
-              variant="contained"
+            <button
               onClick={() => setOpenListForm(true)}
-              startIcon={<AddIcon />}
-              sx={{ minWidth: '160px' }}
+              className="min-w-[160px] rounded-md bg-cyan-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-cyan-700"
             >
               List Item
-            </Button>
-            <Button
-              variant="outlined"
+            </button>
+            <button
               onClick={() => setOpenOrderForm(true)}
-              startIcon={<AddIcon />}
-              sx={{ minWidth: '160px' }}
+              className="min-w-[160px] rounded-md border border-cyan-600 px-4 py-2 text-sm font-semibold text-cyan-700 transition hover:bg-cyan-50"
             >
               New Escrow Order
-            </Button>
+            </button>
           </>
         )}
-      </Box>
+      </div>
 
       <ItemList items={offers} />
-      <Box sx={{ display: 'flex', justifyContent: 'center', p: 2 }}>
-        <Button
+      <div className="flex items-center justify-center gap-3 p-2">
+        <button
           onClick={() => setPage(p => p - 1)}
           disabled={page === 1}
-          startIcon={<NavigateBeforeIcon />}
+          className="rounded-md border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-cyan-500 hover:text-cyan-700 disabled:cursor-not-allowed disabled:opacity-50"
         >
           Previous
-        </Button>
-        <Typography sx={{ mx: 2, alignSelf: 'center' }}>
+        </button>
+        <p className="text-sm font-medium text-slate-700">
           Page {page}
-        </Typography>
-        <Button
+        </p>
+        <button
           onClick={() => setPage(p => p + 1)}
-          endIcon={<NavigateNextIcon />}
+          className="rounded-md border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-cyan-500 hover:text-cyan-700"
         >
           Next
-        </Button>
-      </Box>
-      <Dialog
-        maxWidth="md"
-        fullWidth
-        disableEscapeKeyDown={false}
-        open={openListForm}
-      >
-        <BootstrapDialogTitle
-          id="customized-dialog-title"
-          onClose={() => setOpenListForm(false)}
-        >
-          Input Item Information
-        </BootstrapDialogTitle>
-        <ListItemForm submit={saveList} itype={itemType} />
-      </Dialog>
+        </button>
+      </div>
 
-      <Dialog
-        maxWidth="md"
-        fullWidth
-        disableEscapeKeyDown={false}
-        open={openOrderForm}
-      >
-        <BootstrapDialogTitle
-          id="customized-dialog-title"
-          onClose={() => setOpenOrderForm(false)}
-        >
-          New Escrow Contract
-        </BootstrapDialogTitle>
-        <DialogContent>
-          <OrderForm buy={buy} sell={sell} />
-        </DialogContent>
-      </Dialog>
+      {openListForm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setOpenListForm(false)}>
+          <div className="relative max-h-[90vh] w-full max-w-4xl overflow-auto rounded-lg bg-white p-4" onClick={(e) => e.stopPropagation()}>
+            <button
+              type="button"
+              onClick={() => setOpenListForm(false)}
+              className="absolute right-3 top-3 h-8 w-8 rounded-full text-slate-500 transition hover:bg-slate-100"
+            >
+              x
+            </button>
+            <h3 className="mb-4 text-lg font-semibold text-slate-900">Input Item Information</h3>
+            <ListItemForm submit={saveList} itype={itemType} />
+          </div>
+        </div>
+      )}
+
+      {openOrderForm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setOpenOrderForm(false)}>
+          <div className="relative max-h-[90vh] w-full max-w-4xl overflow-auto rounded-lg bg-white p-4" onClick={(e) => e.stopPropagation()}>
+            <button
+              type="button"
+              onClick={() => setOpenOrderForm(false)}
+              className="absolute right-3 top-3 h-8 w-8 rounded-full text-slate-500 transition hover:bg-slate-100"
+            >
+              x
+            </button>
+            <h3 className="mb-4 text-lg font-semibold text-slate-900">New Escrow Contract</h3>
+            <OrderForm buy={buy} sell={sell} />
+          </div>
+        </div>
+      )}
     </React.Fragment>
   )
 }

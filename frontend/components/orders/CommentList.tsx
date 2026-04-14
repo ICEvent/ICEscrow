@@ -1,27 +1,7 @@
 import * as React from 'react';
-import List from '@mui/material/List';
-import ListItem from '@mui/material/ListItem';
-
-import ListItemText from '@mui/material/ListItemText';
-import ListItemAvatar from '@mui/material/ListItemAvatar';
-
-import Typography from '@mui/material/Typography';
-
-import Paper from '@mui/material/Paper';
-import { styled } from '@mui/material/styles';
-
 import moment from 'moment';
-import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 
 import { useGlobalContext } from '../Store';
-
-const Item = styled(Paper)(({ theme }) => ({
-    backgroundColor: theme.palette.mode === 'dark' ? '#1A2027' : '#fff',
-    ...theme.typography.body2,
-    padding: theme.spacing(1),
-    textAlign: 'center',
-    color: theme.palette.text.secondary,
-}));
 
 
 export default function Comments(props) {
@@ -35,34 +15,23 @@ export default function Comments(props) {
     },[props.comments])
     
     const cl = comments.map(c =>
-        <ListItem alignItems="flex-start" key={c.ctime}>
-            <ListItemAvatar>
-                <AccountCircleIcon />
-            </ListItemAvatar>
-            <ListItemText
-                primary={(c.user.toString() == principal.toString() ? "(you)" :c.user.toString().slice(0, 5) + "..." + c.user.toString().slice(-5))}
-                secondary={
-                    <React.Fragment>
-                        <Typography
-                            sx={{ display: 'inline' }}
-                            component="span"
-                            variant="body2"
-                            color="text.primary"
-                        >
-                            {moment.unix(parseInt(c.ctime) / 1000000000).format("YYYY-MM-DD hh:mm")}
-                        </Typography>
-                        - {c.comment}
-                    </React.Fragment>
-                }
-            />
-        </ListItem>
+        <div key={c.ctime} className="rounded-md border border-slate-200 bg-slate-50 p-3">
+            <div className="mb-1 flex items-center justify-between gap-2">
+                <span className="text-sm font-semibold text-slate-800">
+                    {c.user.toString() == principal.toString() ? "(you)" : c.user.toString().slice(0, 5) + "..." + c.user.toString().slice(-5)}
+                </span>
+                <span className="text-xs text-slate-500">
+                    {moment.unix(parseInt(c.ctime) / 1000000000).format("YYYY-MM-DD hh:mm")}
+                </span>
+            </div>
+            <p className="text-sm text-slate-700">{c.comment}</p>
+        </div>
     );
+
     return (
-
-        <List sx={{ width: '100%', maxWidth: 360, bgcolor: 'background.paper' }}>
+        <div className="mt-4 space-y-2">
             {cl}
-        </List>
-
+        </div>
 
     );
 }

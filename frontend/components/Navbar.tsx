@@ -7,16 +7,6 @@ import { HttpAgent, Identity } from "@dfinity/agent";
 import { HOST } from "../lib/canisters";
 import { ONE_WEEK_NS, IDENTITY_PROVIDER_IC } from "../lib/constants";
 
-import AppBar from '@mui/material/AppBar';
-import Box from '@mui/material/Box';
-import Toolbar from '@mui/material/Toolbar';
-import Typography from '@mui/material/Typography';
-import Button from '@mui/material/Button';
-import IconButton from '@mui/material/IconButton';
-import DialogTitle from '@mui/material/DialogTitle';
-import Dialog from '@mui/material/Dialog';
-import Tooltip from '@mui/material/Tooltip';
-
 import { useOneblock, useSetAgent, useGlobalContext, useEscrow } from "./Store";
 import { Profile } from "../api/profile/profile.did";
 import OrderList from "./orders/OrderList";
@@ -95,35 +85,42 @@ export default () => {
 
 
   return (
-
-    <AppBar color="secondary" position="static" sx={{ mb: 2 }}>
-      <Toolbar >
-        <IconButton
-          size="large"
-          edge="start"
-          color="inherit"
-          aria-label="menu"
-          sx={{ mr: 2 }}
-        >
-
-        </IconButton>
-        <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-          ICEscrow
-        </Typography>
-        {isAuthed && <Button color="inherit" onClick={() => setOpenProfile(true)}>Profile</Button>}
+    <div className="mb-2 rounded-lg border border-slate-200 bg-white">
+      <div className="flex items-center gap-2 px-4 py-3">
+        <button type="button" className="mr-2 h-8 w-8 rounded-md" aria-hidden="true" />
+        <p className="flex-1 text-lg font-semibold text-slate-800">ICEscrow</p>
+        {isAuthed && (
+          <button
+            type="button"
+            onClick={() => setOpenProfile(true)}
+            className="rounded-md border border-slate-300 px-3 py-1 text-sm font-medium text-slate-700 transition hover:border-cyan-500 hover:text-cyan-700"
+          >
+            Profile
+          </button>
+        )}
         {!isAuthed && <LoginButton />}
-        {principal && <Tooltip title={principal.toString()}><Button color="inherit" onClick={logout}>{principal.toString().slice(0, 5) + "..." + principal.toString().slice(-5)}</Button></Tooltip>}
+        {principal && (
+          <button
+            type="button"
+            title={principal.toString()}
+            onClick={logout}
+            className="rounded-md border border-slate-300 px-3 py-1 text-sm font-medium text-slate-700 transition hover:border-rose-500 hover:text-rose-600"
+          >
+            {principal.toString().slice(0, 5) + "..." + principal.toString().slice(-5)}
+          </button>
+        )}
         <DarkModeToggle />
-      </Toolbar>
+      </div>
 
-      <Dialog
-        maxWidth="md"
-        fullWidth
-        onClose={() => setOpenProfile(false)} open={openProfile}>
-        <DialogTitle>Orders</DialogTitle>
-        <OrderList />
-      </Dialog>
-    </AppBar>
+      {openProfile && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setOpenProfile(false)}>
+          <div className="max-h-[90vh] w-full max-w-3xl overflow-auto rounded-lg bg-white p-4" onClick={(e) => e.stopPropagation()}>
+            <h3 className="mb-3 text-lg font-semibold text-slate-900">Orders</h3>
+            <OrderList />
+          </div>
+        </div>
+      )}
+    </div>
 
   )
 }

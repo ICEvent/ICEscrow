@@ -1,21 +1,5 @@
 import * as React from 'react';
-import Box from '@mui/material/Box';
-import IconButton from '@mui/material/IconButton';
-import Input from '@mui/material/Input';
-import FilledInput from '@mui/material/FilledInput';
-import OutlinedInput from '@mui/material/OutlinedInput';
-import InputLabel from '@mui/material/InputLabel';
-import InputAdornment from '@mui/material/InputAdornment';
-import Select, { SelectChangeEvent } from '@mui/material/Select';
-import MenuItem from '@mui/material/MenuItem';
-import FormHelperText from '@mui/material/FormHelperText';
-import FormControl from '@mui/material/FormControl';
-import TextField from '@mui/material/TextField';
-import Visibility from '@mui/icons-material/Visibility';
-import VisibilityOff from '@mui/icons-material/VisibilityOff';
 import { CURRENCY_ICET, CURRENCY_ICP, LEDGER_E6S, LEDGER_E8S, LISTITEM_STATUS_LIST, LIST_ITEM_COIN, LIST_ITEM_MERCHANDISE, LIST_ITEM_NFT, LIST_ITEM_OTHER, LIST_ITEM_SERVICE } from '../../lib/constants';
-import { Button, Grid } from '@mui/material';
-import ImageListItem from '@mui/material/ImageListItem';
 import { toast } from 'react-toastify';
 
 export default function ListItemForm(props) {
@@ -61,109 +45,92 @@ export default function ListItemForm(props) {
     };
 
     return (
-        <Box padding={2}>
-            <Grid container spacing={2}>
-                {/* <Grid item xs={12}>
-                    <ImageListItem>
-                        <img src={values.image} />
-                    </ImageListItem>
-                </Grid> */}
-                 <Grid item xs={12} sm={3}>
-                    <FormControl fullWidth>
+        <div className="p-2">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-12">
+                <div className="sm:col-span-3">
+                    <label className="mb-1 block text-sm font-medium text-slate-700">Type</label>
+                    <select
+                        value={values.itype}
+                        name="itype"
+                        onChange={handleChange}
+                        className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-cyan-500"
+                    >
+                        <option value={LIST_ITEM_NFT}>{LIST_ITEM_NFT}</option>
+                        <option value={LIST_ITEM_COIN}>{LIST_ITEM_COIN}</option>
+                        <option value={LIST_ITEM_MERCHANDISE}>{LIST_ITEM_MERCHANDISE}</option>
+                        <option value={LIST_ITEM_SERVICE}>{LIST_ITEM_SERVICE}</option>
+                        <option value={LIST_ITEM_OTHER}>{LIST_ITEM_OTHER}</option>
+                    </select>
+                </div>
 
-                        <Select
-                            labelId="demo-simple-select-label"
-                            id="demo-simple-select"
-                            value={values.itype}
-                            name="itype"
-                            label="Type"
-                            onChange={handleChange}
-                        >
-                            <MenuItem value={LIST_ITEM_NFT}>{LIST_ITEM_NFT}</MenuItem>
-                            <MenuItem value={LIST_ITEM_COIN}>{LIST_ITEM_COIN}</MenuItem>
-                            <MenuItem value={LIST_ITEM_MERCHANDISE}>{LIST_ITEM_MERCHANDISE}</MenuItem>
-                            <MenuItem value={LIST_ITEM_SERVICE}>{LIST_ITEM_SERVICE}</MenuItem>
-                            <MenuItem value={LIST_ITEM_OTHER}>{LIST_ITEM_OTHER}</MenuItem>
+                <div className="sm:col-span-9">
+                    <label className="mb-1 block text-sm font-medium text-slate-700">Name</label>
+                    <input
+                        name="name"
+                        value={values.name}
+                        onChange={handleChange}
+                        className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-cyan-500"
+                    />
+                </div>
 
-                        </Select>
-                    </FormControl>
-                </Grid>
-                <Grid item xs={12} sm={9}>
-                    <FormControl fullWidth >
-                        <TextField
-                            id="outlined-name"
-                            label="Name"
-                            name="name"
-                            value={values.name}
-                            onChange={handleChange}
+                <div className="sm:col-span-6">
+                    <label className="mb-1 block text-sm font-medium text-slate-700">Price</label>
+                    <input
+                        name="price"
+                        type="number"
+                        value={values.price}
+                        onChange={handleChange}
+                        className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-cyan-500"
+                    />
+                </div>
 
-                        />
-                    </FormControl>
-                </Grid>
- 
+                <div className="sm:col-span-6">
+                    <label className="mb-1 block text-sm font-medium text-slate-700">Currency</label>
+                    <select
+                        value={values.currency}
+                        name="currency"
+                        onChange={handleChange}
+                        className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-cyan-500"
+                    >
+                        <option value={CURRENCY_ICP}>{CURRENCY_ICP}</option>
+                        <option value={CURRENCY_ICET}>{CURRENCY_ICET}</option>
+                    </select>
+                </div>
 
-               
-                <Grid item xs={12} sm={6} >
-                    <FormControl fullWidth >
-                        <TextField
-                            name="price"
-                            id="outlined-name"
-                            label="Price"
-                            type="number"
-                            value={values.price}
-                            onChange={handleChange}
-
-                        />
-                    </FormControl>
-                </Grid>
-                <Grid item xs={12} sm={6}>
-                    <FormControl fullWidth>
-
-                        <Select
-                            labelId="demo-simple-select-label"
-                            id="demo-simple-select"
-                            value={values.currency}
-                            name="currency"
-                            label="Currency"
-                            onChange={handleChange}
-                        >
-                            <MenuItem value={CURRENCY_ICP}>{CURRENCY_ICP}</MenuItem>
-                            <MenuItem value={CURRENCY_ICET}>{CURRENCY_ICET}</MenuItem>
-
-                        </Select>
-                    </FormControl>
-                </Grid>
-                {(values.itype == LIST_ITEM_NFT || values.itype == LIST_ITEM_MERCHANDISE) && <Grid item xs={12}>
-                    <FormControl fullWidth >
-                        <TextField
-                            id="outlined-name"
+                {(values.itype == LIST_ITEM_NFT || values.itype == LIST_ITEM_MERCHANDISE) && (
+                    <div className="sm:col-span-12">
+                        <label className="mb-1 block text-sm font-medium text-slate-700">NFT/Mech image url</label>
+                        <input
                             name="image"
-                            label="NFT/Mech image url"
                             value={values.image}
                             onChange={handleChange}
-
+                            className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-cyan-500"
                         />
-                    </FormControl>
-                </Grid>}
-                <Grid item xs={12}>
-                    <FormControl fullWidth >
-                        <TextField
-                            name="description"
-                            id="outlined-name"
-                            label="Description"
-                            value={values.description}
-                            onChange={handleChange}
+                    </div>
+                )}
 
-                        />
-                    </FormControl>
-                </Grid>
-                <Grid item width={12} justifyContent={"center"} alignSelf="center" textAlign={"center"} alignItems={"center"}>
-                    <FormControl >
-                        <Button onClick={list} disabled={!values.name || values.price == 0} variant="contained" >List</Button>
-                    </FormControl>
-                </Grid>
-            </Grid>
-        </Box>
+                <div className="sm:col-span-12">
+                    <label className="mb-1 block text-sm font-medium text-slate-700">Description</label>
+                    <input
+                        name="description"
+                        value={values.description}
+                        onChange={handleChange}
+                        className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-cyan-500"
+                    />
+                </div>
+
+                <div className="sm:col-span-12">
+                    <button
+                        type="button"
+                        onClick={list}
+                        disabled={!values.name || values.price == 0}
+                        className="rounded-md bg-cyan-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-cyan-700 disabled:cursor-not-allowed disabled:bg-slate-300"
+                    >
+                        List
+                    </button>
+                </div>
+            </div>
+        </div>
 
     );
 }

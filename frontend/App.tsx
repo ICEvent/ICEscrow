@@ -5,14 +5,8 @@ import {
   Route,
 
 } from "react-router-dom";
-
-
-
-
-import { makeStyles } from "@mui/material";
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import { Link, Slider, styled } from '@mui/material'
 
 import Store from "./components/Store";
 import Header from './header';
@@ -59,26 +53,10 @@ declare global {
 }
 
 export default () => {
-
-
-  const Root = styled('div')`
-  padding: 1% 2% 10vh 2%;
-  width: 100%;
-  min-height: 95vh;
-  display: flex;
-
-
-  & a {
-    text-decoration: none;
-    color: ${({ theme: { palette } }) => palette.primary.main};
-  }
-`
-
-
   return (
     <BrowserRouter>
       <Store>
-        <Root>
+        <div className="min-h-screen w-full px-[2%] pb-[10vh] pt-[1%]">
           <Header/>
           <ToastContainer />
           <Routes>
@@ -87,7 +65,7 @@ export default () => {
             <Route path="/userid/:userId" element={<UserItems />} />
             <Route path="/" element={<Home />} />
           </Routes>
-        </Root>
+        </div>
       </Store>
     </BrowserRouter>
 

@@ -1,10 +1,6 @@
 import React, { useState, useEffect } from "react"
 import { HttpAgent } from "@dfinity/agent"
 import { AuthClient } from "@dfinity/auth-client"
-import Button from "@mui/material/Button"
-import Menu from "@mui/material/Menu"
-import MenuItem from "@mui/material/MenuItem"
-import ListItemIcon from "@mui/material/ListItemIcon"
 import PlugConnect from "@psychedelic/plug-connect"
 import {
   WHITELIST,
@@ -14,7 +10,6 @@ import {
   ONE_WEEK_NS,
   IDENTITY_PROVIDER_IC,
 } from "../lib/constants"
-import GoogleIcon from "@mui/icons-material/Google"
 
 import { useGlobalContext, useSetAgent } from "../components/Store"
 const HOST = "https://ic0.app"
@@ -23,7 +18,7 @@ const DropdownMenu: React.FC = () => {
 
   const setAgent = useSetAgent()
   const [authClient, setAuthClient] = useState<any>()
-  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null)
+  const [openMenu, setOpenMenu] = useState(false)
   useEffect(() => {
     (async () => {
       const authClient = await AuthClient.create({
@@ -49,12 +44,12 @@ const DropdownMenu: React.FC = () => {
       // }
     })()
   }, [])
-  const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
-    setAnchorEl(event.currentTarget)
+  const handleClick = () => {
+    setOpenMenu((prev) => !prev)
   }
 
   const handleClose = () => {
-    setAnchorEl(null)
+    setOpenMenu(false)
   }
   const DfinityIcon = () => (
     <img
@@ -137,41 +132,41 @@ const DropdownMenu: React.FC = () => {
   };
 
   return (
-    <div>
-      <Button
-        aria-controls="simple-menu"
-        aria-haspopup="true"
+    <div className="relative">
+      <button
+        type="button"
         onClick={handleClick}
+        className="rounded-md border border-cyan-600 px-3 py-1 text-sm font-semibold text-cyan-700 transition hover:bg-cyan-50"
       >
         Login
-      </Button>
-      <Menu
-        id="simple-menu"
-        anchorEl={anchorEl}
-        keepMounted
-        open={Boolean(anchorEl)}
-        onClose={handleClose}
-      >
-        <MenuItem onClick={handleIILogin}>
-          <ListItemIcon>
+      </button>
+      {openMenu && (
+        <div className="absolute right-0 top-10 z-50 min-w-[220px] rounded-lg border border-slate-200 bg-white p-1 shadow-lg">
+          <button
+            type="button"
+            onClick={handleIILogin}
+            className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm text-slate-700 transition hover:bg-slate-100"
+          >
             <DfinityIcon />
-          </ListItemIcon>
-          Internet Identity
-        </MenuItem>
-        <MenuItem onClick={handleNFIDLogin}>
-          <ListItemIcon>
-            <GoogleIcon />
-          </ListItemIcon>
-          NFID - Gmail
-        </MenuItem>
-        <MenuItem >
-          <PlugConnect
-            whitelist={WHITELIST}
-            host={HOST}
-            onConnectCallback={handlePlugLogin}
-          />
-        </MenuItem>
-      </Menu>
+            Internet Identity
+          </button>
+          <button
+            type="button"
+            onClick={handleNFIDLogin}
+            className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm text-slate-700 transition hover:bg-slate-100"
+          >
+            <span aria-hidden="true">G</span>
+            NFID - Gmail
+          </button>
+          <div className="rounded-md px-3 py-2 hover:bg-slate-100">
+            <PlugConnect
+              whitelist={WHITELIST}
+              host={HOST}
+              onConnectCallback={handlePlugLogin}
+            />
+          </div>
+        </div>
+      )}
     </div>
   )
 }

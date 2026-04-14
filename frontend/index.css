@@ -6,6 +6,14 @@ body {
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     color: #424242;
+    background: #f8fafc;
+    transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+:root[data-theme='dark'] body,
+body.dark-theme {
+    background: #0f172a;
+    color: #e2e8f0;
 }
 
 button {

@@ -1,96 +1,38 @@
 import React from 'react'
 import { FC, useContext } from 'react'
-import DarkModeIcon from '@mui/icons-material/Brightness3'
-import LightModeIcon from '@mui/icons-material/WbSunny'
-import { styled } from '@mui/material'
-import isPropValid from '@emotion/is-prop-valid'
 
 import { ChosenTheme } from '../providers'
 
 const DarkModeToggle: FC = () => {
   const { theme, setTheme } = useContext(ChosenTheme)
+  const isChecked = theme === 'dark'
+
   return (
-    <Root>
-      <Checkbox
+    <div>
+      <input
         type='checkbox'
         id='dark-mode-toggle'
-        checked={theme === 'dark'}
+        className='sr-only'
+        checked={isChecked}
         onChange={({ target: { checked } }) => {
           const themeToSet = checked ? 'dark' : 'light'
           setTheme(themeToSet)
         }}
       />
-      <Label htmlFor='dark-mode-toggle'>
-        <MoonIcon>
-          <DarkModeIcon color='inherit' fontSize='small' />
-        </MoonIcon>
-        <SunIcon>
-          <LightModeIcon color='inherit' fontSize='small' />
-        </SunIcon>
-        <Ball isChecked={theme === 'dark'} />
-      </Label>
-    </Root>
+      <label
+        htmlFor='dark-mode-toggle'
+        className='relative flex h-8 w-14 cursor-pointer items-center justify-between rounded-full bg-slate-800 px-2 text-xs'
+      >
+        <span className='text-amber-300'>☀</span>
+        <span className='text-indigo-200'>☾</span>
+        <span
+          className={`absolute top-1 h-6 w-6 rounded-full bg-white transition-all ${
+            isChecked ? 'left-7' : 'left-1'
+          }`}
+        />
+      </label>
+    </div>
   )
 }
-
-const Checkbox = styled('input')`
-  opacity: 0;
-  position: absolute;
-`
-
-interface BallProps {
-  isChecked: boolean
-}
-const Ball = styled('div', {
-  shouldForwardProp: isPropValid
-})<BallProps>`
-  background-color: #fff;
-  border-radius: 50%;
-  position: absolute;
-  top: 2px;
-  left: 2px;
-  height: 16px;
-  width: 16px;
-  transform: translateX(0px);
-  transition: transform 0.2s linear;
-  ${({ isChecked }) => (isChecked ? 'transform: translateX(17px);' : '')}
-`
-
-const Label = styled('label')`
-  background-color: #111;
-  border-radius: 50px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 5px;
-  position: relative;
-  height: 20px;
-  width: 35px;
-  transform: scale(1.5);
-`
-
-const Root = styled('div')`
-  transition: background 0.2s linear;
-`
-
-const SunIcon = styled('i')`
-  color: #f39c12;
-  & svg {
-    & path {
-      color: #f39c12 !important;
-    }
-    font-size: 0.6em;
-  }
-`
-const MoonIcon = styled('i')`
-  color: #f1c40f;
-  & svg {
-    & path {
-      color: #f1c40f !important;
-    }
-    font-size: 0.6em;
-  }
-`
 
 export default DarkModeToggle
