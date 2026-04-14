@@ -60,7 +60,7 @@ export default (props) => {
             }).then(res => {
                 setLoading(false);
                 if (res["ok"]) {
-                    toast.success("Claim order created! Check your order list — the giver will deliver once ready.");
+                    toast.success("Claim order created! Check your order list — the seller will deliver once ready.");
                 } else {
                     toast.error(res["err"] ? res["err"] : "Failed to claim item");
                 }

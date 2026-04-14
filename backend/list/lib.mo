@@ -136,7 +136,7 @@ module{
                         itype = fitem.itype;
                         price  = fitem.price;
                         currency  = fitem.currency;
-                        status = #sold;
+                        status = #unlist;
                         owner = newOwner;
                         listime = fitem.listime;
                     };

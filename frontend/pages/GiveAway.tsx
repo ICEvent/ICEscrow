@@ -138,7 +138,7 @@ export default function GiveAwayPage() {
                         </div>
 
                         <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
-                            ⚠️ This action is irreversible. Once sent, the recipient becomes the new owner immediately.
+                            ⚠️ This action is irreversible. The recipient will receive the item once they complete the order flow (no payment required).
                         </div>
 
                         <button
