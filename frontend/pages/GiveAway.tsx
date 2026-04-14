@@ -6,7 +6,7 @@ import { useEscrow, useGlobalContext, useMenu } from '../components/Store';
 import { Item } from 'frontend/api/escrow/escrow.did';
 import { MENU_HOME } from '../lib/constants';
 
-export default function DelegatePage() {
+export default function GiveAwayPage() {
     const escrow = useEscrow();
     const navigate = useNavigate();
     const { setMenu } = useMenu();
@@ -42,18 +42,18 @@ export default function DelegatePage() {
         }
     };
 
-    const handleDelegate = () => {
+    const handleGiveAway = () => {
         if (!item) return;
         if (!validateRecipient(recipient)) return;
         setLoading(true);
         escrow.delegateItem(item.id, Principal.fromText(recipient.trim())).then(res => {
             setLoading(false);
             if (res['ok']) {
-                toast.success('Item delegated successfully!');
+                toast.success('Item sent successfully!');
                 setMenu(MENU_HOME);
                 navigate('/');
             } else {
-                toast.error(res['err'] ?? 'Failed to delegate item');
+                toast.error(res['err'] ?? 'Failed to give away item');
             }
         });
     };
@@ -71,7 +71,7 @@ export default function DelegatePage() {
                 >
                     Back to Marketplace
                 </button>
-                <p className="mt-2 text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Item Sharing</p>
+                <p className="mt-2 text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Give Away Free Item</p>
             </div>
 
             {!item && (
@@ -82,17 +82,17 @@ export default function DelegatePage() {
 
             {item && !isOwner && (
                 <div className="rounded-3xl border border-rose-200 bg-rose-50 p-6 text-sm text-rose-700 shadow-sm">
-                    You do not own this item and cannot delegate it.
+                    You do not own this item and cannot give it away.
                 </div>
             )}
 
             {item && isOwner && (
-                <div className="reveal-up rounded-3xl border border-white/50 bg-gradient-to-b from-white to-cyan-50/30 p-5 shadow-xl sm:p-6">
+                <div className="reveal-up rounded-3xl border border-white/50 bg-gradient-to-b from-white to-emerald-50/30 p-5 shadow-xl sm:p-6">
                     <div className="mb-5">
-                        <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-500">Delegate / Share Item</p>
+                        <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-500">Give Away Free Item</p>
                         <h2 className="mt-1 text-2xl font-extrabold tracking-tight text-slate-900">{item.name}</h2>
                         <p className="mt-1 text-sm text-slate-600">
-                            Transfer ownership of this item to another user for free. The recipient will become the new owner.
+                            Send this item directly to someone. They will receive ownership without any payment.
                         </p>
                     </div>
 
@@ -125,7 +125,7 @@ export default function DelegatePage() {
                                     if (recipientError) validateRecipient(e.target.value);
                                 }}
                                 placeholder="e.g. aaaaa-aa or full principal text"
-                                className={`w-full rounded-xl border px-3 py-2.5 text-sm outline-none transition focus:border-cyan-500 ${
+                                className={`w-full rounded-xl border px-3 py-2.5 text-sm outline-none transition focus:border-emerald-500 ${
                                     recipientError ? 'border-rose-400 bg-rose-50' : 'border-slate-300 bg-white'
                                 }`}
                             />
@@ -133,27 +133,27 @@ export default function DelegatePage() {
                                 <p className="mt-1 text-xs text-rose-600">{recipientError}</p>
                             )}
                             <p className="mt-1 text-xs text-slate-500">
-                                Enter the Internet Computer principal ID of the person you want to share this item with.
+                                Enter the Internet Computer principal ID of the person you want to give this item to.
                             </p>
                         </div>
 
                         <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
-                            ⚠️ This action is irreversible. Once delegated, the recipient becomes the new owner.
+                            ⚠️ This action is irreversible. Once sent, the recipient becomes the new owner immediately.
                         </div>
 
                         <button
                             type="button"
-                            onClick={handleDelegate}
+                            onClick={handleGiveAway}
                             disabled={loading || !recipient.trim() || !!recipientError}
-                            className="w-full rounded-xl bg-cyan-600 px-4 py-3 text-sm font-semibold text-white shadow-md transition hover:-translate-y-0.5 hover:bg-cyan-700 hover:shadow-lg disabled:cursor-not-allowed disabled:bg-slate-300"
+                            className="w-full rounded-xl bg-emerald-600 px-4 py-3 text-sm font-semibold text-white shadow-md transition hover:-translate-y-0.5 hover:bg-emerald-700 hover:shadow-lg disabled:cursor-not-allowed disabled:bg-slate-300"
                         >
                             {loading ? (
                                 <span className="flex items-center justify-center gap-2">
                                     <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
-                                    Delegating…
+                                    Sending…
                                 </span>
                             ) : (
-                                'Delegate Item'
+                                'Give Away Item'
                             )}
                         </button>
                     </div>

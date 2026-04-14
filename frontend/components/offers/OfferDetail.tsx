@@ -51,10 +51,16 @@ export default (props) => {
             toast.warn("Please login first");
         } else {
             setLoading(true);
-            escrow.claimFreeItem(props.offer.id).then(res => {
+            escrow.create({
+                seller: props.offer.owner,
+                memo: props.offer.name,
+                amount: props.offer.price,
+                currency: props.offer.currency,
+                expiration: BigInt(moment().add(ORDER_DEFAULT_EXPIRED_DAYS, "days").unix())
+            }).then(res => {
                 setLoading(false);
                 if (res["ok"]) {
-                    toast.success("Item claimed! It is now yours.");
+                    toast.success("Claim order created! Check your order list — the giver will deliver once ready.");
                 } else {
                     toast.error(res["err"] ? res["err"] : "Failed to claim item");
                 }
@@ -189,10 +195,10 @@ export default (props) => {
 
                             {isOwner && (
                                 <button
-                                    onClick={() => navigate(`/delegate/${props.offer.id}`)}
-                                    className="w-full rounded-xl border border-cyan-500 px-4 py-2.5 text-sm font-semibold text-cyan-700 transition hover:bg-cyan-50"
+                                    onClick={() => navigate(`/giveaway/${props.offer.id}`)}
+                                    className="w-full rounded-xl border border-emerald-500 px-4 py-2.5 text-sm font-semibold text-emerald-700 transition hover:bg-emerald-50"
                                 >
-                                    Delegate / Share Item
+                                    Give Away to Someone
                                 </button>
                             )}
 
@@ -217,7 +223,7 @@ export default (props) => {
 
                         {isFree && (
                             <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-xs text-emerald-800">
-                                This item is being given away for free. Claiming it will transfer ownership to your account with no payment required.
+                                This item is free. Claiming it starts an order: the giver delivers, you confirm receipt — no payment at any step.
                             </div>
                         )}
                     </div>
