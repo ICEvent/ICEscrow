@@ -19,6 +19,7 @@ export default function DelegatePage() {
     const [recipientError, setRecipientError] = React.useState('');
 
     React.useEffect(() => {
+        if (!params.id) return;
         escrow.getItem(BigInt(params.id)).then(res => {
             setItem(res[0] ?? null);
         });
@@ -42,6 +43,7 @@ export default function DelegatePage() {
     };
 
     const handleDelegate = () => {
+        if (!item) return;
         if (!validateRecipient(recipient)) return;
         setLoading(true);
         escrow.delegateItem(item.id, Principal.fromText(recipient.trim())).then(res => {
@@ -142,7 +144,7 @@ export default function DelegatePage() {
                         <button
                             type="button"
                             onClick={handleDelegate}
-                            disabled={loading || !recipient.trim()}
+                            disabled={loading || !recipient.trim() || !!recipientError}
                             className="w-full rounded-xl bg-cyan-600 px-4 py-3 text-sm font-semibold text-white shadow-md transition hover:-translate-y-0.5 hover:bg-cyan-700 hover:shadow-lg disabled:cursor-not-allowed disabled:bg-slate-300"
                         >
                             {loading ? (

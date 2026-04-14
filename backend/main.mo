@@ -1069,7 +1069,7 @@ persistent actor class EscrowService() = this {
     // Anyone can claim a free (price = 0) listed item; ownership transfers to caller
     public shared ({ caller }) func claimFreeItem(id : Nat) : async Result.Result<Nat, Text> {
         if (Principal.isAnonymous(caller)) {
-            #err("no authenticated")
+            #err("not authenticated")
         } else {
             let item = items.retrieve(id);
             switch (item) {
@@ -1094,7 +1094,7 @@ persistent actor class EscrowService() = this {
     // Owner directly transfers (delegates) an item to a specific recipient
     public shared ({ caller }) func delegateItem(id : Nat, recipient : Principal) : async Result.Result<Nat, Text> {
         if (Principal.isAnonymous(caller)) {
-            #err("no authenticated")
+            #err("not authenticated")
         } else if (Principal.isAnonymous(recipient)) {
             #err("invalid recipient")
         } else if (caller == recipient) {
@@ -1105,7 +1105,7 @@ persistent actor class EscrowService() = this {
                 case (?item) {
                     if (item.owner != caller) {
                         #err("no permission")
-                    } else if (item.status != #list and item.status != #pending) {
+                    } else if (item.status != #list) {
                         #err("item is not available for delegation")
                     } else {
                         items.changeOwner(id, recipient)
