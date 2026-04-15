@@ -60,3 +60,4 @@ frontend/dist
 frontend/api/*
 ./npmrc
 bak
+frontend/.npmrc

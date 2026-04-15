@@ -2,7 +2,8 @@
   "canisters": {
     "escrow": {
       "main": "backend/main.mo",
-      "type": "motoko"
+      "type": "motoko",
+      "args": "--enhanced-orthogonal-persistence"
     },
     "escrow_assets": {
       "dependencies": [
