@@ -3,7 +3,8 @@
     "escrow": {
       "main": "backend/main.mo",
       "type": "motoko",
-      "args": "--enhanced-orthogonal-persistence"
+      "args": "--enhanced-orthogonal-persistence",
+      "wasm_memory_persistence": "keep"
     },
     "escrow_assets": {
       "dependencies": [
