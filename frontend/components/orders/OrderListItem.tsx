@@ -8,6 +8,8 @@ export default (props) => {
     const [openOrder, setOpenOrder] = React.useState(false)
     const currency = Object.getOwnPropertyNames(props.order.currency)[0];
     let es = currency == "ICP" ? 100000000 : 1000000;
+    const amount = parseInt(props.order.amount) / es;
+    const isFreeOrder = amount === 0;
     return (
         <>
             <div
@@ -32,7 +34,7 @@ export default (props) => {
 
                 <div className="grid grid-cols-1 gap-2 text-sm text-slate-700 sm:grid-cols-2">
                     <div className="rounded-md bg-slate-50 px-3 py-2">
-                        <span className="font-semibold text-slate-600">Amount:</span> {parseInt(props.order.amount) / es} ({currency})
+                        <span className="font-semibold text-slate-600">Amount:</span> {isFreeOrder ? 'FREE' : `${amount} (${currency})`}
                     </div>
                     <div className="rounded-md bg-slate-50 px-3 py-2 sm:text-right">
                         <span className="font-semibold text-slate-600">Created:</span> {moment.unix(parseInt(props.order.createtime) / 1000000000).format("YYYY-MM-DD hh:mm")}

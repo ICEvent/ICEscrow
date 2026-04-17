@@ -12,7 +12,11 @@ import {
 } from "../../lib/constants"
 import OrderForm from "../orders/OrderForm"
 
-export default () => {
+type OfferListProps = {
+  freeOnly?: boolean;
+}
+
+export default ({ freeOnly = false }: OfferListProps) => {
   const {
     state: { isAuthed },
   } = useGlobalContext()
@@ -94,9 +98,9 @@ export default () => {
       <section className="reveal-up glass-panel rounded-3xl p-4 sm:p-5">
         <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>
-            <p className="text-xs font-bold uppercase tracking-[0.18em] text-orange-700">Featured Catalog</p>
-            <h2 className="mt-1 text-2xl font-extrabold tracking-tight text-slate-900">Explore Live Listings</h2>
-            <p className="mt-1 text-sm text-slate-600">Handpicked offers with escrow-first checkout protection.</p>
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-orange-700">{freeOnly ? 'Free Item Menu' : 'Featured Catalog'}</p>
+            <h2 className="mt-1 text-2xl font-extrabold tracking-tight text-slate-900">{freeOnly ? 'Claim Free Items' : 'Explore Live Listings'}</h2>
+            <p className="mt-1 text-sm text-slate-600">{freeOnly ? 'Only zero-price listings. Claim in one click and complete delivery confirmation later.' : 'Handpicked offers with escrow-first checkout protection.'}</p>
           </div>
 
           {isAuthed && (
@@ -118,7 +122,7 @@ export default () => {
         </div>
       </section>
 
-      <ItemList items={offers} />
+      <ItemList items={offers} defaultFilter={freeOnly ? 'free' : 'all'} />
 
       <div className="reveal-up reveal-delay-1 mt-4 flex items-center justify-center gap-3 p-2">
         <button

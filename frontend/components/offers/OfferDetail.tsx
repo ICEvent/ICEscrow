@@ -18,6 +18,7 @@ export default (props) => {
 
     const [loading, setLoading] = React.useState(false);
     const currency = Object.getOwnPropertyNames(props.offer.currency)[0] == CURRENCY_ICP ? CURRENCY_ICP : CURRENCY_ICET;
+    const [itemStatus, setItemStatus] = React.useState(Object.getOwnPropertyNames(props.offer.status)[0]);
 
     const price = currency == CURRENCY_ICP ? parseInt(props.offer.price) / LEDGER_E8S : parseInt(props.offer.price) / LEDGER_E6S;
     const isFree = price === 0;
@@ -60,7 +61,8 @@ export default (props) => {
             }).then(res => {
                 setLoading(false);
                 if (res["ok"]) {
-                    toast.success("Claim order created! Check your order list — the seller will deliver once ready.");
+                    toast.success("Claim submitted! Check your orders.");
+                    navigate('/');
                 } else {
                     toast.error(res["err"] ? res["err"] : "Failed to claim item");
                 }
@@ -69,11 +71,88 @@ export default (props) => {
         }
     };
 
+    const holdItem = () => {
+        setLoading(true)
+        escrow.changeItemStatus(props.offer.id, { "pending": null }).then(res => {
+            if (res["ok"]) {
+                toast.success("Item set to hold")
+                setItemStatus("pending")
+            } else {
+                toast.error(res["err"])
+            };
+            setLoading(false)
+
+        })
+    };
+
+    const getOrderStatus = (order) => Object.getOwnPropertyNames(order.status)[0];
+
+    const closeMatchingFreeOrder = async () => {
+        const orders = await escrow.getOrders();
+        const matchingOrder = [...orders]
+            .reverse()
+            .find((order) => {
+                const status = getOrderStatus(order);
+                return order.memo === props.offer.name
+                    && order.seller.toString() === props.offer.owner.toString()
+                    && order.amount === BigInt(0)
+                    && status !== "closed"
+                    && status !== "canceled"
+                    && status !== "refunded";
+            });
+
+        if (!matchingOrder) {
+            return { ok: false, err: "No matching free order found" };
+        }
+
+        return await escrow.close(matchingOrder.id);
+    };
+
+    const markSold = async () => {
+        setLoading(true)
+        try {
+            const res = await escrow.changeItemStatus(props.offer.id, { "sold": null });
+            if (res["ok"]) {
+                setItemStatus("sold")
+
+                if (isFree) {
+                    const closeResult = await closeMatchingFreeOrder();
+                    if (closeResult["ok"]) {
+                        toast.success("Item marked as sold and order closed")
+                    } else {
+                        toast.warn(closeResult["err"] ? `Item marked as sold, but order close failed: ${closeResult["err"]}` : "Item marked as sold, but order was not closed")
+                    }
+                } else {
+                    toast.success("Item marked as sold")
+                }
+            } else {
+                toast.error(res["err"])
+            };
+        } finally {
+            setLoading(false)
+        }
+    };
+
+    const relist = () => {
+        setLoading(true)
+        escrow.changeItemStatus(props.offer.id, { "list": null }).then(res => {
+            if (res["ok"]) {
+                toast.success("Item relisted")
+                setItemStatus("list")
+            } else {
+                toast.error(res["err"])
+            };
+            setLoading(false)
+
+        })
+    };
+
     const unlist = () => {
         setLoading(true)
-        escrow.changeItemStatus(props.offer.id, { "sold": null }).then(res => {
+        escrow.changeItemStatus(props.offer.id, { "unlist": null }).then(res => {
             if (res["ok"]) {
                 toast.success("unlist this item")
+                setItemStatus("unlist")
             } else {
                 toast.error(res["err"])
             };
@@ -85,6 +164,8 @@ export default (props) => {
     const isOwner = principal && props.offer.owner.toString() === principal.toString();
     const listedDate = moment.unix(Number(props.offer.listime) / 1000000000).format('MMMM DD, YYYY');
     const itemType = Object.getOwnPropertyNames(props.offer.itype)[0];
+    const isHeld = itemStatus === "pending";
+    const isSold = itemStatus === "sold";
 
     return (
         <div className="reveal-up relative rounded-3xl border border-white/50 bg-gradient-to-b from-white to-orange-50/30 p-4 shadow-xl sm:p-6">
@@ -169,14 +250,20 @@ export default (props) => {
                                 <div className="mx-auto h-6 w-6 animate-spin rounded-full border-2 border-slate-300 border-t-cyan-600" />
                             ) : (
                                 <>
-                                    {!isOwner && isFree && (
+                                    {!isOwner && isFree && !isHeld && !isSold && (
                                         <button
                                             disabled={loading || !isAuthed}
                                             onClick={claimFree}
                                             className="w-full rounded-xl bg-emerald-500 px-4 py-3 text-sm font-semibold text-white shadow-md transition hover:-translate-y-0.5 hover:bg-emerald-600 hover:shadow-lg disabled:cursor-not-allowed disabled:bg-slate-300"
                                         >
-                                            Claim for Free
+                                            Claim Free Item
                                         </button>
+                                    )}
+
+                                    {!isOwner && isFree && (isHeld || isSold) && (
+                                        <div className="rounded-lg bg-slate-100 px-4 py-3 text-center text-sm font-semibold text-slate-600">
+                                            {isHeld ? "Item On Hold" : "Item Sold"}
+                                        </div>
                                     )}
 
                                     {!isOwner && !isFree && (
@@ -193,21 +280,47 @@ export default (props) => {
 
                             {!isAuthed && <p className="text-center text-xs text-slate-500">Login required to {isFree ? 'claim' : 'place an order'}.</p>}
 
-                            {isOwner && (
+                            {isOwner && !isHeld && !isSold && (
                                 <button
-                                    onClick={() => navigate(`/giveaway/${props.offer.id}`)}
-                                    className="w-full rounded-xl border border-emerald-500 px-4 py-2.5 text-sm font-semibold text-emerald-700 transition hover:bg-emerald-50"
+                                    onClick={holdItem}
+                                    className="w-full rounded-xl border border-amber-500 px-4 py-2.5 text-sm font-semibold text-amber-700 transition hover:bg-amber-50"
                                 >
-                                    Give Away to Someone
+                                    Hold Item
+                                </button>
+                            )}
+
+                            {isOwner && isHeld && (
+                                <>
+                                    <button
+                                        onClick={relist}
+                                        className="w-full rounded-xl border border-blue-500 px-4 py-2.5 text-sm font-semibold text-blue-700 transition hover:bg-blue-50"
+                                    >
+                                        Relist Item
+                                    </button>
+                                    <button
+                                        onClick={markSold}
+                                        className="w-full rounded-xl border border-rose-500 px-4 py-2.5 text-sm font-semibold text-rose-600 transition hover:bg-rose-50"
+                                    >
+                                        Mark Sold
+                                    </button>
+                                </>
+                            )}
+
+                            {isOwner && isSold && (
+                                <button
+                                    onClick={relist}
+                                    className="w-full rounded-xl border border-blue-500 px-4 py-2.5 text-sm font-semibold text-blue-700 transition hover:bg-blue-50"
+                                >
+                                    Relist Item
                                 </button>
                             )}
 
                             {isOwner && (
                                 <button
                                     onClick={unlist}
-                                    className="btn-modern-secondary w-full rounded-xl border border-rose-500 px-4 py-2.5 text-sm font-semibold text-rose-600 transition hover:bg-rose-50"
+                                    className="btn-modern-secondary w-full rounded-xl border border-slate-400 px-4 py-2.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-50"
                                 >
-                                    Unlist Item
+                                    Remove Item
                                 </button>
                             )}
                         </div>
@@ -223,7 +336,7 @@ export default (props) => {
 
                         {isFree && (
                             <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-xs text-emerald-800">
-                                This item is free. Claiming it starts an order: the giver delivers, you confirm receipt — no payment at any step.
+                                Free item: claim it, then owner sets status (hold, sold, relist) in your orders.
                             </div>
                         )}
                     </div>

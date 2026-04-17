@@ -9,6 +9,7 @@ export default (props) => {
     const currency = Object.getOwnPropertyNames(props.offer.currency)[0] == CURRENCY_ICP ? CURRENCY_ICP : CURRENCY_ICET;
 
     const price = currency == CURRENCY_ICP ? parseInt(props.offer.price) / LEDGER_E8S : parseInt(props.offer.price) / LEDGER_E6S;
+    const isFree = price === 0;
 
     return (
         <>
@@ -32,7 +33,7 @@ export default (props) => {
                     <div className="flex items-center justify-between gap-3">
                         <div>
                             <p className="font-semibold text-slate-900 group-hover:text-cyan-700">{props.offer.name}</p>
-                            <p className="text-sm text-slate-600">{"$" + currency + " " + price}</p>
+                            <p className={`text-sm ${isFree ? 'font-semibold text-emerald-600' : 'text-slate-600'}`}>{isFree ? 'FREE' : "$" + currency + " " + price}</p>
                         </div>
                         <div className="flex items-center gap-3">
                             <span className="rounded-full border border-cyan-500/70 bg-cyan-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-cyan-700">

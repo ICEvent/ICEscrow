@@ -7,7 +7,7 @@ import { useEffect } from "react"
 import { HttpAgent, Identity } from "@dfinity/agent";
 import { AuthClient } from "@dfinity/auth-client";
 import { HOST } from "../lib/canisters";
-import { MENU_ORDERS, MENU_PROFILE, MENU_HOME } from "../lib/constants";
+import { MENU_ORDERS, MENU_PROFILE, MENU_HOME, MENU_FREE } from "../lib/constants";
 
 import { useSetAgent, useGlobalContext, useLoading, useMenu } from "../components/Store";
 
@@ -46,6 +46,11 @@ const Header: FC = () => {
 
   const openShop = () => {
     setMenu(MENU_HOME);
+    navigate("/", { replace: true });
+  }
+
+  const openFreeItems = () => {
+    setMenu(MENU_FREE);
     navigate("/", { replace: true });
   }
   useEffect(() => {
@@ -121,6 +126,13 @@ const Header: FC = () => {
               className={`rounded-lg px-3 py-1.5 text-xs font-bold uppercase tracking-wide transition ${menu == MENU_HOME ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}
             >
               Shop
+            </button>
+            <button
+              type="button"
+              onClick={openFreeItems}
+              className={`rounded-lg px-3 py-1.5 text-xs font-bold uppercase tracking-wide transition ${menu == MENU_FREE ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}
+            >
+              Free Items
             </button>
             {isAuthed && (
               <>

@@ -12,10 +12,15 @@ interface ItemListProps {
 
 const ItemList: React.FC<ItemListProps> = ({ items, onItemClick, defaultFilter }) => {
     const navigate = useNavigate();
-    const [activeFilter, setActiveFilter] = React.useState(defaultFilter || 'all');
+    const initialFilter = defaultFilter || 'all';
+    const [activeFilter, setActiveFilter] = React.useState(initialFilter);
     const [searchTerm, setSearchTerm] = React.useState('');
     const [sortBy, setSortBy] = React.useState('newest');
-    const filters = ['all', 'nft', 'coin', 'service', 'merchandise', 'other'];
+    const filters = ['all', 'free', 'nft', 'coin', 'service', 'merchandise', 'other'];
+
+    const availableItems = React.useMemo(() => {
+        return items.filter((item) => Object.getOwnPropertyNames(item.status)[0] === 'list');
+    }, [items]);
 
     const getItemType = React.useCallback((item: Item) => {
         return Object.getOwnPropertyNames(item.itype)[0].toLowerCase();
@@ -30,21 +35,24 @@ const ItemList: React.FC<ItemListProps> = ({ items, onItemClick, defaultFilter }
     const toListTime = React.useCallback((item: Item) => Number(item.listime), []);
 
     const filterCounts = React.useMemo(() => {
-        const counts: Record<string, number> = { all: items.length };
+        const counts: Record<string, number> = { all: availableItems.length };
+        counts.free = availableItems.filter((item) => toPriceNumber(item) === 0).length;
         for (const filter of filters) {
-            if (filter !== 'all') {
-                counts[filter] = items.filter((item) => getItemType(item) === filter).length;
+            if (filter !== 'all' && filter !== 'free') {
+                counts[filter] = availableItems.filter((item) => getItemType(item) === filter).length;
             }
         }
         return counts;
-    }, [items, filters, getItemType]);
+    }, [availableItems, filters, getItemType, toPriceNumber]);
 
     const visibleItems = React.useMemo(() => {
         const normalizedSearch = searchTerm.trim().toLowerCase();
 
-        const filtered = items.filter((item) => {
+        const filtered = availableItems.filter((item) => {
             const type = getItemType(item);
-            const matchesType = activeFilter === 'all' || type === activeFilter;
+            const matchesType = activeFilter === 'all'
+                || (activeFilter === 'free' && toPriceNumber(item) === 0)
+                || type === activeFilter;
             if (!matchesType) return false;
 
             if (!normalizedSearch) return true;
@@ -58,7 +66,11 @@ const ItemList: React.FC<ItemListProps> = ({ items, onItemClick, defaultFilter }
             if (sortBy === 'price-high') return toPriceNumber(b) - toPriceNumber(a);
             return toListTime(b) - toListTime(a);
         });
-    }, [items, activeFilter, searchTerm, sortBy, getItemType, toPriceNumber, toListTime]);
+    }, [availableItems, activeFilter, searchTerm, sortBy, getItemType, toPriceNumber, toListTime]);
+
+    React.useEffect(() => {
+        setActiveFilter(initialFilter);
+    }, [initialFilter]);
 
     return (
         <section className="reveal-up mt-4 rounded-3xl border border-white/60 bg-white/75 p-4 shadow-lg backdrop-blur sm:p-5">
@@ -94,7 +106,7 @@ const ItemList: React.FC<ItemListProps> = ({ items, onItemClick, defaultFilter }
                         onClick={() => {
                             setSearchTerm('');
                             setSortBy('newest');
-                            setActiveFilter('all');
+                            setActiveFilter(initialFilter);
                         }}
                         className="btn-modern-secondary rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:border-orange-500 hover:text-orange-700"
                     >

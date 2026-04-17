@@ -559,49 +559,58 @@ persistent actor class EscrowService() = this {
 
     //seller
     public shared ({ caller }) func close(orderid : Nat) : async Result.Result<Nat, Text> {
-        //update status with closed
-        let order = Array.filter(
+        let order = Array.find<Order>(
             Iter.toArray(orders.vals()),
             func(o : Order) : Bool {
-                (o.id == orderid) and (o.buyer == caller or o.seller == caller) and (o.status == #new or o.status == #deposited or o.status == #delivered)
+                (o.id == orderid) and (o.buyer == caller or o.seller == caller)
             },
-        )[0];
+        );
 
-        //only released orde can close
-        if (order.id == orderid and order.status == #released) {
+        switch (order) {
+            case (?order) {
+                let canCloseFreeOrder = order.amount == 0 and order.seller == caller and (order.status == #new or order.status == #deposited or order.status == #delivered or order.status == #received);
+                let canCloseReleasedOrder = order.status == #released;
 
-            let log = {
-                ltime = Time.now();
-                log = "close order";
-                logger = #seller
+                if (canCloseFreeOrder or canCloseReleasedOrder) {
+                    let log = {
+                        ltime = Time.now();
+                        log = "close order";
+                        logger = if (caller == order.seller) { #seller } else { #buyer }
+                    };
+                    var logs : List.List<Log> = List.fromArray(order.logs);
+                    logs := List.push(log, logs);
+
+                    orders.put(
+                        orderid,
+                        {
+                            id = orderid;
+                            buyer = order.buyer;
+                            seller = order.seller;
+                            memo = order.memo;
+                            amount = order.amount;
+                            currency = order.currency;
+                            account = order.account;
+                            blockin = order.blockin;
+                            blockout = order.blockout;
+                            createtime = order.createtime;
+                            expiration = order.expiration;
+                            lockedby = getPrincipal();
+                            status = #closed;
+                            updatetime = Time.now();
+
+                            comments = order.comments;
+                            logs = List.toArray(logs)
+                        },
+                    );
+                    #ok(1)
+                } else {
+                    #err("wrong status or no permission")
+                }
             };
-            var logs : List.List<Log> = List.fromArray(order.logs);
-            logs := List.push(log, logs);
-
-            orders.put(
-                orderid,
-                {
-                    id = orderid;
-                    buyer = order.buyer;
-                    seller = order.seller;
-                    memo = order.memo;
-                    amount = order.amount;
-                    currency = order.currency;
-                    account = order.account;
-                    blockin = order.blockin;
-                    blockout = order.blockout;
-                    createtime = order.createtime;
-                    expiration = order.expiration;
-                    lockedby = getPrincipal();
-                    status = #closed;
-                    updatetime = Time.now();
-
-                    comments = order.comments;
-                    logs = List.toArray(logs)
-                },
-            )
-        };
-        #ok(1)
+            case (_) {
+                #err("no order found")
+            }
+        }
     };
 
     //buyer submit cancel request if status is #deposited

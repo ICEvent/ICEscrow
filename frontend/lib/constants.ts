@@ -27,6 +27,7 @@ export const ORDER_DEFAULT_EXPIRED_DAYS = 5;
 export const MENU_HOME = "home";
 export const MENU_ORDERS = "orders";
 export const MENU_PROFILE = "profile";
+export const MENU_FREE = "free";
 
 export const ORDER_STATUS_NEW = "new";
 export const ORDER_STATUS_DEPOSITED = "deposited";
