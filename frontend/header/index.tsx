@@ -114,8 +114,8 @@ const Header: FC = () => {
               I
             </span>
             <span className="text-left">
-              <span className="block text-base font-extrabold leading-none text-slate-900">ICEscrow</span>
-              <span className="block text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-500">Marketplace</span>
+              <span className="block text-base font-extrabold leading-none text-slate-900">Vansday</span>
+              <span className="block text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-500">Escrow</span>
             </span>
           </button>
 

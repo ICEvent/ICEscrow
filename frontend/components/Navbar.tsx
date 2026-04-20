@@ -88,7 +88,7 @@ export default () => {
     <div className="mb-2 rounded-lg border border-slate-200 bg-white">
       <div className="flex items-center gap-2 px-4 py-3">
         <button type="button" className="mr-2 h-8 w-8 rounded-md" aria-hidden="true" />
-        <p className="flex-1 text-lg font-semibold text-slate-800">ICEscrow</p>
+        <p className="flex-1 text-lg font-semibold text-slate-800">Vansday</p>
         {isAuthed && (
           <button
             type="button"

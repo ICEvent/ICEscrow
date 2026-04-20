@@ -1,7 +1,7 @@
 import * as React from 'react';
 import moment from 'moment';
 
-import { ORDER_STATUS_CANCELED, ORDER_STATUS_CLOSED, ORDER_STATUS_DELIVERED, ORDER_STATUS_DEPOSITED, ORDER_STATUS_NEW, ORDER_STATUS_RECEIVED, ORDER_STATUS_RELEASED } from '../../lib/constants';
+import { ORDER_STATUS_CANCELED, ORDER_STATUS_CLOSED, ORDER_STATUS_DELIVERED, ORDER_STATUS_DEPOSITED, ORDER_STATUS_NEW, ORDER_STATUS_RECEIVED, ORDER_STATUS_REFUNDED, ORDER_STATUS_RELEASED } from '../../lib/constants';
 import { toast } from 'react-toastify';
 
 import { useEscrow, useGlobalContext, useLoading } from '../Store';
@@ -27,6 +27,7 @@ export default (props) => {
     const amount = parseInt(order.amount) / es;
     const isFreeOrder = amount === 0;
     const amountLabel = isFreeOrder ? "FREE" : `${amount} (${currency})`;
+    const canCloseOrder = status != ORDER_STATUS_CLOSED && status != ORDER_STATUS_CANCELED && status != ORDER_STATUS_REFUNDED;
     
     const activeStep = isFreeOrder ? 2 : (
         status == ORDER_STATUS_NEW ? 1 :
@@ -130,6 +131,19 @@ export default (props) => {
         })
     };  
 
+    const closeOrder = () => {
+        setLoading(true);
+        escrow.close(order.id).then(res => {
+            if (res["ok"]) {
+                toast.success("the order has been closed");
+                setStatus(ORDER_STATUS_CLOSED)
+            } else {
+                toast.error(res["err"])
+            }
+            setLoading(false);
+        })
+    };
+
 
     return (
         <div className="space-y-4 rounded-lg border border-slate-200 bg-white p-4">
@@ -219,6 +233,8 @@ export default (props) => {
                             {status == ORDER_STATUS_NEW && <button type="button" disabled={!confirmed} onClick={cancelOrder} className="rounded-md border border-rose-500 px-3 py-2 text-sm font-semibold text-rose-600 transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-50">Cancel</button>}
                         </>
                     )}
+
+                    {canCloseOrder && <button type="button" onClick={closeOrder} className="rounded-md border border-slate-500 px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">Close Order</button>}
 
                     <CommentButton id={order.id} reload={loadOrder}/>
                 </div>

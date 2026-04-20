@@ -557,7 +557,7 @@ persistent actor class EscrowService() = this {
 
     };
 
-    //seller
+    //buyer or seller
     public shared ({ caller }) func close(orderid : Nat) : async Result.Result<Nat, Text> {
         let order = Array.find<Order>(
             Iter.toArray(orders.vals()),
@@ -568,10 +568,9 @@ persistent actor class EscrowService() = this {
 
         switch (order) {
             case (?order) {
-                let canCloseFreeOrder = order.amount == 0 and order.seller == caller and (order.status == #new or order.status == #deposited or order.status == #delivered or order.status == #received);
-                let canCloseReleasedOrder = order.status == #released;
+                let canCloseOrder = order.status != #closed and order.status != #canceled and order.status != #refunded;
 
-                if (canCloseFreeOrder or canCloseReleasedOrder) {
+                if (canCloseOrder) {
                     let log = {
                         ltime = Time.now();
                         log = "close order";
