@@ -3,7 +3,7 @@ import { useGlobalContext, useEscrow } from '../Store';
 import { toast } from 'react-toastify';
 import moment from 'moment';
 import { CURRENCY_ICET, CURRENCY_ICP, LEDGER_E6S, LEDGER_E8S, ORDER_DEFAULT_EXPIRED_DAYS } from '../../lib/constants';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 
 
 
@@ -14,7 +14,6 @@ export default (props) => {
         principal
     } } = useGlobalContext();
     const escrow = useEscrow();
-    const navigate = useNavigate();
 
     const [loading, setLoading] = React.useState(false);
     const currency = Object.getOwnPropertyNames(props.offer.currency)[0] == CURRENCY_ICP ? CURRENCY_ICP : CURRENCY_ICET;
@@ -52,17 +51,10 @@ export default (props) => {
             toast.warn("Please login first");
         } else {
             setLoading(true);
-            escrow.create({
-                seller: props.offer.owner,
-                memo: props.offer.name,
-                amount: props.offer.price,
-                currency: props.offer.currency,
-                expiration: BigInt(moment().add(ORDER_DEFAULT_EXPIRED_DAYS, "days").unix())
-            }).then(res => {
+            escrow.claimFreeItem(props.offer.id).then(res => {
                 setLoading(false);
                 if (res["ok"]) {
-                    toast.success("Claim submitted! Check your orders.");
-                    navigate('/');
+                    toast.success("Claim message sent to seller. Wait for seller to create the order.");
                 } else {
                     toast.error(res["err"] ? res["err"] : "Failed to claim item");
                 }
@@ -336,7 +328,7 @@ export default (props) => {
 
                         {isFree && (
                             <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-xs text-emerald-800">
-                                Free item: claim it, then owner sets status (hold, sold, relist) in your orders.
+                                Free item: claim sends a message to seller first. Seller can then create an order for you and hold this item.
                             </div>
                         )}
                     </div>

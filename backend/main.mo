@@ -47,6 +47,14 @@ persistent actor class EscrowService() = this {
     type NewSellOrder = Types.NewSellOrder;
     type Log = Types.Log;
     type Comment = Types.Comment;
+    type FreeItemClaim = {
+        id : Nat;
+        itemid : Nat;
+        itemName : Text;
+        seller : Principal;
+        buyer : Principal;
+        ctime : Int
+    };
 
     // transfer fee ICP
     transient let FEE : Nat64 = 10_000;
@@ -86,6 +94,8 @@ persistent actor class EscrowService() = this {
 
     stable var _upgradeItemId : Nat = 1;
     stable var _upgradeItems : [(Nat, ItemTypes.Item)] = [];
+    stable var nextFreeItemClaimId : Nat = 1;
+    stable var freeItemClaims : [FreeItemClaim] = [];
 
     //backukp
     stable var backupItems : [UpgradeTypes.U_Item] = [];
@@ -1162,6 +1172,65 @@ persistent actor class EscrowService() = this {
                 }
             }
         }
+    };
+
+    public shared ({ caller }) func claimFreeItem(itemid : Nat) : async Result.Result<Nat, Text> {
+        if (Principal.isAnonymous(caller)) {
+            #err("not authenticated")
+        } else {
+            let item = items.retrieve(itemid);
+            switch (item) {
+                case (?item) {
+                    if (item.owner == caller) {
+                        #err("cannot claim your own item")
+                    } else if (item.price != 0) {
+                        #err("item is not free")
+                    } else if (item.status != #list) {
+                        #err("item is not available")
+                    } else {
+                        let existed = Array.find<FreeItemClaim>(
+                            freeItemClaims,
+                            func(c : FreeItemClaim) : Bool {
+                                c.itemid == itemid and c.buyer == caller
+                            },
+                        );
+                        switch (existed) {
+                            case (?_) {
+                                #err("you already claimed this free item")
+                            };
+                            case (_) {
+                                let claimid = nextFreeItemClaimId;
+                                freeItemClaims := Array.append<FreeItemClaim>(
+                                    freeItemClaims,
+                                    [{
+                                        id = claimid;
+                                        itemid = itemid;
+                                        itemName = item.name;
+                                        seller = item.owner;
+                                        buyer = caller;
+                                        ctime = Time.now()
+                                    }],
+                                );
+                                nextFreeItemClaimId := nextFreeItemClaimId + 1;
+                                #ok(claimid)
+                            }
+                        }
+                    }
+                };
+                case (_) {
+                    #err("no item found")
+                }
+            }
+        }
+    };
+
+    public query ({ caller }) func getMyFreeItemClaims() : async [FreeItemClaim] {
+        Array.filter(
+            freeItemClaims,
+            func(c : FreeItemClaim) : Bool {
+                c.seller == caller
+            },
+        )
     };
 
     /**
