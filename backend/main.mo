@@ -95,7 +95,7 @@ persistent actor class EscrowService() = this {
     stable var _upgradeItemId : Nat = 1;
     stable var _upgradeItems : [(Nat, ItemTypes.Item)] = [];
     stable var nextFreeItemClaimId : Nat = 1;
-    stable var freeItemClaims : [FreeItemClaim] = [];
+    stable var upgradeFreeItemClaims : [(Nat, FreeItemClaim)] = [];
 
     //backukp
     stable var backupItems : [UpgradeTypes.U_Item] = [];
@@ -104,6 +104,17 @@ persistent actor class EscrowService() = this {
     orders := TrieMap.fromEntries<Nat, Order>(Iter.fromArray(upgradeOrders), Nat.equal, Hash.hash);
 
     transient let items = Items.Items(_upgradeItemId, _upgradeItems);
+    transient var freeItemClaims = TrieMap.TrieMap<Nat, FreeItemClaim>(Nat.equal, Hash.hash);
+    freeItemClaims := TrieMap.fromEntries<Nat, FreeItemClaim>(
+        Iter.fromArray(upgradeFreeItemClaims),
+        Nat.equal,
+        Hash.hash,
+    );
+    transient var freeItemClaimIndex = TrieMap.TrieMap<Text, Nat>(Text.equal, Text.hash);
+    for (claim in freeItemClaims.vals()) {
+        let key = Nat.toText(claim.itemid) # ":" # Principal.toText(claim.buyer);
+        freeItemClaimIndex.put(key, claim.id)
+    };
 
     public shared ({ caller }) func buy(newOrder : NewOrder) : async Result.Result<Nat, Text> {
 
@@ -1188,29 +1199,25 @@ persistent actor class EscrowService() = this {
                     } else if (item.status != #list) {
                         #err("item is not available")
                     } else {
-                        let existed = Array.find<FreeItemClaim>(
-                            freeItemClaims,
-                            func(c : FreeItemClaim) : Bool {
-                                c.itemid == itemid and c.buyer == caller
-                            },
-                        );
-                        switch (existed) {
+                        let claimKey = Nat.toText(itemid) # ":" # Principal.toText(caller);
+                        switch (freeItemClaimIndex.get(claimKey)) {
                             case (?_) {
                                 #err("you already claimed this free item")
                             };
                             case (_) {
                                 let claimid = nextFreeItemClaimId;
-                                freeItemClaims := Array.append<FreeItemClaim>(
-                                    freeItemClaims,
-                                    [{
+                                freeItemClaims.put(
+                                    claimid,
+                                    {
                                         id = claimid;
                                         itemid = itemid;
                                         itemName = item.name;
                                         seller = item.owner;
                                         buyer = caller;
                                         ctime = Time.now()
-                                    }],
+                                    },
                                 );
+                                freeItemClaimIndex.put(claimKey, claimid);
                                 nextFreeItemClaimId := nextFreeItemClaimId + 1;
                                 #ok(claimid)
                             }
@@ -1226,7 +1233,7 @@ persistent actor class EscrowService() = this {
 
     public query ({ caller }) func getMyFreeItemClaims() : async [FreeItemClaim] {
         Array.filter(
-            freeItemClaims,
+            Iter.toArray(freeItemClaims.vals()),
             func(c : FreeItemClaim) : Bool {
                 c.seller == caller
             },
@@ -1240,11 +1247,13 @@ persistent actor class EscrowService() = this {
         upgradeOrders := Iter.toArray(orders.entries());
         _upgradeItemId := items.toStableId();
         _upgradeItems := items.toStable();
+        upgradeFreeItemClaims := Iter.toArray(freeItemClaims.entries());
 
     };
 
     system func postupgrade() {
         _upgradeItems := [];
+        upgradeFreeItemClaims := [];
 
     };
 
