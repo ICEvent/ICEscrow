@@ -1204,7 +1204,7 @@ persistent actor class EscrowService() = this {
                             case (?_) {
                                 #err("you already claimed this free item")
                             };
-                            case (_) {
+                            case (null) {
                                 let claimid = nextFreeItemClaimId;
                                 freeItemClaims.put(
                                     claimid,
