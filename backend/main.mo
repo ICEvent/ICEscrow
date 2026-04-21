@@ -47,6 +47,14 @@ persistent actor class EscrowService() = this {
     type NewSellOrder = Types.NewSellOrder;
     type Log = Types.Log;
     type Comment = Types.Comment;
+    type FreeItemClaim = {
+        id : Nat;
+        itemId : Nat;
+        itemName : Text;
+        seller : Principal;
+        buyer : Principal;
+        ctime : Int
+    };
 
     // transfer fee ICP
     transient let FEE : Nat64 = 10_000;
@@ -86,6 +94,8 @@ persistent actor class EscrowService() = this {
 
     stable var _upgradeItemId : Nat = 1;
     stable var _upgradeItems : [(Nat, ItemTypes.Item)] = [];
+    stable var nextFreeItemClaimId : Nat = 1;
+    stable var upgradeFreeItemClaims : [(Nat, FreeItemClaim)] = [];
 
     //backukp
     stable var backupItems : [UpgradeTypes.U_Item] = [];
@@ -94,6 +104,17 @@ persistent actor class EscrowService() = this {
     orders := TrieMap.fromEntries<Nat, Order>(Iter.fromArray(upgradeOrders), Nat.equal, Hash.hash);
 
     transient let items = Items.Items(_upgradeItemId, _upgradeItems);
+    transient var freeItemClaims = TrieMap.TrieMap<Nat, FreeItemClaim>(Nat.equal, Hash.hash);
+    freeItemClaims := TrieMap.fromEntries<Nat, FreeItemClaim>(
+        Iter.fromArray(upgradeFreeItemClaims),
+        Nat.equal,
+        Hash.hash,
+    );
+    transient var freeItemClaimIndex = TrieMap.TrieMap<Text, Nat>(Text.equal, Text.hash);
+    for (claim in freeItemClaims.vals()) {
+        let key = Nat.toText(claim.itemId) # ":" # Principal.toText(claim.buyer);
+        freeItemClaimIndex.put(key, claim.id);
+    };
 
     public shared ({ caller }) func buy(newOrder : NewOrder) : async Result.Result<Nat, Text> {
 
@@ -1164,6 +1185,62 @@ persistent actor class EscrowService() = this {
         }
     };
 
+    public shared ({ caller }) func claimFreeItem(itemId : Nat) : async Result.Result<Nat, Text> {
+        if (Principal.isAnonymous(caller)) {
+            #err("not authenticated")
+        } else {
+            let item = items.retrieve(itemId);
+            switch (item) {
+                case (?item) {
+                    if (item.owner == caller) {
+                        #err("cannot claim your own item")
+                    } else if (item.price != 0) {
+                        #err("item is not free")
+                    } else if (item.status != #list) {
+                        #err("item is not available")
+                    } else {
+                        let claimKey = Nat.toText(itemId) # ":" # Principal.toText(caller);
+                        switch (freeItemClaimIndex.get(claimKey)) {
+                            case (?_) {
+                                #err("you already claimed this free item")
+                            };
+                            case (null) {
+                                let claimId = nextFreeItemClaimId;
+                                freeItemClaims.put(
+                                    claimId,
+                                    {
+                                        id = claimId;
+                                        itemId = itemId;
+                                        itemName = item.name;
+                                        seller = item.owner;
+                                        buyer = caller;
+                                        ctime = Time.now()
+                                    },
+                                );
+                                freeItemClaimIndex.put(claimKey, claimId);
+                                nextFreeItemClaimId := nextFreeItemClaimId + 1;
+                                #ok(claimId)
+                            }
+                        }
+                    }
+                };
+                case (_) {
+                    #err("no item found")
+                }
+            }
+        }
+    };
+
+    public query ({ caller }) func getMyFreeItemClaims() : async [FreeItemClaim] {
+        let claims = Buffer.Buffer<FreeItemClaim>(0);
+        for (c in freeItemClaims.vals()) {
+            if (c.seller == caller) {
+                claims.add(c)
+            }
+        };
+        Buffer.toArray(claims)
+    };
+
     /**
     system
     **/
@@ -1171,11 +1248,13 @@ persistent actor class EscrowService() = this {
         upgradeOrders := Iter.toArray(orders.entries());
         _upgradeItemId := items.toStableId();
         _upgradeItems := items.toStable();
+        upgradeFreeItemClaims := Iter.toArray(freeItemClaims.entries());
 
     };
 
     system func postupgrade() {
         _upgradeItems := [];
+        upgradeFreeItemClaims := [];
 
     };
 
