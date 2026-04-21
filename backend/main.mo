@@ -1205,11 +1205,11 @@ persistent actor class EscrowService() = this {
                                 #err("you already claimed this free item")
                             };
                             case (null) {
-                                let claimid = nextFreeItemClaimId;
+                                let claimId = nextFreeItemClaimId;
                                 freeItemClaims.put(
-                                    claimid,
+                                    claimId,
                                     {
-                                        id = claimid;
+                                        id = claimId;
                                         itemId = itemId;
                                         itemName = item.name;
                                         seller = item.owner;
@@ -1217,9 +1217,9 @@ persistent actor class EscrowService() = this {
                                         ctime = Time.now()
                                     },
                                 );
-                                freeItemClaimIndex.put(claimKey, claimid);
+                                freeItemClaimIndex.put(claimKey, claimId);
                                 nextFreeItemClaimId := nextFreeItemClaimId + 1;
-                                #ok(claimid)
+                                #ok(claimId)
                             }
                         }
                     }
@@ -1232,12 +1232,13 @@ persistent actor class EscrowService() = this {
     };
 
     public query ({ caller }) func getMyFreeItemClaims() : async [FreeItemClaim] {
-        Array.filter(
-            Iter.toArray(freeItemClaims.vals()),
-            func(c : FreeItemClaim) : Bool {
-                c.seller == caller
-            },
-        )
+        let claims = Buffer.Buffer<FreeItemClaim>(0);
+        for (c in freeItemClaims.vals()) {
+            if (c.seller == caller) {
+                claims.add(c)
+            }
+        };
+        Buffer.toArray(claims)
     };
 
     /**
