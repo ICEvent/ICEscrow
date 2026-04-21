@@ -49,7 +49,7 @@ persistent actor class EscrowService() = this {
     type Comment = Types.Comment;
     type FreeItemClaim = {
         id : Nat;
-        itemid : Nat;
+        itemId : Nat;
         itemName : Text;
         seller : Principal;
         buyer : Principal;
@@ -112,7 +112,7 @@ persistent actor class EscrowService() = this {
     );
     transient var freeItemClaimIndex = TrieMap.TrieMap<Text, Nat>(Text.equal, Text.hash);
     for (claim in freeItemClaims.vals()) {
-        let key = Nat.toText(claim.itemid) # ":" # Principal.toText(claim.buyer);
+        let key = Nat.toText(claim.itemId) # ":" # Principal.toText(claim.buyer);
         freeItemClaimIndex.put(key, claim.id);
     };
 
@@ -1185,11 +1185,11 @@ persistent actor class EscrowService() = this {
         }
     };
 
-    public shared ({ caller }) func claimFreeItem(itemid : Nat) : async Result.Result<Nat, Text> {
+    public shared ({ caller }) func claimFreeItem(itemId : Nat) : async Result.Result<Nat, Text> {
         if (Principal.isAnonymous(caller)) {
             #err("not authenticated")
         } else {
-            let item = items.retrieve(itemid);
+            let item = items.retrieve(itemId);
             switch (item) {
                 case (?item) {
                     if (item.owner == caller) {
@@ -1199,7 +1199,7 @@ persistent actor class EscrowService() = this {
                     } else if (item.status != #list) {
                         #err("item is not available")
                     } else {
-                        let claimKey = Nat.toText(itemid) # ":" # Principal.toText(caller);
+                        let claimKey = Nat.toText(itemId) # ":" # Principal.toText(caller);
                         switch (freeItemClaimIndex.get(claimKey)) {
                             case (?_) {
                                 #err("you already claimed this free item")
@@ -1210,7 +1210,7 @@ persistent actor class EscrowService() = this {
                                     claimid,
                                     {
                                         id = claimid;
-                                        itemid = itemid;
+                                        itemId = itemId;
                                         itemName = item.name;
                                         seller = item.owner;
                                         buyer = caller;
