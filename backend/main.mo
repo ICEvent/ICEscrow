@@ -113,7 +113,7 @@ persistent actor class EscrowService() = this {
     transient var freeItemClaimIndex = TrieMap.TrieMap<Text, Nat>(Text.equal, Text.hash);
     for (claim in freeItemClaims.vals()) {
         let key = Nat.toText(claim.itemid) # ":" # Principal.toText(claim.buyer);
-        freeItemClaimIndex.put(key, claim.id)
+        freeItemClaimIndex.put(key, claim.id);
     };
 
     public shared ({ caller }) func buy(newOrder : NewOrder) : async Result.Result<Nat, Text> {
