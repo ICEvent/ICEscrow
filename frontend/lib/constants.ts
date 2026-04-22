@@ -28,6 +28,7 @@ export const MENU_HOME = "home";
 export const MENU_ORDERS = "orders";
 export const MENU_PROFILE = "profile";
 export const MENU_FREE = "free";
+export const MENU_MY_ITEMS = "my_items";
 
 export const ORDER_STATUS_NEW = "new";
 export const ORDER_STATUS_DEPOSITED = "deposited";

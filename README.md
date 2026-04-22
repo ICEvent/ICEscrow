@@ -18,3 +18,4 @@ Methods:
 5. release - escrow release fund to seller
 6. cancel - buyer cancel the order before depositing, seller cancel the order after depositing and refund to buyer
 
+export DFX_WARNING=-mainnet_plaintext_identity && dfx canister --ic install escrow --mode upgrade --wasm-memory-persistence keep

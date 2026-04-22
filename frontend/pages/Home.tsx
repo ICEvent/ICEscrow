@@ -1,6 +1,6 @@
 import React from "react"
 
-import { MENU_ORDERS, MENU_PROFILE, MENU_HOME, MENU_FREE } from "../lib/constants";
+import { MENU_ORDERS, MENU_PROFILE, MENU_HOME, MENU_FREE, MENU_MY_ITEMS } from "../lib/constants";
 
 import OfferList from "../components/offers/OfferList";
 
@@ -10,6 +10,7 @@ import { useGlobalContext, useMenu } from "../components/Store";
 
 import { ProfilePage } from "./Profile";
 import OrderList from "../components/orders/OrderList";
+import MyItems from "../components/items/MyItems";
 
 
 
@@ -26,6 +27,7 @@ const Home = () => {
         {showFreeItems && <OfferList freeOnly />}
         {isAuthed && menu == MENU_ORDERS && <OrderList />}
         {isAuthed && menu == MENU_PROFILE && <ProfilePage />}
+        {isAuthed && menu == MENU_MY_ITEMS && <MyItems />}
 
     </div>
   )

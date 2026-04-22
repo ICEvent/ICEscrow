@@ -4,7 +4,10 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
-    "serve": "vite preview"
+    "serve": "vite preview",
+    "deploy": "DFX_WARNING=-mainnet_plaintext_identity dfx canister --ic install escrow --mode upgrade --wasm-memory-persistence keep && DFX_WARNING=-mainnet_plaintext_identity dfx canister --ic install escrow_assets --mode upgrade",
+    "deploy:backend": "DFX_WARNING=-mainnet_plaintext_identity dfx canister --ic install escrow --mode upgrade --wasm-memory-persistence keep",
+    "deploy:frontend": "npm run build && DFX_WARNING=-mainnet_plaintext_identity dfx canister --ic install escrow_assets --mode upgrade"
   },
   "dependencies": {
     "@caldwell619/react-hooks": "^0.0.10",

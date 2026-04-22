@@ -1,9 +1,11 @@
 import * as React from 'react';
 import { toast } from 'react-toastify';
+import moment from 'moment';
 
 import { useEscrow } from '../Store';
 import OrderListItem from './OrderListItem';
 import OrderForm from './OrderForm';
+import ClaimCard from './ClaimCard';
 import { NewOrder, NewSellOrder } from '../../api/escrow/escrow.did';
 
 export default () => {
@@ -12,10 +14,15 @@ export default () => {
     const [loading, setLoading] = React.useState(false)
     const [page, setPage] = React.useState(1)
 
+    const [buyerClaims, setBuyerClaims] = React.useState<any[]>([]);
+    const [sellerClaims, setSellerClaims] = React.useState<any[]>([]);
+    const [claimsLoading, setClaimsLoading] = React.useState(false);
+
     const [openOrderForm, setOpenOrderForm] = React.useState(false);
 
     React.useEffect(() => {
         loadProcessingOrders();
+        loadClaims();
     }, []);
 
     function loadProcessingOrders() {
@@ -36,6 +43,30 @@ export default () => {
         })
     };
 
+    function loadClaims() {
+        setClaimsLoading(true);
+        Promise.allSettled([
+            escrow.getMyBuyerFreeItemClaims(),
+            escrow.getMyFreeItemClaims(),
+        ]).then(([buyerResult, sellerResult]) => {
+            if (buyerResult.status === 'fulfilled') {
+                setBuyerClaims(buyerResult.value.sort((a: any, b: any) => Number(b.ctime) - Number(a.ctime)));
+            }
+            if (sellerResult.status === 'fulfilled') {
+                setSellerClaims(sellerResult.value.sort((a: any, b: any) => Number(b.ctime) - Number(a.ctime)));
+            }
+            setClaimsLoading(false);
+        });
+    }
+
+    const updateBuyerClaim = (updated: any) => {
+        setBuyerClaims((prev) => prev.map((c) => (c.id === updated.id ? updated : c)));
+    };
+
+    const updateSellerClaim = (updated: any) => {
+        setSellerClaims((prev) => prev.map((c) => (c.id === updated.id ? updated : c)));
+    };
+
     function buy(newOrder: NewOrder) {
         try {
             setLoading(true)
@@ -43,17 +74,14 @@ export default () => {
                 setLoading(false);
                 if (res["ok"]) {
                     toast.success("your order has created!")
-
                 } else {
                     toast.error(res["err"].toString());
                 }
-
             });
             setOpenOrderForm(false);
         } catch (err) {
             toast.error(err.toString())
         };
-
     };
 
     function sell(newOrder: NewSellOrder) {
@@ -63,22 +91,63 @@ export default () => {
                 setLoading(false);
                 if (res["ok"]) {
                     toast.success("your order has created!")
-
                 } else {
                     toast.error(res["err"].toString());
                 }
-
             });
             setOpenOrderForm(false);
         } catch (err) {
             toast.error(err.toString())
         };
-
     };
 
     let ol = orders.map(o =>
         <OrderListItem key={o.id} order={o} />
     )
+
+    const ClaimsSection = ({
+        title,
+        accentClass,
+        claims,
+        role,
+        onUpdated,
+    }: {
+        title: string;
+        accentClass: string;
+        claims: any[];
+        role: 'buyer' | 'seller';
+        onUpdated: (u: any) => void;
+    }) => (
+        <div className="mt-6 rounded-2xl border border-white/50 bg-white/75 p-4 shadow-sm backdrop-blur">
+            <div className="mb-3 flex items-center justify-between gap-2">
+                <p className={`text-xs font-bold uppercase tracking-[0.18em] ${accentClass}`}>{title}</p>
+                {claims.length > 0 && (
+                    <span className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-slate-600">
+                        {claims.length}
+                    </span>
+                )}
+            </div>
+            {claimsLoading && (
+                <div className="h-8 animate-pulse rounded bg-slate-200" />
+            )}
+            {!claimsLoading && claims.length === 0 && (
+                <p className="text-sm text-slate-500">No claims here yet.</p>
+            )}
+            {!claimsLoading && claims.length > 0 && (
+                <div className="space-y-2">
+                    {claims.map((claim) => (
+                        <ClaimCard
+                            key={String(claim.id)}
+                            claim={claim}
+                            role={role}
+                            onUpdated={onUpdated}
+                        />
+                    ))}
+                </div>
+            )}
+        </div>
+    );
+
     return (
         <>
             <div className="mb-4 mt-1 rounded-2xl border border-white/50 bg-white/75 p-3 shadow-sm backdrop-blur">
@@ -114,6 +183,22 @@ export default () => {
                 </div>
             )}
 
+            <ClaimsSection
+                title="My Free Item Claims (as Buyer)"
+                accentClass="text-emerald-700"
+                claims={buyerClaims}
+                role="buyer"
+                onUpdated={updateBuyerClaim}
+            />
+
+            <ClaimsSection
+                title="Incoming Claims on My Items (as Seller)"
+                accentClass="text-blue-700"
+                claims={sellerClaims}
+                role="seller"
+                onUpdated={updateSellerClaim}
+            />
+
             {openOrderForm && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setOpenOrderForm(false)}>
                     <div className="relative max-h-[90vh] w-full max-w-3xl overflow-auto rounded-2xl border border-white/40 bg-white/95 p-4 shadow-2xl" onClick={(e) => e.stopPropagation()}>
@@ -129,7 +214,6 @@ export default () => {
                     </div>
                 </div>
             )}
-
         </>
     )
 }

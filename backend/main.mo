@@ -53,7 +53,8 @@ persistent actor class EscrowService() = this {
         itemName : Text;
         seller : Principal;
         buyer : Principal;
-        ctime : Int
+        ctime : Int;
+        comments : [Comment]
     };
 
     // transfer fee ICP
@@ -871,7 +872,7 @@ persistent actor class EscrowService() = this {
     };
 
     //fetch user's orders with status: #new; #deposited; #deliveried;
-    public shared ({ caller }) func getOrders() : async [Order] {
+    public query ({ caller }) func getOrders() : async [Order] {
         Array.filter(
             Iter.toArray(orders.vals()),
             func(o : Order) : Bool {
@@ -881,7 +882,7 @@ persistent actor class EscrowService() = this {
     };
 
     //fetch user's orde by order id
-    public shared ({ caller }) func getOrder(orderid : Nat) : async ?Order {
+    public query ({ caller }) func getOrder(orderid : Nat) : async ?Order {
         Array.find<Order>(
             Iter.toArray(orders.vals()),
             func(o : Order) : Bool {
@@ -890,7 +891,7 @@ persistent actor class EscrowService() = this {
         )
     };
 
-    public shared ({ caller }) func getAllOrders(page : Nat) : async [Order] {
+    public query ({ caller }) func getAllOrders(page : Nat) : async [Order] {
         let os = Array.filter(
             Iter.toArray(orders.vals()),
             func(o : Order) : Bool { (o.buyer == caller or o.seller == caller) },
@@ -1214,7 +1215,8 @@ persistent actor class EscrowService() = this {
                                         itemName = item.name;
                                         seller = item.owner;
                                         buyer = caller;
-                                        ctime = Time.now()
+                                        ctime = Time.now();
+                                        comments = []
                                     },
                                 );
                                 freeItemClaimIndex.put(claimKey, claimId);
@@ -1239,6 +1241,48 @@ persistent actor class EscrowService() = this {
             }
         };
         Buffer.toArray(claims)
+    };
+
+    public query ({ caller }) func getMyBuyerFreeItemClaims() : async [FreeItemClaim] {
+        let claims = Buffer.Buffer<FreeItemClaim>(0);
+        for (c in freeItemClaims.vals()) {
+            if (c.buyer == caller) {
+                claims.add(c)
+            }
+        };
+        Buffer.toArray(claims)
+    };
+
+    public shared ({ caller }) func commentOnClaim(claimId : Nat, text : Text) : async Result.Result<Nat, Text> {
+        if (Principal.isAnonymous(caller)) {
+            return #err("not authenticated")
+        };
+        switch (freeItemClaims.get(claimId)) {
+            case (?claim) {
+                if (claim.buyer != caller and claim.seller != caller) {
+                    return #err("not authorized")
+                };
+                let newComment : Comment = {
+                    user = caller;
+                    comment = text;
+                    ctime = Time.now()
+                };
+                let updated : FreeItemClaim = {
+                    id = claim.id;
+                    itemId = claim.itemId;
+                    itemName = claim.itemName;
+                    seller = claim.seller;
+                    buyer = claim.buyer;
+                    ctime = claim.ctime;
+                    comments = Array.append(claim.comments, [newComment])
+                };
+                freeItemClaims.put(claimId, updated);
+                #ok(claimId)
+            };
+            case (null) {
+                #err("claim not found")
+            }
+        }
     };
 
     /**

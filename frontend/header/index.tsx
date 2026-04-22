@@ -7,7 +7,7 @@ import { useEffect } from "react"
 import { HttpAgent, Identity } from "@dfinity/agent";
 import { AuthClient } from "@dfinity/auth-client";
 import { HOST } from "../lib/canisters";
-import { MENU_ORDERS, MENU_PROFILE, MENU_HOME, MENU_FREE } from "../lib/constants";
+import { MENU_ORDERS, MENU_PROFILE, MENU_HOME, MENU_FREE, MENU_MY_ITEMS } from "../lib/constants";
 
 import { useSetAgent, useGlobalContext, useLoading, useMenu } from "../components/Store";
 
@@ -51,6 +51,12 @@ const Header: FC = () => {
 
   const openFreeItems = () => {
     setMenu(MENU_FREE);
+    navigate("/", { replace: true });
+  }
+
+  const openMyItems = () => {
+    handleClose();
+    setMenu(MENU_MY_ITEMS);
     navigate("/", { replace: true });
   }
   useEffect(() => {
@@ -145,6 +151,13 @@ const Header: FC = () => {
                 </button>
                 <button
                   type="button"
+                  onClick={openMyItems}
+                  className={`rounded-lg px-3 py-1.5 text-xs font-bold uppercase tracking-wide transition ${menu == MENU_MY_ITEMS ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}
+                >
+                  My Items
+                </button>
+                <button
+                  type="button"
                   onClick={openProfile}
                   className={`rounded-lg px-3 py-1.5 text-xs font-bold uppercase tracking-wide transition ${menu == MENU_PROFILE ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}
                 >
@@ -184,6 +197,13 @@ const Header: FC = () => {
                 className="block w-full rounded-xl px-3 py-2 text-left text-sm font-semibold text-slate-700 transition hover:bg-slate-100"
               >
                 Orders
+              </button>
+              <button
+                type="button"
+                onClick={openMyItems}
+                className="block w-full rounded-xl px-3 py-2 text-left text-sm font-semibold text-slate-700 transition hover:bg-slate-100"
+              >
+                My Items
               </button>
               <button
                 type="button"
