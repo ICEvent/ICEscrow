@@ -51,9 +51,13 @@ export default () => {
         ]).then(([buyerResult, sellerResult]) => {
             if (buyerResult.status === 'fulfilled') {
                 setBuyerClaims(buyerResult.value.sort((a: any, b: any) => Number(b.ctime) - Number(a.ctime)));
+            } else {
+                toast.error('Failed to load your claims');
             }
             if (sellerResult.status === 'fulfilled') {
                 setSellerClaims(sellerResult.value.sort((a: any, b: any) => Number(b.ctime) - Number(a.ctime)));
+            } else {
+                toast.error('Failed to load incoming claims');
             }
             setClaimsLoading(false);
         });
@@ -121,11 +125,21 @@ export default () => {
         <div className="mt-6 rounded-2xl border border-white/50 bg-white/75 p-4 shadow-sm backdrop-blur">
             <div className="mb-3 flex items-center justify-between gap-2">
                 <p className={`text-xs font-bold uppercase tracking-[0.18em] ${accentClass}`}>{title}</p>
-                {claims.length > 0 && (
-                    <span className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-slate-600">
-                        {claims.length}
-                    </span>
-                )}
+                <div className="flex items-center gap-2">
+                    {claims.length > 0 && (
+                        <span className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-slate-600">
+                            {claims.length}
+                        </span>
+                    )}
+                    <button
+                        type="button"
+                        onClick={loadClaims}
+                        disabled={claimsLoading}
+                        className="rounded-lg border border-slate-300 bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-600 transition hover:border-orange-400 hover:text-orange-700 disabled:opacity-40"
+                    >
+                        Refresh
+                    </button>
+                </div>
             </div>
             {claimsLoading && (
                 <div className="h-8 animate-pulse rounded bg-slate-200" />

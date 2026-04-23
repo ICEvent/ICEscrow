@@ -1,8 +1,8 @@
 import * as React from 'react';
-import { useGlobalContext, useEscrow } from '../Store';
+import { useGlobalContext, useEscrow, useMenu } from '../Store';
 import { toast } from 'react-toastify';
 import moment from 'moment';
-import { CURRENCY_ICET, CURRENCY_ICP, LEDGER_E6S, LEDGER_E8S, ORDER_DEFAULT_EXPIRED_DAYS } from '../../lib/constants';
+import { CURRENCY_ICET, CURRENCY_ICP, LEDGER_E6S, LEDGER_E8S, ORDER_DEFAULT_EXPIRED_DAYS, MENU_ORDERS } from '../../lib/constants';
 import { Link } from 'react-router-dom';
 
 
@@ -14,6 +14,7 @@ export default (props) => {
         principal
     } } = useGlobalContext();
     const escrow = useEscrow();
+    const { setMenu } = useMenu();
 
     const [loading, setLoading] = React.useState(false);
     const currency = Object.getOwnPropertyNames(props.offer.currency)[0] == CURRENCY_ICP ? CURRENCY_ICP : CURRENCY_ICET;
@@ -54,11 +55,13 @@ export default (props) => {
             escrow.claimFreeItem(props.offer.id).then(res => {
                 setLoading(false);
                 if (res["ok"]) {
-                    toast.success("Claim message sent to seller. Wait for seller to create the order.");
+                    toast.success("Claim sent! Redirecting to your claims list…");
+                    props.close ? props.close() : null;
+                    setMenu(MENU_ORDERS);
                 } else {
                     toast.error(res["err"] ? res["err"] : "Failed to claim item");
+                    props.close ? props.close() : null;
                 }
-                props.close ? props.close() : null;
             });
         }
     };

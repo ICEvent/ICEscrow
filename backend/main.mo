@@ -96,7 +96,10 @@ persistent actor class EscrowService() = this {
     stable var _upgradeItemId : Nat = 1;
     stable var _upgradeItems : [(Nat, ItemTypes.Item)] = [];
     stable var nextFreeItemClaimId : Nat = 1;
-    stable var upgradeFreeItemClaims : [(Nat, FreeItemClaim)] = [];
+    // upgradeFreeItemClaims (old name, deployed without `comments`) is intentionally dropped.
+    // Dropping a stable var is a WARNING (data loss) not an ERROR — and the live canister
+    // had zero claims since claimFreeItem was never successfully deployed.
+    stable var upgradeFreeItemClaimsV2 : [(Nat, FreeItemClaim)] = [];
 
     //backukp
     stable var backupItems : [UpgradeTypes.U_Item] = [];
@@ -107,7 +110,7 @@ persistent actor class EscrowService() = this {
     transient let items = Items.Items(_upgradeItemId, _upgradeItems);
     transient var freeItemClaims = TrieMap.TrieMap<Nat, FreeItemClaim>(Nat.equal, Hash.hash);
     freeItemClaims := TrieMap.fromEntries<Nat, FreeItemClaim>(
-        Iter.fromArray(upgradeFreeItemClaims),
+        Iter.fromArray(upgradeFreeItemClaimsV2),
         Nat.equal,
         Hash.hash,
     );
@@ -1292,13 +1295,12 @@ persistent actor class EscrowService() = this {
         upgradeOrders := Iter.toArray(orders.entries());
         _upgradeItemId := items.toStableId();
         _upgradeItems := items.toStable();
-        upgradeFreeItemClaims := Iter.toArray(freeItemClaims.entries());
+        upgradeFreeItemClaimsV2 := Iter.toArray(freeItemClaims.entries());
 
     };
 
     system func postupgrade() {
         _upgradeItems := [];
-        upgradeFreeItemClaims := [];
 
     };
 
