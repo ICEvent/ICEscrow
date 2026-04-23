@@ -4,13 +4,21 @@ import { toast } from 'react-toastify';
 import { useEscrow, useGlobalContext } from '../Store';
 
 const MS_TO_NANOSECONDS = BigInt(1_000_000);
-type CandidOptionalBigInt = bigint | [bigint] | null;
+type CandidOptionalBigInt = bigint | [] | [bigint] | null;
 // Candid optional values can be represented as [] | [value] in generated JS bindings.
 // Some local UI state may also carry the unwrapped bigint shape, so we normalize both.
-const extractOptionalBigInt = (value: CandidOptionalBigInt) => (Array.isArray(value) ? value[0] : value);
+const normalizeOptionalBigInt = (value: unknown): CandidOptionalBigInt => {
+    if (value === null || value === undefined) return null;
+    if (Array.isArray(value)) {
+        if (value.length === 0) return [];
+        return typeof value[0] === 'bigint' ? [value[0]] : [];
+    }
+    return typeof value === 'bigint' ? value : null;
+};
+const extractOptionalBigInt = (value: CandidOptionalBigInt) => (Array.isArray(value) ? value[0] ?? null : value);
 // Keep optimistic `closedAt` updates consistent with the existing Candid optional shape.
 const matchOptionalBigIntShape = (template: CandidOptionalBigInt, value: bigint): bigint | [bigint] =>
-    (Array.isArray(template) ? [value] : value);
+    (Array.isArray(template) || template === null ? [value] : value);
 
 interface ClaimCardProps {
     claim: any;
@@ -28,7 +36,8 @@ const ClaimCard: React.FC<ClaimCardProps> = ({ claim, role, onUpdated }) => {
     const [closing, setClosing] = React.useState(false);
 
     const comments: any[] = claim.comments ?? [];
-    const closedAt = extractOptionalBigInt((claim.closedAt ?? null) as CandidOptionalBigInt);
+    const normalizedClosedAt = normalizeOptionalBigInt(claim.closedAt);
+    const closedAt = extractOptionalBigInt(normalizedClosedAt);
     const isClosed = closedAt !== undefined && closedAt !== null;
 
     const saveComment = async () => {
@@ -66,7 +75,7 @@ const ClaimCard: React.FC<ClaimCardProps> = ({ claim, role, onUpdated }) => {
             if (res['ok'] !== undefined) {
                 toast.success('Claim closed');
                 const optimisticClosedAt = matchOptionalBigIntShape(
-                    (claim.closedAt ?? null) as CandidOptionalBigInt,
+                    normalizedClosedAt,
                     BigInt(Date.now()) * MS_TO_NANOSECONDS,
                 );
                 onUpdated({ ...claim, closedAt: optimisticClosedAt });
