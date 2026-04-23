@@ -1,21 +1,40 @@
 # ICEvent Escrow
-Open Decentralized Escrow service
+
+Open decentralized escrow marketplace on the Internet Computer.
+
 ![](https://pbs.twimg.com/media/FTxMVORVUAEC6Vv?format=png&name=900x900)
 
-Cases:
-1. Bounty 
-2. NFT Trading 
-3. Coin Trading
-... anything trading
+## Current features
 
-Cryptocurrencies Support: ICP and ICET
+- Escrow marketplace for listed items (inscription, NFT, coin, merchandise, service, other)
+- Supported currencies: **ICP** and **ICET**
+- Escrow order lifecycle:
+  - `create` / `buy` / `sell`
+  - `deposit` (buyer funds escrow account)
+  - `deliver` (seller confirms delivery)
+  - `receive` (buyer confirms receipt)
+  - `release` (seller requests payout)
+  - `cancel`, `refund`, `close`
+- On-chain order comments between participants
+- User item management:
+  - list items
+  - hold / relist / mark sold / unlist
+  - delete item
+  - delegate item directly to another principal (give away)
+- Free item claim workflow:
+  - buyers can claim free listings
+  - buyer/seller can comment on claims
+  - seller can close claims
+- User-specific views:
+  - profile page
+  - user item page
+  - order list and details
 
-Methods:
-1. create - create order
-2. deposit - buyer deposit fund in escrow
-3. deliver - seller deliver item to buyer
-4. receive - buyer receive item
-5. release - escrow release fund to seller
-6. cancel - buyer cancel the order before depositing, seller cancel the order after depositing and refund to buyer
+## Deployment
 
-export DFX_WARNING=-mainnet_plaintext_identity && dfx canister --ic install escrow --mode upgrade --wasm-memory-persistence keep
+Backend canister upgrade:
+
+```bash
+export DFX_WARNING=-mainnet_plaintext_identity
+dfx canister --ic install escrow --mode upgrade --wasm-memory-persistence keep
+```
