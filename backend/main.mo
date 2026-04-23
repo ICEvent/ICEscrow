@@ -1304,7 +1304,7 @@ persistent actor class EscrowService() = this {
         switch (freeItemClaims.get(claimId)) {
             case (?claim) {
                 if (claim.seller != caller) {
-                    return #err("only seller can close claim")
+                    return #err("only the seller can close this claim")
                 };
                 switch (claim.closedAt) {
                     case (?_) {

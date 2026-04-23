@@ -4,11 +4,12 @@ import { toast } from 'react-toastify';
 import { useEscrow, useGlobalContext } from '../Store';
 
 const MS_TO_NANOSECONDS = BigInt(1_000_000);
-type CandidOptionalInt = bigint | [bigint] | null | undefined;
+type CandidOptionalBigInt = bigint | [bigint] | null | undefined;
 // Candid optional values can be represented as [] | [value] in generated JS bindings.
 // Some local UI state may also carry the unwrapped bigint shape, so we normalize both.
-const extractOptionalInt = (value: CandidOptionalInt) => (Array.isArray(value) ? value[0] : value);
-const matchOptionalIntShape = (template: CandidOptionalInt, value: bigint): bigint | [bigint] =>
+const extractOptionalInt = (value: CandidOptionalBigInt) => (Array.isArray(value) ? value[0] : value);
+// Keep optimistic `closedAt` updates consistent with the existing Candid optional shape.
+const matchOptionalIntShape = (template: CandidOptionalBigInt, value: bigint): bigint | [bigint] =>
     (Array.isArray(template) ? [value] : value);
 
 interface ClaimCardProps {
@@ -27,7 +28,7 @@ const ClaimCard: React.FC<ClaimCardProps> = ({ claim, role, onUpdated }) => {
     const [closing, setClosing] = React.useState(false);
 
     const comments: any[] = claim.comments ?? [];
-    const closedAt = extractOptionalInt(claim.closedAt as CandidOptionalInt);
+    const closedAt = extractOptionalInt(claim.closedAt as CandidOptionalBigInt);
     const isClosed = closedAt !== undefined && closedAt !== null;
 
     const saveComment = async () => {
@@ -65,7 +66,7 @@ const ClaimCard: React.FC<ClaimCardProps> = ({ claim, role, onUpdated }) => {
             if (res['ok'] !== undefined) {
                 toast.success('Claim closed');
                 const optimisticClosedAt = matchOptionalIntShape(
-                    claim.closedAt as CandidOptionalInt,
+                    claim.closedAt as CandidOptionalBigInt,
                     BigInt(Date.now()) * MS_TO_NANOSECONDS,
                 );
                 onUpdated({ ...claim, closedAt: optimisticClosedAt });
