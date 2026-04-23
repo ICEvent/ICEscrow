@@ -3,6 +3,10 @@ import moment from 'moment';
 import { toast } from 'react-toastify';
 import { useEscrow, useGlobalContext } from '../Store';
 
+const MS_TO_NANOSECONDS = BigInt(1_000_000);
+const unwrapClosedAt = (value: any) => (Array.isArray(value) ? value[0] : value);
+const toClosedAtShape = (template: any, value: bigint) => (Array.isArray(template) ? [value] : value);
+
 interface ClaimCardProps {
     claim: any;
     role: 'buyer' | 'seller';
@@ -19,7 +23,7 @@ const ClaimCard: React.FC<ClaimCardProps> = ({ claim, role, onUpdated }) => {
     const [closing, setClosing] = React.useState(false);
 
     const comments: any[] = claim.comments ?? [];
-    const closedAt = Array.isArray(claim.closedAt) ? claim.closedAt[0] : claim.closedAt;
+    const closedAt = unwrapClosedAt(claim.closedAt);
     const isClosed = closedAt !== undefined && closedAt !== null;
 
     const saveComment = async () => {
@@ -56,9 +60,10 @@ const ClaimCard: React.FC<ClaimCardProps> = ({ claim, role, onUpdated }) => {
             const res = await escrow.closeClaim(claim.id);
             if (res['ok'] !== undefined) {
                 toast.success('Claim closed');
-                const optimisticClosedAt = Array.isArray(claim.closedAt)
-                    ? [BigInt(Date.now()) * BigInt(1_000_000)]
-                    : BigInt(Date.now()) * BigInt(1_000_000);
+                const optimisticClosedAt = toClosedAtShape(
+                    claim.closedAt,
+                    BigInt(Date.now()) * MS_TO_NANOSECONDS,
+                );
                 onUpdated({ ...claim, closedAt: optimisticClosedAt });
             } else {
                 toast.error(res['err'] ?? 'Failed to close claim');
