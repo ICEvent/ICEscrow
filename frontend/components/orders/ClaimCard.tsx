@@ -4,8 +4,12 @@ import { toast } from 'react-toastify';
 import { useEscrow, useGlobalContext } from '../Store';
 
 const MS_TO_NANOSECONDS = BigInt(1_000_000);
-const unwrapClosedAt = (value: any) => (Array.isArray(value) ? value[0] : value);
-const toClosedAtShape = (template: any, value: bigint) => (Array.isArray(template) ? [value] : value);
+type CandidOptionalInt = bigint | [bigint] | null | undefined;
+// Candid optional values can be represented as [] | [value] in generated JS bindings.
+// Some local UI state may also carry the unwrapped bigint shape, so we normalize both.
+const extractOptionalInt = (value: CandidOptionalInt) => (Array.isArray(value) ? value[0] : value);
+const matchOptionalIntShape = (template: CandidOptionalInt, value: bigint): bigint | [bigint] =>
+    (Array.isArray(template) ? [value] : value);
 
 interface ClaimCardProps {
     claim: any;
@@ -23,7 +27,7 @@ const ClaimCard: React.FC<ClaimCardProps> = ({ claim, role, onUpdated }) => {
     const [closing, setClosing] = React.useState(false);
 
     const comments: any[] = claim.comments ?? [];
-    const closedAt = unwrapClosedAt(claim.closedAt);
+    const closedAt = extractOptionalInt(claim.closedAt as CandidOptionalInt);
     const isClosed = closedAt !== undefined && closedAt !== null;
 
     const saveComment = async () => {
@@ -60,8 +64,8 @@ const ClaimCard: React.FC<ClaimCardProps> = ({ claim, role, onUpdated }) => {
             const res = await escrow.closeClaim(claim.id);
             if (res['ok'] !== undefined) {
                 toast.success('Claim closed');
-                const optimisticClosedAt = toClosedAtShape(
-                    claim.closedAt,
+                const optimisticClosedAt = matchOptionalIntShape(
+                    claim.closedAt as CandidOptionalInt,
                     BigInt(Date.now()) * MS_TO_NANOSECONDS,
                 );
                 onUpdated({ ...claim, closedAt: optimisticClosedAt });
