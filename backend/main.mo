@@ -54,7 +54,8 @@ persistent actor class EscrowService() = this {
         seller : Principal;
         buyer : Principal;
         ctime : Int;
-        comments : [Comment]
+        comments : [Comment];
+        closedAt : ?Int
     };
 
     // transfer fee ICP
@@ -1219,7 +1220,8 @@ persistent actor class EscrowService() = this {
                                         seller = item.owner;
                                         buyer = caller;
                                         ctime = Time.now();
-                                        comments = []
+                                        comments = [];
+                                        closedAt = null
                                     },
                                 );
                                 freeItemClaimIndex.put(claimKey, claimId);
@@ -1265,6 +1267,12 @@ persistent actor class EscrowService() = this {
                 if (claim.buyer != caller and claim.seller != caller) {
                     return #err("not authorized")
                 };
+                switch (claim.closedAt) {
+                    case (?_) {
+                        return #err("claim is closed")
+                    };
+                    case (null) {};
+                };
                 let newComment : Comment = {
                     user = caller;
                     comment = text;
@@ -1277,7 +1285,42 @@ persistent actor class EscrowService() = this {
                     seller = claim.seller;
                     buyer = claim.buyer;
                     ctime = claim.ctime;
-                    comments = Array.append(claim.comments, [newComment])
+                    comments = Array.append(claim.comments, [newComment]);
+                    closedAt = claim.closedAt
+                };
+                freeItemClaims.put(claimId, updated);
+                #ok(claimId)
+            };
+            case (null) {
+                #err("claim not found")
+            }
+        }
+    };
+
+    public shared ({ caller }) func closeClaim(claimId : Nat) : async Result.Result<Nat, Text> {
+        if (Principal.isAnonymous(caller)) {
+            return #err("not authenticated")
+        };
+        switch (freeItemClaims.get(claimId)) {
+            case (?claim) {
+                if (claim.seller != caller) {
+                    return #err("only the seller can close this claim")
+                };
+                switch (claim.closedAt) {
+                    case (?_) {
+                        return #err("claim already closed")
+                    };
+                    case (null) {};
+                };
+                let updated : FreeItemClaim = {
+                    id = claim.id;
+                    itemId = claim.itemId;
+                    itemName = claim.itemName;
+                    seller = claim.seller;
+                    buyer = claim.buyer;
+                    ctime = claim.ctime;
+                    comments = claim.comments;
+                    closedAt = ?Time.now()
                 };
                 freeItemClaims.put(claimId, updated);
                 #ok(claimId)
