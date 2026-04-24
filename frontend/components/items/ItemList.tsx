@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Item } from '../../api/escrow/escrow.did';
+import { Item } from '../../api/escrow/service.did';
 import OfferCard from '../offers/OfferCard';
 
 

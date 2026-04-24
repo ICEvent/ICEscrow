@@ -6,7 +6,7 @@ import { useEscrow } from '../Store';
 import OrderListItem from './OrderListItem';
 import OrderForm from './OrderForm';
 import ClaimCard from './ClaimCard';
-import { NewOrder, NewSellOrder } from '../../api/escrow/escrow.did';
+import { NewOrder, NewSellOrder } from '../../api/escrow/service.did';
 
 export default () => {
     const escrow = useEscrow();

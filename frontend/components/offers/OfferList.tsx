@@ -5,8 +5,8 @@ import { toast } from "react-toastify"
 import { useEscrow, useLoading, useGlobalContext } from "../Store"
 import ItemList from "../items/ItemList";
 
-import { NewOrder, NewSellOrder } from "../../api/escrow/escrow.did"
-import { Item } from "../../api/escrow/escrow.did"
+import { NewOrder, NewSellOrder } from "../../api/escrow/service.did"
+import { Item } from "../../api/escrow/service.did"
 import {
   LIST_ITEM_NFT,
 } from "../../lib/constants"

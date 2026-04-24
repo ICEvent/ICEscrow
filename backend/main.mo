@@ -47,6 +47,17 @@ persistent actor class EscrowService() = this {
     type NewSellOrder = Types.NewSellOrder;
     type Log = Types.Log;
     type Comment = Types.Comment;
+    // Deployed type — has comments but no closedAt. Kept for stable-memory migration.
+    type OldFreeItemClaimV2 = {
+        id : Nat;
+        itemId : Nat;
+        itemName : Text;
+        seller : Principal;
+        buyer : Principal;
+        ctime : Int;
+        comments : [Comment]
+    };
+
     type FreeItemClaim = {
         id : Nat;
         itemId : Nat;
@@ -100,7 +111,12 @@ persistent actor class EscrowService() = this {
     // upgradeFreeItemClaims (old name, deployed without `comments`) is intentionally dropped.
     // Dropping a stable var is a WARNING (data loss) not an ERROR — and the live canister
     // had zero claims since claimFreeItem was never successfully deployed.
-    stable var upgradeFreeItemClaimsV2 : [(Nat, FreeItemClaim)] = [];
+    //
+    // upgradeFreeItemClaimsV2 used the type WITHOUT closedAt. It is kept here with the old
+    // type so stable memory deserialises correctly, then migrated to V3 during init.
+    stable var upgradeFreeItemClaimsV2 : [(Nat, OldFreeItemClaimV2)] = [];
+    // New stable store — FreeItemClaim now includes closedAt.
+    stable var upgradeFreeItemClaimsV3 : [(Nat, FreeItemClaim)] = [];
 
     //backukp
     stable var backupItems : [UpgradeTypes.U_Item] = [];
@@ -110,11 +126,27 @@ persistent actor class EscrowService() = this {
 
     transient let items = Items.Items(_upgradeItemId, _upgradeItems);
     transient var freeItemClaims = TrieMap.TrieMap<Nat, FreeItemClaim>(Nat.equal, Hash.hash);
-    freeItemClaims := TrieMap.fromEntries<Nat, FreeItemClaim>(
-        Iter.fromArray(upgradeFreeItemClaimsV2),
-        Nat.equal,
-        Hash.hash,
-    );
+    freeItemClaims := if (upgradeFreeItemClaimsV2.size() > 0) {
+        // One-time migration: add closedAt = null to every existing claim.
+        let migrated = Array.map<(Nat, OldFreeItemClaimV2), (Nat, FreeItemClaim)>(
+            upgradeFreeItemClaimsV2,
+            func((k, v) : (Nat, OldFreeItemClaimV2)) : (Nat, FreeItemClaim) {
+                (k, {
+                    id = v.id;
+                    itemId = v.itemId;
+                    itemName = v.itemName;
+                    seller = v.seller;
+                    buyer = v.buyer;
+                    ctime = v.ctime;
+                    comments = v.comments;
+                    closedAt = null;
+                })
+            },
+        );
+        TrieMap.fromEntries<Nat, FreeItemClaim>(Iter.fromArray(migrated), Nat.equal, Hash.hash)
+    } else {
+        TrieMap.fromEntries<Nat, FreeItemClaim>(Iter.fromArray(upgradeFreeItemClaimsV3), Nat.equal, Hash.hash)
+    };
     transient var freeItemClaimIndex = TrieMap.TrieMap<Text, Nat>(Text.equal, Text.hash);
     for (claim in freeItemClaims.vals()) {
         let key = Nat.toText(claim.itemId) # ":" # Principal.toText(claim.buyer);
@@ -1338,13 +1370,13 @@ persistent actor class EscrowService() = this {
         upgradeOrders := Iter.toArray(orders.entries());
         _upgradeItemId := items.toStableId();
         _upgradeItems := items.toStable();
-        upgradeFreeItemClaimsV2 := Iter.toArray(freeItemClaims.entries());
-
+        upgradeFreeItemClaimsV3 := Iter.toArray(freeItemClaims.entries());
+        upgradeFreeItemClaimsV2 := []; // clear old migration source
     };
 
     system func postupgrade() {
         _upgradeItems := [];
-
+        upgradeFreeItemClaimsV2 := []; // ensure old migration source stays cleared
     };
 
     public query func getBackupItems() : async [UpgradeTypes.U_Item] {

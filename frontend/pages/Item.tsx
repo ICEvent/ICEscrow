@@ -3,7 +3,7 @@ import * as React from 'react';
 import { useNavigate, useParams } from "react-router-dom";
 import { useEscrow, useMenu } from '../components/Store';
 import OfferDetail from '../components/offers/OfferDetail';
-import { Item } from 'frontend/api/escrow/escrow.did';
+import { Item } from 'frontend/api/escrow/service.did';
 import { MENU_HOME } from '../lib/constants';
 
 

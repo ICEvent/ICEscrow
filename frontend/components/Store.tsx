@@ -8,7 +8,7 @@ import { CANISTER_ONEBLOCK, CANISTER_ESCROW } from "../lib/constants";
 
 
 import { _SERVICE as ONEBLOCKService } from "../api/profile/profile.did"
-import { _SERVICE as ESCROWService } from "../api/escrow/escrow.did"
+import { _SERVICE as ESCROWService } from "../api/escrow/service.did"
 import { _SERVICE as INDEXERService } from "../api/indexer/indexer.did"
 import { _SERVICE as CKETHService } from "../api/cketh/cketh.did"
 
