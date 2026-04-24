@@ -23,7 +23,7 @@ const UserItems = () => {
   const [hearting, setHearting] = React.useState(false);
   const [hearted, setHearted] = React.useState(false);
 
-  const isOwner = userId && principal && userId === principal.toString();
+  const isOwner = !!userId && !!principal && userId === principal.toString();
 
   React.useEffect(() => {
     if (!userId) {

@@ -1444,10 +1444,7 @@ persistent actor class EscrowService() = this {
             };
             case (null) {}
         };
-        let order = Array.find<Order>(
-            Iter.toArray(orders.vals()),
-            func(o : Order) : Bool { o.id == orderId },
-        );
+        let order = orders.get(orderId);
         switch (order) {
             case (?o) {
                 if (o.buyer != caller) {
@@ -1484,7 +1481,7 @@ persistent actor class EscrowService() = this {
             if (r.target == user) { buf.add(r) }
         };
         let arr = Buffer.toArray(buf);
-        Array.sort<Review>(arr, func(a, b) { Int.compare(Int.abs(b.ctime), Int.abs(a.ctime)) })
+        Array.sort<Review>(arr, func(a, b) { Int.compare(b.ctime, a.ctime) })
     };
 
     // Returns aggregated reputation stats for a user.
