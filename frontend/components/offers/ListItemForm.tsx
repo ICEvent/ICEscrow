@@ -97,17 +97,15 @@ export default function ListItemForm(props) {
                     </select>
                 </div>
 
-                {(values.itype == LIST_ITEM_NFT || values.itype == LIST_ITEM_MERCHANDISE) && (
-                    <div className="sm:col-span-12">
-                        <label className="mb-1 block text-sm font-medium text-slate-700">NFT/Mech image url</label>
-                        <input
-                            name="image"
-                            value={values.image}
-                            onChange={handleChange}
-                            className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-cyan-500"
-                        />
-                    </div>
-                )}
+                <div className="sm:col-span-12">
+                    <label className="mb-1 block text-sm font-medium text-slate-700">Image url</label>
+                    <input
+                        name="image"
+                        value={values.image}
+                        onChange={handleChange}
+                        className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-cyan-500"
+                    />
+                </div>
 
                 <div className="sm:col-span-12">
                     <label className="mb-1 block text-sm font-medium text-slate-700">Description</label>
