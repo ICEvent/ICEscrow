@@ -1,5 +1,6 @@
 import React, { FC, useState } from 'react'
 import { useNavigate } from "react-router-dom";
+import vansdayLogo from '../assets/vansday.png'
 import DarkModeToggle from './DarkModeToggle'
 
 import { useEffect } from "react"
@@ -116,9 +117,7 @@ const Header: FC = () => {
             className="mr-2 flex items-center gap-2"
             onClick={openShop}
           >
-            <span className="commerce-gradient flex h-9 w-9 items-center justify-center rounded-xl text-sm font-black text-white">
-              I
-            </span>
+            <img src={vansdayLogo} alt="Vansday" className="h-9 w-9 rounded-xl object-contain" />
             <span className="text-left">
               <span className="block text-base font-extrabold leading-none text-slate-900">Vansday</span>
               <span className="block text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-500">Escrow</span>

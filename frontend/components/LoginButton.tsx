@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react"
+import dfinityLogo from '../assets/dfinity.png'
 import { HttpAgent } from "@dfinity/agent"
 import { AuthClient } from "@dfinity/auth-client"
 import {
@@ -52,7 +53,7 @@ const DropdownMenu: React.FC = () => {
   }
   const DfinityIcon = () => (
     <img
-      src="/assets/dfinity.png"
+      src={dfinityLogo}
       alt="Menu"
       style={{ width: 24, height: 24 }}
     />
