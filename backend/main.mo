@@ -47,6 +47,8 @@ persistent actor class EscrowService() = this {
     type NewSellOrder = Types.NewSellOrder;
     type Log = Types.Log;
     type Comment = Types.Comment;
+    type Review = Types.Review;
+    type UserStats = Types.UserStats;
     // Deployed type — has comments but no closedAt. Kept for stable-memory migration.
     type OldFreeItemClaimV2 = {
         id : Nat;
@@ -121,6 +123,12 @@ persistent actor class EscrowService() = this {
     //backukp
     stable var backupItems : [UpgradeTypes.U_Item] = [];
 
+    // Reputation stable storage
+    stable var nextReviewId : Nat = 1;
+    stable var upgradeReviews : [(Nat, Review)] = [];
+    // hearts: target principal text → array of giver principal texts
+    stable var upgradeHearts : [(Text, [Text])] = [];
+
     transient var orders = TrieMap.TrieMap<Nat, Order>(Nat.equal, Hash.hash);
     orders := TrieMap.fromEntries<Nat, Order>(Iter.fromArray(upgradeOrders), Nat.equal, Hash.hash);
 
@@ -151,6 +159,24 @@ persistent actor class EscrowService() = this {
     for (claim in freeItemClaims.vals()) {
         let key = Nat.toText(claim.itemId) # ":" # Principal.toText(claim.buyer);
         freeItemClaimIndex.put(key, claim.id);
+    };
+
+    // Reputation transient maps
+    transient var reviews = TrieMap.TrieMap<Nat, Review>(Nat.equal, Hash.hash);
+    reviews := TrieMap.fromEntries<Nat, Review>(Iter.fromArray(upgradeReviews), Nat.equal, Hash.hash);
+
+    // reviewByOrder index: orderId → reviewId (ensures one review per order)
+    transient var reviewByOrder = TrieMap.TrieMap<Nat, Nat>(Nat.equal, Hash.hash);
+    for (r in reviews.vals()) {
+        reviewByOrder.put(r.orderId, r.id);
+    };
+
+    // hearts: target principal text → Buffer of giver principal texts
+    transient var hearts = TrieMap.TrieMap<Text, Buffer.Buffer<Text>>(Text.equal, Text.hash);
+    for ((target, givers) in upgradeHearts.vals()) {
+        let buf = Buffer.Buffer<Text>(givers.size());
+        for (g in givers.vals()) { buf.add(g) };
+        hearts.put(target, buf);
     };
 
     public shared ({ caller }) func buy(newOrder : NewOrder) : async Result.Result<Nat, Text> {
@@ -1355,11 +1381,152 @@ persistent actor class EscrowService() = this {
                     closedAt = ?Time.now()
                 };
                 freeItemClaims.put(claimId, updated);
+                // Award the seller (item giver) a ❤️ from the buyer when a free-item claim is closed.
+                awardHeart(claim.seller, claim.buyer);
                 #ok(claimId)
             };
             case (null) {
                 #err("claim not found")
             }
+        }
+    };
+
+    // ---------------------- Reputation ----------------------------------------
+
+    // Internal helper: record that `giver` hearted `target` (idempotent).
+    func awardHeart(target : Principal, giver : Principal) {
+        let targetText = Principal.toText(target);
+        let giverText = Principal.toText(giver);
+        switch (hearts.get(targetText)) {
+            case (?buf) {
+                // Only add if giver not already present
+                let alreadyGiven = Buffer.contains<Text>(buf, giverText, Text.equal);
+                if (not alreadyGiven) {
+                    buf.add(giverText)
+                }
+            };
+            case (null) {
+                let buf = Buffer.Buffer<Text>(1);
+                buf.add(giverText);
+                hearts.put(targetText, buf)
+            }
+        }
+    };
+
+    // Anyone (authenticated) can give a ❤️ to a user.
+    public shared ({ caller }) func heartUser(target : Principal) : async Result.Result<Nat, Text> {
+        if (Principal.isAnonymous(caller)) {
+            return #err("not authenticated")
+        };
+        if (caller == target) {
+            return #err("cannot heart yourself")
+        };
+        awardHeart(target, caller);
+        let targetText = Principal.toText(target);
+        let count = switch (hearts.get(targetText)) {
+            case (?buf) { buf.size() };
+            case (null) { 0 }
+        };
+        #ok(count)
+    };
+
+    // Buyer of a released order leaves a 1–5 star review for the seller.
+    public shared ({ caller }) func leaveReview(orderId : Nat, rating : Nat, comment : Text) : async Result.Result<Nat, Text> {
+        if (Principal.isAnonymous(caller)) {
+            return #err("not authenticated")
+        };
+        if (rating < 1 or rating > 5) {
+            return #err("rating must be between 1 and 5")
+        };
+        switch (reviewByOrder.get(orderId)) {
+            case (?_) {
+                return #err("order already reviewed")
+            };
+            case (null) {}
+        };
+        let order = Array.find<Order>(
+            Iter.toArray(orders.vals()),
+            func(o : Order) : Bool { o.id == orderId },
+        );
+        switch (order) {
+            case (?o) {
+                if (o.buyer != caller) {
+                    return #err("only the buyer can leave a review")
+                };
+                if (o.status != #released) {
+                    return #err("order must be released before reviewing")
+                };
+                let rid = nextReviewId;
+                let rev : Review = {
+                    id = rid;
+                    orderId = orderId;
+                    reviewer = caller;
+                    target = o.seller;
+                    rating = rating;
+                    comment = comment;
+                    ctime = Time.now()
+                };
+                reviews.put(rid, rev);
+                reviewByOrder.put(orderId, rid);
+                nextReviewId := nextReviewId + 1;
+                #ok(rid)
+            };
+            case (null) {
+                #err("order not found")
+            }
+        }
+    };
+
+    // Returns all reviews targeting a user, newest first.
+    public query func getUserReviews(user : Principal) : async [Review] {
+        let buf = Buffer.Buffer<Review>(0);
+        for (r in reviews.vals()) {
+            if (r.target == user) { buf.add(r) }
+        };
+        let arr = Buffer.toArray(buf);
+        Array.sort<Review>(arr, func(a, b) { Int.compare(Int.abs(b.ctime), Int.abs(a.ctime)) })
+    };
+
+    // Returns aggregated reputation stats for a user.
+    public query func getUserStats(user : Principal) : async UserStats {
+        let targetText = Principal.toText(user);
+
+        let heartsReceived = switch (hearts.get(targetText)) {
+            case (?buf) { buf.size() };
+            case (null) { 0 }
+        };
+
+        var salesCompleted : Nat = 0;
+        var purchasesCompleted : Nat = 0;
+        for (o in orders.vals()) {
+            if (o.status == #released) {
+                if (o.seller == user) { salesCompleted += 1 };
+                if (o.buyer == user) { purchasesCompleted += 1 };
+            }
+        };
+
+        var reviewCount : Nat = 0;
+        var ratingSum : Nat = 0;
+        for (r in reviews.vals()) {
+            if (r.target == user) {
+                reviewCount += 1;
+                ratingSum += r.rating;
+            }
+        };
+
+        let avgRating : Float = if (reviewCount == 0) {
+            0.0
+        } else {
+            Float.fromInt(ratingSum) / Float.fromInt(reviewCount)
+        };
+
+        {
+            heartsReceived;
+            salesCompleted;
+            purchasesCompleted;
+            reviewCount;
+            ratingSum;
+            avgRating
         }
     };
 
@@ -1372,6 +1539,15 @@ persistent actor class EscrowService() = this {
         _upgradeItems := items.toStable();
         upgradeFreeItemClaimsV3 := Iter.toArray(freeItemClaims.entries());
         upgradeFreeItemClaimsV2 := []; // clear old migration source
+
+        // Reputation persistence
+        upgradeReviews := Iter.toArray(reviews.entries());
+        upgradeHearts := Array.map<(Text, Buffer.Buffer<Text>), (Text, [Text])>(
+            Iter.toArray(hearts.entries()),
+            func((k, v) : (Text, Buffer.Buffer<Text>)) : (Text, [Text]) {
+                (k, Buffer.toArray(v))
+            },
+        );
     };
 
     system func postupgrade() {
