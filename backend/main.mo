@@ -97,6 +97,7 @@ persistent actor class EscrowService() = this {
     transient let ICET = "ot4zw-oaaaa-aaaag-qabaa-cai";
     transient let ICPLedger : Types.Ledger = actor ("ryjl3-tyaaa-aaaaa-aaaba-cai");
     transient let ICETLedger : ICETTypes.Self = actor "ot4zw-oaaaa-aaaag-qabaa-cai";
+    transient let NotifService : Types.NotificationService = actor "pxu6k-jaaaa-aaaap-aaamq-cai";
 
     type AccountIdAndTime = {
         accountId : AccountIdText;
@@ -216,6 +217,7 @@ persistent actor class EscrowService() = this {
             );
 
             nextOrderId := nextOrderId + 1;
+            sendNotification(newOrder.seller, "New escrow order #" # Nat.toText(orderid) # " has been created", caller);
             #ok(orderid)
         };
 
@@ -257,6 +259,7 @@ persistent actor class EscrowService() = this {
             );
 
             nextOrderId := nextOrderId + 1;
+            sendNotification(newOrder.buyer, "New escrow order #" # Nat.toText(orderid) # " has been created for you", caller);
             #ok(orderid)
         };
 
@@ -299,6 +302,7 @@ persistent actor class EscrowService() = this {
             );
 
             nextOrderId := nextOrderId + 1;
+            sendNotification(newOrder.seller, "New escrow order #" # Nat.toText(orderid) # " has been created", caller);
             #ok(orderid)
         };
 
@@ -348,6 +352,7 @@ persistent actor class EscrowService() = this {
                             logs = List.toArray(logs)
                         },
                     );
+                    sendNotification(order.seller, "Escrow order #" # Nat.toText(orderid) # " has been deposited", caller);
                     #ok(1)
                 } else {
                     //check account balance
@@ -399,6 +404,7 @@ persistent actor class EscrowService() = this {
                                 logs = List.toArray(logs)
                             },
                         );
+                        sendNotification(order.seller, "Escrow order #" # Nat.toText(orderid) # " has been deposited", caller);
                         #ok(1)
                     }
                 }
@@ -453,6 +459,7 @@ persistent actor class EscrowService() = this {
                             logs = List.toArray(logs)
                         },
                     );
+                    sendNotification(order.buyer, "Escrow order #" # Nat.toText(orderid) # " has been delivered by the seller", caller);
                     #ok(1);
 
                 } else {
@@ -507,7 +514,8 @@ persistent actor class EscrowService() = this {
                             comments = order.comments;
                             logs = List.toArray(logs)
                         },
-                    )
+                    );
+                    sendNotification(order.seller, "Escrow order #" # Nat.toText(orderid) # " has been received by the buyer", caller)
                 };
                 #ok(1)
             };
@@ -562,6 +570,7 @@ persistent actor class EscrowService() = this {
                                 logs = List.toArray(logs)
                             },
                         );
+                        sendNotification(order.buyer, "Escrow order #" # Nat.toText(orderid) # " has been released and funds sent to seller", caller);
                         #ok(1)
                     } else {
                         var amount : Nat64 = 0;
@@ -621,6 +630,7 @@ persistent actor class EscrowService() = this {
                                     },
                                 );
 
+                                sendNotification(order.buyer, "Escrow order #" # Nat.toText(orderid) # " has been released and funds sent to seller", caller);
                                 #ok(1)
                             };
                             case (#err(e)) {
@@ -685,6 +695,8 @@ persistent actor class EscrowService() = this {
                             logs = List.toArray(logs)
                         },
                     );
+                    let notifReceiver = if (caller == order.seller) { order.buyer } else { order.seller };
+                    sendNotification(notifReceiver, "Escrow order #" # Nat.toText(orderid) # " has been closed", caller);
                     #ok(1)
                 } else {
                     #err("wrong status or no permission")
@@ -789,6 +801,8 @@ persistent actor class EscrowService() = this {
                                 logs = List.toArray(logs)
                             },
                         );
+                        let notifReceiver = if (caller == order.seller) { order.buyer } else { order.seller };
+                        sendNotification(notifReceiver, "Escrow order #" # Nat.toText(orderid) # " has been canceled", caller);
                         #ok(1)
                     } else {
                         #err(err)
@@ -861,6 +875,7 @@ persistent actor class EscrowService() = this {
 
                             writeLog(order, log);
 
+                            sendNotification(order.buyer, "Escrow order #" # Nat.toText(orderid) # " has been refunded", caller);
                             #ok(1)
                         };
                         case (#err(e)) {
@@ -1125,6 +1140,17 @@ persistent actor class EscrowService() = this {
         return Principal.fromActor(this)
     };
 
+    // Builds and fire-and-forgets a notification to the RAM notification service.
+    // Must be called from within a shared (async) function.
+    func sendNotification(receiver : Principal, note : Text, sender : Principal) {
+        ignore NotifService.addNotification({
+            note = note;
+            ntype = #user(Principal.toText(sender));
+            receiver = Principal.toText(receiver);
+            sender = Principal.toText(sender)
+        })
+    };
+
     func accIdTextKey(s : AccountIdText) : Trie.Key<AccountIdText> {
         { key = s; hash = Text.hash(s) }
     };
@@ -1284,6 +1310,7 @@ persistent actor class EscrowService() = this {
                                 );
                                 freeItemClaimIndex.put(claimKey, claimId);
                                 nextFreeItemClaimId := nextFreeItemClaimId + 1;
+                                sendNotification(item.owner, "Someone claimed your free item \"" # item.name # "\" (claim #" # Nat.toText(claimId) # ")", caller);
                                 #ok(claimId)
                             }
                         }
@@ -1347,6 +1374,8 @@ persistent actor class EscrowService() = this {
                     closedAt = claim.closedAt
                 };
                 freeItemClaims.put(claimId, updated);
+                let notifReceiver = if (caller == claim.seller) { claim.buyer } else { claim.seller };
+                sendNotification(notifReceiver, "New comment on free item claim #" # Nat.toText(claimId), caller);
                 #ok(claimId)
             };
             case (null) {
@@ -1383,6 +1412,7 @@ persistent actor class EscrowService() = this {
                 freeItemClaims.put(claimId, updated);
                 // Award the seller (item giver) a ❤️ from the buyer when a free-item claim is closed.
                 awardHeart(claim.seller, claim.buyer);
+                sendNotification(claim.buyer, "Your free item claim #" # Nat.toText(claimId) # " has been closed by the seller", caller);
                 #ok(claimId)
             };
             case (null) {
@@ -1427,6 +1457,7 @@ persistent actor class EscrowService() = this {
             case (?buf) { buf.size() };
             case (null) { 0 }
         };
+        sendNotification(target, "You received a ❤️", caller);
         #ok(count)
     };
 
@@ -1466,6 +1497,7 @@ persistent actor class EscrowService() = this {
                 reviews.put(rid, rev);
                 reviewByOrder.put(orderId, rid);
                 nextReviewId := nextReviewId + 1;
+                sendNotification(o.seller, "You received a new review on escrow order #" # Nat.toText(orderId), caller);
                 #ok(rid)
             };
             case (null) {
