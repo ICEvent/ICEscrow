@@ -4,24 +4,27 @@ import { Actor, ActorSubclass, HttpAgent, Identity } from "@dfinity/agent"
 import { Principal } from "@dfinity/principal"
 
 import { defaultAgent } from "../lib/canisters";
-import { CANISTER_ONEBLOCK, CANISTER_ESCROW } from "../lib/constants";
+import { CANISTER_ONEBLOCK, CANISTER_ESCROW, CANISTER_RAM } from "../lib/constants";
 
 
 import { _SERVICE as ONEBLOCKService } from "../api/profile/profile.did"
 import { _SERVICE as ESCROWService } from "../api/escrow/service.did"
 import { _SERVICE as INDEXERService } from "../api/indexer/indexer.did"
 import { _SERVICE as CKETHService } from "../api/cketh/cketh.did"
+import { _SERVICE as RAMService } from "../api/ram/ram.did"
 
 import * as ONEBLOCK from "../api/profile/index"
 import * as ESCROW from "../api/escrow/index"
 import * as INDEXER from "../api/indexer/index";
 import * as CKETH from "../api/cketh/index";
+import * as RAM from "../api/ram/index";
 
 export type State = {
   agent: HttpAgent
   //cketh: ActorSubclass<CKETHService>
   oneblock: ActorSubclass<ONEBLOCKService>
   escrow: ActorSubclass<ESCROWService>
+  ram: ActorSubclass<RAMService>
   //indexer: ActorSubclass<INDEXERService>
   isAuthed: boolean
   principal: Principal | null
@@ -31,10 +34,12 @@ export type State = {
 
 const createActors = (agent: HttpAgent = defaultAgent): {
   oneblock: ActorSubclass<ONEBLOCKService>,
-  escrow: ActorSubclass<ESCROWService>
+  escrow: ActorSubclass<ESCROWService>,
+  ram: ActorSubclass<RAMService>
 } => ({
   oneblock: ONEBLOCK.createActor(CANISTER_ONEBLOCK, { agent }) as unknown as ActorSubclass<ONEBLOCKService>,
-  escrow: ESCROW.createActor(CANISTER_ESCROW, { agent }) as unknown as ActorSubclass<ESCROWService>
+  escrow: ESCROW.createActor(CANISTER_ESCROW, { agent }) as unknown as ActorSubclass<ESCROWService>,
+  ram: RAM.createActor(CANISTER_RAM, { agent }) as unknown as ActorSubclass<RAMService>
 });
 const initialState: State = {
   ...createActors(),
@@ -132,6 +137,11 @@ export const useOneblock = () => {
 export const useEscrow = () => {
   const context = useGlobalContext()
   return context.state.escrow
+}
+
+export const useRam = () => {
+  const context = useGlobalContext()
+  return context.state.ram
 }
 
 // export const useIndexer = () =>{

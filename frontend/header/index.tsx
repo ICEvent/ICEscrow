@@ -13,6 +13,7 @@ import { MENU_ORDERS, MENU_PROFILE, MENU_HOME, MENU_FREE, MENU_MY_ITEMS } from "
 import { useSetAgent, useGlobalContext, useLoading, useMenu } from "../components/Store";
 
 import LoginButton from "../components/LoginButton";
+import NotificationBell from "../components/NotificationBell";
 
 const Header: FC = () => {
   const setAgent = useSetAgent();
@@ -168,6 +169,7 @@ const Header: FC = () => {
 
           <div className="ml-auto flex items-center gap-2">
             <DarkModeToggle />
+            <NotificationBell />
 
             {isAuthed && (
               <button
