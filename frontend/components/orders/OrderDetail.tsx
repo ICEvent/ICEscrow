@@ -7,6 +7,7 @@ import { toast } from 'react-toastify';
 import { useEscrow, useGlobalContext, useLoading } from '../Store';
 import CommentButton from './CommentButton';
 import Comments from './CommentList';
+import ReviewForm from '../profile/ReviewForm';
 
 
 
@@ -40,6 +41,7 @@ export default (props) => {
     const { setLoading } = useLoading();
     const [confirmed, setConfirmed] = React.useState(false)
     const [balance, setBalance] = React.useState(0)
+    const [reviewSubmitted, setReviewSubmitted] = React.useState(false)
 
 
     const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -241,6 +243,10 @@ export default (props) => {
             </div>
 
             <Comments comments={comments}/>
+
+            {status === ORDER_STATUS_RELEASED && !isFreeOrder && principal?.toString() === order.buyer.toString() && !reviewSubmitted && (
+                <ReviewForm orderId={order.id} onSubmitted={() => setReviewSubmitted(true)} />
+            )}
         </div>
 
     )

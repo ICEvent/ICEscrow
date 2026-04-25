@@ -196,4 +196,25 @@ module {
         account_balance : shared query AccountBalanceArgs -> async ICP
     };
 
+    // Reputation
+
+    public type Review = {
+        id : Nat;
+        orderId : Nat;
+        reviewer : Principal;
+        target : Principal;
+        rating : Nat; // 1–5
+        comment : Text;
+        ctime : Int
+    };
+
+    public type UserStats = {
+        heartsReceived : Nat;
+        salesCompleted : Nat;
+        purchasesCompleted : Nat;
+        reviewCount : Nat;
+        ratingSum : Nat;
+        avgRating : Float
+    };
+
 }
