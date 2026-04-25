@@ -14,6 +14,7 @@ import { useSetAgent, useGlobalContext, useLoading, useMenu } from "../component
 
 import LoginButton from "../components/LoginButton";
 import NotificationBell from "../components/NotificationBell";
+import PrincipalName from "../components/PrincipalName";
 
 const Header: FC = () => {
   const setAgent = useSetAgent();
@@ -177,7 +178,7 @@ const Header: FC = () => {
                 onClick={handleClick}
                 className="btn-modern-secondary rounded-full border border-slate-300/80 bg-white px-4 py-1.5 text-sm font-semibold text-slate-700 shadow-sm"
               >
-                Account
+                {principal ? <PrincipalName principal={principal} /> : 'Account'}
               </button>
             )}
             {!isAuthed && <LoginButton />}

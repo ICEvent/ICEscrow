@@ -7,6 +7,7 @@ import { useEscrow, useGlobalContext } from "../components/Store";
 import ReputationBadge from "../components/profile/ReputationBadge";
 import UserReviews from "../components/profile/UserReviews";
 import { UserStats } from "../api/escrow/service.did";
+import PrincipalName from "../components/PrincipalName";
 
 const PAGE_SIZE = 10;
 const MAX_PAGES_TO_SCAN = 200;
@@ -111,7 +112,7 @@ const UserItems = () => {
       <div className="mb-4 rounded-3xl border border-white/50 bg-white/75 p-5 shadow-sm backdrop-blur">
         <p className="text-xs font-bold uppercase tracking-[0.18em] text-orange-700">Seller Storefront</p>
         <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-900">
-          Listed items by {userId}
+          Listed items by <PrincipalName principal={userId} />
         </h1>
         <p className="mt-1 text-sm text-slate-600">Browse the seller catalog and create protected escrow deals.</p>
 
