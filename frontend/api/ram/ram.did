@@ -1,0 +1,243 @@
+type TypeNotification = 
+ variant {
+   calendar: nat;
+   contact: nat;
+   event: nat;
+   note: nat;
+   other;
+   todo: nat;
+   user: text;
+ };
+type Subject = text;
+type Status = 
+ variant {
+   approved;
+   created;
+   rejected;
+ };
+type Sender = text;
+type Result_2 = 
+ variant {
+   err: text;
+   ok: text;
+ };
+type Result_1 = 
+ variant {
+   err: text;
+   ok: int;
+ };
+type Result = 
+ variant {
+   err: text;
+   ok: nat;
+ };
+type Ram = 
+ service {
+   addAccessKey: (opt text, KeyComponent, text, int) -> (Result_2);
+   addAdmin: (text) -> (Result_1);
+   addAllow: (text) -> (Result_1);
+   addApplication: (NewApplication) -> (Result);
+   addComment: (NewComment) -> (Result);
+   addNotification: (NewNotification) -> ();
+   availableCycles: () -> (nat) query;
+   createHiking: (HikingData) -> (Result);
+   deleteNotification: (nat) -> (Result);
+   findUserHiking: (text, nat, nat) -> (vec HikingData) query;
+   getAccessKey: (KeyComponent, text) -> (opt AccessKey);
+   getAdmins: () -> (vec text) query;
+   getAllows: () -> (vec text) query;
+   getApplications: (Atem) -> (vec Application);
+   getBackupState: () -> (nat) query;
+   getComments: (Comto, nat) -> (vec Comment) query;
+   getLogs: (nat) -> (vec Log) query;
+   getMyInboxes: () -> (vec Inbox) query;
+   getMyMessages: (bool, nat) -> (vec Message) query;
+   getMyNotifications: (bool, nat) -> (vec Notification) query;
+   getSystemData: () -> (record {
+                           cycles: nat;
+                           heap: nat;
+                           memory: nat;
+                         }) query;
+   getUserLogs: (nat) -> (vec Log) query;
+   hookInbox: (text, text) -> (Result);
+   log: (NewLog) -> ();
+   message: (NewMessage) -> (Result);
+   readMessage: (nat) -> (Result);
+   readNotification: (nat) -> (Result);
+   removeAccessKey: (KeyComponent, text) -> ();
+   searchInboxes: (text) -> (vec Inbox) query;
+   sendMessage: (MessageTo, Subject, Content, Sender) -> (Result_1);
+   updateApplication: (nat, Status) -> (Result);
+ };
+type Notification = 
+ record {
+   id: nat;
+   isread: bool;
+   note: text;
+   ntype: TypeNotification;
+   readtime: int;
+   receiver: text;
+   sender: text;
+   sendtime: int;
+ };
+type NewNotification = 
+ record {
+   note: text;
+   ntype: TypeNotification;
+   receiver: text;
+   sender: text;
+ };
+type NewMessage = 
+ record {
+   attachment: opt text;
+   note: text;
+   receiver: text;
+   replyid: opt nat;
+ };
+type NewLog = 
+ record {
+   action: Action;
+   function: Function;
+   message: text;
+   user: text;
+ };
+type NewComment = 
+ record {
+   attachments: vec text;
+   comment: text;
+   comto: Comto__1;
+ };
+type NewApplication = 
+ record {
+   approver: text;
+   atem: Atem;
+   memo: text;
+ };
+type MessageTo = text;
+type Message = 
+ record {
+   attachment: opt text;
+   id: nat;
+   isread: bool;
+   note: text;
+   readtime: int;
+   receiver: text;
+   replyid: opt nat;
+   sender: text;
+   sendtime: int;
+ };
+type Log = 
+ record {
+   action: Action;
+   function: Function;
+   logtime: int;
+   message: text;
+   user: text;
+ };
+type KeyComponent = 
+ variant {
+   calendar;
+   checklist;
+   comment;
+   contact;
+   event;
+   expense;
+   invoice;
+   log;
+   message;
+   note;
+   order;
+   profile;
+   todo;
+ };
+type Inbox = 
+ record {
+   id: text;
+   name: text;
+   owner: principal;
+ };
+type HikingLog = 
+ record {
+   logdata: text;
+   logtype: text;
+ };
+type HikingData = 
+ record {
+   attendees: text;
+   distance: nat;
+   eid: nat;
+   elevation: opt nat;
+   end: nat;
+   log: opt HikingLog;
+   organizer: text;
+   start: nat;
+ };
+type Function = 
+ variant {
+   calendar: nat;
+   comment: nat;
+   contact: nat;
+   event: nat;
+   note: nat;
+   other;
+   todo: nat;
+   user: text;
+ };
+type Content = text;
+type Comto__1 = 
+ variant {
+   calendar: nat;
+   event: nat;
+   note: nat;
+   other: text;
+   todo: nat;
+   user: text;
+ };
+type Comto = 
+ variant {
+   calendar: nat;
+   event: nat;
+   note: nat;
+   other: text;
+   todo: nat;
+   user: text;
+ };
+type Comment = 
+ record {
+   attachments: vec text;
+   comment: text;
+   comto: Comto__1;
+   timestamp: int;
+   user: text;
+ };
+type Atem = 
+ variant {
+   activity: nat;
+   bounty: nat;
+   invitation: nat;
+ };
+type Application = 
+ record {
+   applicant: text;
+   approver: text;
+   atem: Atem;
+   atime: int;
+   id: nat;
+   memo: text;
+   status: Status;
+ };
+type Action = 
+ variant {
+   create;
+   delete;
+   read;
+   update;
+ };
+type AccessKey = 
+ record {
+   componentid: text;
+   expiredtime: int;
+   key: text;
+   keycomponent: KeyComponent;
+ };
+service : () -> Ram
