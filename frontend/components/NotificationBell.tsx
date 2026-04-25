@@ -14,24 +14,25 @@ export default function NotificationBell() {
 
   const unreadCount = notifications.filter((n) => !n.read).length;
 
-  async function fetchNotifications() {
-    try {
-      const result = await ram.getMyNotifications();
-      setNotifications(result.slice().reverse());
-    } catch (e) {
-      // silently ignore errors (e.g. when not authenticated)
-    }
-  }
-
   useEffect(() => {
     if (!isAuthed) {
       setNotifications([]);
       return;
     }
+
+    async function fetchNotifications() {
+      try {
+        const result = await ram.getMyNotifications();
+        setNotifications(result.slice().reverse());
+      } catch (e) {
+        // silently ignore errors (e.g. when not authenticated)
+      }
+    }
+
     fetchNotifications();
     const timer = setInterval(fetchNotifications, POLL_INTERVAL_MS);
     return () => clearInterval(timer);
-  }, [isAuthed]);
+  }, [isAuthed, ram]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -68,7 +69,12 @@ export default function NotificationBell() {
     setOpen((prev) => !prev);
     // Refresh when opening
     if (!open) {
-      await fetchNotifications();
+      try {
+        const result = await ram.getMyNotifications();
+        setNotifications(result.slice().reverse());
+      } catch (e) {
+        // ignore
+      }
     }
   }
 
