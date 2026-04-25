@@ -12,7 +12,7 @@ export default function NotificationBell() {
   const [open, setOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  const unreadCount = notifications.filter((n) => !n.read).length;
+  const unreadCount = notifications.filter((n) => !n.isread).length;
 
   useEffect(() => {
     if (!isAuthed) {
@@ -22,7 +22,7 @@ export default function NotificationBell() {
 
     async function fetchNotifications() {
       try {
-        const result = await ram.getMyNotifications();
+        const result = await ram.getMyNotifications(false, BigInt(50));
         setNotifications(result.slice().reverse());
       } catch (e) {
         // silently ignore errors (e.g. when not authenticated)
@@ -49,7 +49,7 @@ export default function NotificationBell() {
     try {
       await ram.readNotification(id);
       setNotifications((prev) =>
-        prev.map((n) => (n.id === id ? { ...n, read: true } : n))
+        prev.map((n) => (n.id === id ? { ...n, isread: true } : n))
       );
     } catch (e) {
       // ignore
@@ -70,7 +70,7 @@ export default function NotificationBell() {
     // Refresh when opening
     if (!open) {
       try {
-        const result = await ram.getMyNotifications();
+        const result = await ram.getMyNotifications(false, BigInt(50));
         setNotifications(result.slice().reverse());
       } catch (e) {
         // ignore
@@ -128,7 +128,7 @@ export default function NotificationBell() {
                 <div
                   key={String(n.id)}
                   className={`group flex items-start gap-3 border-b border-slate-50 px-4 py-3 transition ${
-                    n.read ? "bg-white" : "bg-orange-50"
+                    n.isread ? "bg-white" : "bg-orange-50"
                   }`}
                 >
                   <div className="mt-0.5 flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-500">
@@ -137,11 +137,11 @@ export default function NotificationBell() {
                   <div className="min-w-0 flex-1">
                     <p className="break-words text-xs text-slate-700">{n.note}</p>
                     <p className="mt-0.5 text-[10px] text-slate-400">
-                      {moment(Number(n.ctime) / 1_000_000).fromNow()}
+                      {moment(Number(n.sendtime) / 1_000_000).fromNow()}
                     </p>
                   </div>
                   <div className="flex flex-col gap-1 opacity-0 transition group-hover:opacity-100">
-                    {!n.read && (
+                    {!n.isread && (
                       <button
                         type="button"
                         onClick={() => handleMarkRead(n.id)}
