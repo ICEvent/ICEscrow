@@ -217,4 +217,27 @@ module {
         avgRating : Float
     };
 
+    // Notification service (icevent_service RAM canister)
+
+    public type TypeNotification = {
+        #calendar : Nat;
+        #contact : Nat;
+        #event : Nat;
+        #note : Nat;
+        #other;
+        #todo : Nat;
+        #user : Text
+    };
+
+    public type NewNotification = {
+        note : Text;
+        ntype : TypeNotification;
+        receiver : Text;
+        sender : Text
+    };
+
+    public type NotificationService = actor {
+        addNotification : shared (NewNotification) -> async ()
+    };
+
 }
