@@ -107,11 +107,11 @@ const ClaimCard: React.FC<ClaimCardProps> = ({ claim, role, onUpdated }) => {
                         {' · '}Claim #{String(claim.id)}
                     </p>
                     {role === 'seller' ? (
-                        <p className="mt-0.5 text-xs text-slate-400">
+                        <p className="mt-0.5 text-xs text-slate-400 break-all">
                             Buyer: <PrincipalName principal={claim.buyer} />
                         </p>
                     ) : (
-                        <p className="mt-0.5 text-xs text-slate-400">
+                        <p className="mt-0.5 text-xs text-slate-400 break-all">
                             Seller: <PrincipalName principal={claim.seller} />
                         </p>
                     )}

@@ -17,10 +17,12 @@ const PrincipalName: React.FC<PrincipalNameProps> = ({ principal }) => {
     if (!oneblock || !principalText) return;
     oneblock.getProfileByPrincipal(principalText).then(res => {
       if (res[0]) setName(res[0].name);
-    }).catch(() => {});
+    }).catch((err) => {
+      console.error('Failed to fetch profile for principal', principalText, err);
+    });
   }, [oneblock, principalText]);
 
-  return <>{name || truncate(principalText)}</>;
+  return <span role="text">{name || truncate(principalText)}</span>;
 };
 
 export default PrincipalName;
