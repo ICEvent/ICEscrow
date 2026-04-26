@@ -54,6 +54,16 @@ const LinkDialog = (props) => {
 
 
   function addLink() {
+    try {
+      const parsed = new URL(values.linkurl);
+      if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+        alert('Only http:// and https:// URLs are allowed.');
+        return;
+      }
+    } catch {
+      alert('Please enter a valid URL (e.g. https://example.com).');
+      return;
+    }
     setProgress(true)
     let link: Link =  {
       name: values.linkname,

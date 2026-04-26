@@ -1311,6 +1311,7 @@ persistent actor class EscrowService() = this {
                                 freeItemClaimIndex.put(claimKey, claimId);
                                 nextFreeItemClaimId := nextFreeItemClaimId + 1;
                                 ignore sendNotification(item.owner, "Someone claimed your free item \"" # item.name # "\" (claim #" # Nat.toText(claimId) # ")", caller);
+                                ignore sendNotification(caller, "Your claim #" # Nat.toText(claimId) # " for \"" # item.name # "\" has been submitted. The seller will be in touch.", item.owner);
                                 #ok(claimId)
                             }
                         }
