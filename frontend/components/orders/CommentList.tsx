@@ -2,6 +2,7 @@ import * as React from 'react';
 import moment from 'moment';
 
 import { useGlobalContext } from '../Store';
+import PrincipalName from '../PrincipalName';
 
 
 export default function Comments(props) {
@@ -18,7 +19,7 @@ export default function Comments(props) {
         <div key={c.ctime} className="rounded-md border border-slate-200 bg-slate-50 p-3">
             <div className="mb-1 flex items-center justify-between gap-2">
                 <span className="text-sm font-semibold text-slate-800">
-                    {c.user.toString() == principal.toString() ? "(you)" : c.user.toString().slice(0, 5) + "..." + c.user.toString().slice(-5)}
+                    {c.user.toString() == principal.toString() ? "(you)" : <PrincipalName principal={c.user} />}
                 </span>
                 <span className="text-xs text-slate-500">
                     {moment.unix(parseInt(c.ctime) / 1000000000).format("YYYY-MM-DD hh:mm")}

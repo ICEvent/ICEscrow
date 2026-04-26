@@ -4,6 +4,7 @@ import { toast } from 'react-toastify';
 import moment from 'moment';
 import { CURRENCY_ICET, CURRENCY_ICP, LEDGER_E6S, LEDGER_E8S, ORDER_DEFAULT_EXPIRED_DAYS, MENU_ORDERS } from '../../lib/constants';
 import { Link } from 'react-router-dom';
+import PrincipalName from '../PrincipalName';
 
 
 
@@ -235,7 +236,7 @@ export default (props) => {
                             <p className="text-xs text-slate-600">
                                 Seller:{" "}
                                 <Link className="font-semibold text-cyan-700 hover:text-cyan-800 hover:underline" to={`/userid/${props.offer.owner.toString()}`}>
-                                    {props.offer.owner.toString()}
+                                    <PrincipalName principal={props.offer.owner} />
                                 </Link>
                             </p>
                         </div>

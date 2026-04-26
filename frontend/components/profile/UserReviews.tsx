@@ -3,6 +3,7 @@ import moment from 'moment';
 import { useEscrow } from '../Store';
 import { Principal } from '@dfinity/principal';
 import { Review } from '../../api/escrow/service.did';
+import PrincipalName from '../PrincipalName';
 
 interface UserReviewsProps {
   userId: string;
@@ -52,10 +53,6 @@ const UserReviews: React.FC<UserReviewsProps> = ({ userId }) => {
       <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-500">Reviews ({reviews.length})</p>
       {reviews.map((r) => {
         const rating = Number(r.rating);
-        const reviewerText = r.reviewer.toString();
-        const shortReviewer = reviewerText.length > 16
-          ? reviewerText.slice(0, 8) + '…' + reviewerText.slice(-6)
-          : reviewerText;
         const timeMs = Number(r.ctime) / 1_000_000;
         return (
           <div
@@ -72,7 +69,7 @@ const UserReviews: React.FC<UserReviewsProps> = ({ userId }) => {
               <p className="mt-2 text-sm text-slate-700">{r.comment}</p>
             )}
             <p className="mt-2 text-xs text-slate-400">
-              by <span className="font-mono">{shortReviewer}</span>
+              by <PrincipalName principal={r.reviewer} />
             </p>
           </div>
         );

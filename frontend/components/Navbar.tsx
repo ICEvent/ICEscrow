@@ -106,7 +106,7 @@ export default () => {
             onClick={logout}
             className="rounded-md border border-slate-300 px-3 py-1 text-sm font-medium text-slate-700 transition hover:border-rose-500 hover:text-rose-600"
           >
-            {principal.toString().slice(0, 5) + "..." + principal.toString().slice(-5)}
+            {profile?.name || (principal.toString().slice(0, 5) + "..." + principal.toString().slice(-5))}
           </button>
         )}
         <DarkModeToggle />

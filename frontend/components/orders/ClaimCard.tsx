@@ -2,6 +2,7 @@ import * as React from 'react';
 import moment from 'moment';
 import { toast } from 'react-toastify';
 import { useEscrow, useGlobalContext } from '../Store';
+import PrincipalName from '../PrincipalName';
 
 const MS_TO_NANOSECONDS = BigInt(1_000_000);
 type CandidOptionalBigInt = bigint | [] | [bigint] | null;
@@ -107,11 +108,11 @@ const ClaimCard: React.FC<ClaimCardProps> = ({ claim, role, onUpdated }) => {
                     </p>
                     {role === 'seller' ? (
                         <p className="mt-0.5 text-xs text-slate-400 break-all">
-                            Buyer: {claim.buyer.toString()}
+                            Buyer: <PrincipalName principal={claim.buyer} />
                         </p>
                     ) : (
                         <p className="mt-0.5 text-xs text-slate-400 break-all">
-                            Seller: {claim.seller.toString()}
+                            Seller: <PrincipalName principal={claim.seller} />
                         </p>
                     )}
                 </div>
@@ -169,7 +170,7 @@ const ClaimCard: React.FC<ClaimCardProps> = ({ claim, role, onUpdated }) => {
                                             {c.comment}
                                         </div>
                                         <span className="mt-0.5 text-[10px] text-slate-400">
-                                            {isMe ? 'You' : shortPrincipal(c.user)}
+                                            {isMe ? 'You' : <PrincipalName principal={c.user} />}
                                             {' · '}
                                             {moment(Number(c.ctime) / 1e6).fromNow()}
                                         </span>

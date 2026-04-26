@@ -5,6 +5,7 @@ import { ORDER_STATUS_CANCELED, ORDER_STATUS_CLOSED, ORDER_STATUS_DELIVERED, ORD
 import { toast } from 'react-toastify';
 
 import { useEscrow, useGlobalContext, useLoading } from '../Store';
+import PrincipalName from '../PrincipalName';
 import CommentButton from './CommentButton';
 import Comments from './CommentList';
 import ReviewForm from '../profile/ReviewForm';
@@ -154,8 +155,8 @@ export default (props) => {
                 <div className="rounded-md bg-slate-50 px-3 py-2"><span className="font-semibold text-slate-700">ID:</span> {parseInt(order.id)}</div>
                 <div className="rounded-md bg-slate-50 px-3 py-2"><span className="font-semibold text-slate-700">Amount:</span> {amountLabel}</div>
                 {!isFreeOrder && <div className="rounded-md bg-slate-50 px-3 py-2"><span className="font-semibold text-slate-700">Escrow Account:</span> {order.account.id}</div>}
-                <div className="rounded-md bg-slate-50 px-3 py-2 sm:col-span-2"><span className="font-semibold text-slate-700">Buyer {order.buyer.toString() == principal.toString() ? "(you)" : ""}:</span> {order.buyer.toString()}</div>
-                <div className="rounded-md bg-slate-50 px-3 py-2 sm:col-span-2"><span className="font-semibold text-slate-700">Seller {order.seller.toString() == principal.toString() ? "(you)" : ""}:</span> {order.seller.toString()}</div>
+                <div className="rounded-md bg-slate-50 px-3 py-2 sm:col-span-2"><span className="font-semibold text-slate-700">Buyer {order.buyer.toString() == principal.toString() ? "(you)" : ""}:</span> <PrincipalName principal={order.buyer} /></div>
+                <div className="rounded-md bg-slate-50 px-3 py-2 sm:col-span-2"><span className="font-semibold text-slate-700">Seller {order.seller.toString() == principal.toString() ? "(you)" : ""}:</span> <PrincipalName principal={order.seller} /></div>
                 {!isFreeOrder && (
                     <div className="rounded-md bg-slate-50 px-3 py-2 sm:col-span-2">
                         <span className="font-semibold text-slate-700">Balance:</span> {balance}
