@@ -136,11 +136,9 @@ export default () => {
         <OrderListItem key={o.id} order={o} />
     )
 
-    const isClaimClosed = (claim: any): boolean => {
-        const v = claim.closedAt;
-        if (v === null || v === undefined) return false;
-        if (Array.isArray(v)) return v.length > 0;
-        return true;
+    const isClaimResolved = (claim: any): boolean => {
+        const isOptSet = (v: any) => v !== null && v !== undefined && (!Array.isArray(v) || v.length > 0);
+        return isOptSet(claim.closedAt) || isOptSet(claim.canceledAt);
     };
 
     const ClaimsSection = ({
@@ -157,8 +155,8 @@ export default () => {
         onUpdated: (u: any) => void;
     }) => {
         const [showClosed, setShowClosed] = React.useState(false);
-        const closedCount = claims.filter(isClaimClosed).length;
-        const visibleClaims = showClosed ? claims : claims.filter((c) => !isClaimClosed(c));
+        const closedCount = claims.filter(isClaimResolved).length;
+        const visibleClaims = showClosed ? claims : claims.filter((c) => !isClaimResolved(c));
 
         return (
         <div className="mt-6 rounded-2xl border border-white/50 bg-white/75 p-4 shadow-sm backdrop-blur">
