@@ -7,6 +7,16 @@ import OrderListItem from './OrderListItem';
 import OrderForm from './OrderForm';
 import ClaimCard from './ClaimCard';
 import { NewOrder, NewSellOrder } from '../../api/escrow/service.did';
+import {
+    ORDER_STATUS_NEW,
+    ORDER_STATUS_DEPOSITED,
+    ORDER_STATUS_DELIVERED,
+    ORDER_STATUS_RECEIVED,
+    ORDER_STATUS_RELEASED,
+    ORDER_STATUS_REFUNDED,
+    ORDER_STATUS_CLOSED,
+    ORDER_STATUS_CANCELED,
+} from '../../lib/constants';
 
 export default () => {
     const escrow = useEscrow();
@@ -19,6 +29,19 @@ export default () => {
     const [claimsLoading, setClaimsLoading] = React.useState(false);
 
     const [openOrderForm, setOpenOrderForm] = React.useState(false);
+    const [statusFilter, setStatusFilter] = React.useState<string>('all');
+
+    const STATUS_FILTERS = [
+        { label: 'All', value: 'all' },
+        { label: 'New', value: ORDER_STATUS_NEW },
+        { label: 'Deposited', value: ORDER_STATUS_DEPOSITED },
+        { label: 'Delivered', value: ORDER_STATUS_DELIVERED },
+        { label: 'Received', value: ORDER_STATUS_RECEIVED },
+        { label: 'Released', value: ORDER_STATUS_RELEASED },
+        { label: 'Closed', value: ORDER_STATUS_CLOSED },
+        { label: 'Canceled', value: ORDER_STATUS_CANCELED },
+        { label: 'Refunded', value: ORDER_STATUS_REFUNDED },
+    ];
 
     React.useEffect(() => {
         loadProcessingOrders();
@@ -105,7 +128,11 @@ export default () => {
         };
     };
 
-    let ol = orders.map(o =>
+    const filteredOrders = statusFilter === 'all'
+        ? orders
+        : orders.filter((o: any) => Object.getOwnPropertyNames(o.status)[0] === statusFilter);
+
+    let ol = filteredOrders.map(o =>
         <OrderListItem key={o.id} order={o} />
     )
 
@@ -205,6 +232,22 @@ export default () => {
                 >
                     All Orders ({page})
                 </button>
+                </div>
+                <div className="mt-3 flex flex-wrap gap-1.5">
+                    {STATUS_FILTERS.map((f) => (
+                        <button
+                            key={f.value}
+                            type="button"
+                            onClick={() => setStatusFilter(f.value)}
+                            className={`rounded-full px-3 py-1 text-[11px] font-semibold transition ${
+                                statusFilter === f.value
+                                    ? 'bg-orange-500 text-white'
+                                    : 'border border-slate-300 bg-white text-slate-600 hover:border-orange-400 hover:text-orange-700'
+                            }`}
+                        >
+                            {f.label}
+                        </button>
+                    ))}
                 </div>
             </div>
 
