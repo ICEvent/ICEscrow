@@ -7,6 +7,16 @@ import OrderListItem from './OrderListItem';
 import OrderForm from './OrderForm';
 import ClaimCard from './ClaimCard';
 import { NewOrder, NewSellOrder } from '../../api/escrow/service.did';
+import {
+    ORDER_STATUS_NEW,
+    ORDER_STATUS_DEPOSITED,
+    ORDER_STATUS_DELIVERED,
+    ORDER_STATUS_RECEIVED,
+    ORDER_STATUS_RELEASED,
+    ORDER_STATUS_REFUNDED,
+    ORDER_STATUS_CLOSED,
+    ORDER_STATUS_CANCELED,
+} from '../../lib/constants';
 
 export default () => {
     const escrow = useEscrow();
@@ -19,6 +29,19 @@ export default () => {
     const [claimsLoading, setClaimsLoading] = React.useState(false);
 
     const [openOrderForm, setOpenOrderForm] = React.useState(false);
+    const [statusFilter, setStatusFilter] = React.useState<string>('all');
+
+    const STATUS_FILTERS = [
+        { label: 'All', value: 'all' },
+        { label: 'New', value: ORDER_STATUS_NEW },
+        { label: 'Deposited', value: ORDER_STATUS_DEPOSITED },
+        { label: 'Delivered', value: ORDER_STATUS_DELIVERED },
+        { label: 'Received', value: ORDER_STATUS_RECEIVED },
+        { label: 'Released', value: ORDER_STATUS_RELEASED },
+        { label: 'Closed', value: ORDER_STATUS_CLOSED },
+        { label: 'Canceled', value: ORDER_STATUS_CANCELED },
+        { label: 'Refunded', value: ORDER_STATUS_REFUNDED },
+    ];
 
     React.useEffect(() => {
         loadProcessingOrders();
@@ -105,9 +128,20 @@ export default () => {
         };
     };
 
-    let ol = orders.map(o =>
+    const filteredOrders = statusFilter === 'all'
+        ? orders
+        : orders.filter((o: any) => Object.getOwnPropertyNames(o.status)[0] === statusFilter);
+
+    let ol = filteredOrders.map(o =>
         <OrderListItem key={o.id} order={o} />
     )
+
+    const isClaimClosed = (claim: any): boolean => {
+        const v = claim.closedAt;
+        if (v === null || v === undefined) return false;
+        if (Array.isArray(v)) return v.length > 0;
+        return true;
+    };
 
     const ClaimsSection = ({
         title,
@@ -121,7 +155,12 @@ export default () => {
         claims: any[];
         role: 'buyer' | 'seller';
         onUpdated: (u: any) => void;
-    }) => (
+    }) => {
+        const [showClosed, setShowClosed] = React.useState(false);
+        const closedCount = claims.filter(isClaimClosed).length;
+        const visibleClaims = showClosed ? claims : claims.filter((c) => !isClaimClosed(c));
+
+        return (
         <div className="mt-6 rounded-2xl border border-white/50 bg-white/75 p-4 shadow-sm backdrop-blur">
             <div className="mb-3 flex items-center justify-between gap-2">
                 <p className={`text-xs font-bold uppercase tracking-[0.18em] ${accentClass}`}>{title}</p>
@@ -130,6 +169,15 @@ export default () => {
                         <span className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-slate-600">
                             {claims.length}
                         </span>
+                    )}
+                    {closedCount > 0 && (
+                        <button
+                            type="button"
+                            onClick={() => setShowClosed((v) => !v)}
+                            className="rounded-lg border border-slate-300 bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-600 transition hover:border-orange-400 hover:text-orange-700"
+                        >
+                            {showClosed ? 'Hide closed' : `Show closed (${closedCount})`}
+                        </button>
                     )}
                     <button
                         type="button"
@@ -144,12 +192,14 @@ export default () => {
             {claimsLoading && (
                 <div className="h-8 animate-pulse rounded bg-slate-200" />
             )}
-            {!claimsLoading && claims.length === 0 && (
-                <p className="text-sm text-slate-500">No claims here yet.</p>
+            {!claimsLoading && visibleClaims.length === 0 && (
+                <p className="text-sm text-slate-500">
+                    {claims.length === 0 ? 'No claims here yet.' : 'No open claims. Use "Show closed" to view resolved claims.'}
+                </p>
             )}
-            {!claimsLoading && claims.length > 0 && (
+            {!claimsLoading && visibleClaims.length > 0 && (
                 <div className="space-y-2">
-                    {claims.map((claim) => (
+                    {visibleClaims.map((claim) => (
                         <ClaimCard
                             key={String(claim.id)}
                             claim={claim}
@@ -160,7 +210,8 @@ export default () => {
                 </div>
             )}
         </div>
-    );
+        );
+    };
 
     return (
         <>
@@ -181,6 +232,22 @@ export default () => {
                 >
                     All Orders ({page})
                 </button>
+                </div>
+                <div className="mt-3 flex flex-wrap gap-1.5">
+                    {STATUS_FILTERS.map((f) => (
+                        <button
+                            key={f.value}
+                            type="button"
+                            onClick={() => setStatusFilter(f.value)}
+                            className={`rounded-full px-3 py-1 text-[11px] font-semibold transition ${
+                                statusFilter === f.value
+                                    ? 'bg-orange-500 text-white'
+                                    : 'border border-slate-300 bg-white text-slate-600 hover:border-orange-400 hover:text-orange-700'
+                            }`}
+                        >
+                            {f.label}
+                        </button>
+                    ))}
                 </div>
             </div>
 
