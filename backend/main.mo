@@ -60,7 +60,8 @@ persistent actor class EscrowService() = this {
         comments : [Comment]
     };
 
-    type FreeItemClaim = {
+    // V3 type — has closedAt but not canceledAt. Kept for stable-memory migration.
+    type OldFreeItemClaimV3 = {
         id : Nat;
         itemId : Nat;
         itemName : Text;
@@ -69,6 +70,18 @@ persistent actor class EscrowService() = this {
         ctime : Int;
         comments : [Comment];
         closedAt : ?Int
+    };
+
+    type FreeItemClaim = {
+        id : Nat;
+        itemId : Nat;
+        itemName : Text;
+        seller : Principal;
+        buyer : Principal;
+        ctime : Int;
+        comments : [Comment];
+        closedAt : ?Int;
+        canceledAt : ?Int
     };
 
     // transfer fee ICP
@@ -118,8 +131,10 @@ persistent actor class EscrowService() = this {
     // upgradeFreeItemClaimsV2 used the type WITHOUT closedAt. It is kept here with the old
     // type so stable memory deserialises correctly, then migrated to V3 during init.
     stable var upgradeFreeItemClaimsV2 : [(Nat, OldFreeItemClaimV2)] = [];
-    // New stable store — FreeItemClaim now includes closedAt.
-    stable var upgradeFreeItemClaimsV3 : [(Nat, FreeItemClaim)] = [];
+    // V3 stable store — FreeItemClaim had closedAt but not canceledAt.
+    stable var upgradeFreeItemClaimsV3 : [(Nat, OldFreeItemClaimV3)] = [];
+    // New stable store — FreeItemClaim now includes canceledAt.
+    stable var upgradeFreeItemClaimsV4 : [(Nat, FreeItemClaim)] = [];
 
     //backukp
     stable var backupItems : [UpgradeTypes.U_Item] = [];
@@ -136,7 +151,7 @@ persistent actor class EscrowService() = this {
     transient let items = Items.Items(_upgradeItemId, _upgradeItems);
     transient var freeItemClaims = TrieMap.TrieMap<Nat, FreeItemClaim>(Nat.equal, Hash.hash);
     freeItemClaims := if (upgradeFreeItemClaimsV2.size() > 0) {
-        // One-time migration: add closedAt = null to every existing claim.
+        // One-time migration from V2: add closedAt = null and canceledAt = null.
         let migrated = Array.map<(Nat, OldFreeItemClaimV2), (Nat, FreeItemClaim)>(
             upgradeFreeItemClaimsV2,
             func((k, v) : (Nat, OldFreeItemClaimV2)) : (Nat, FreeItemClaim) {
@@ -149,12 +164,32 @@ persistent actor class EscrowService() = this {
                     ctime = v.ctime;
                     comments = v.comments;
                     closedAt = null;
+                    canceledAt = null;
+                })
+            },
+        );
+        TrieMap.fromEntries<Nat, FreeItemClaim>(Iter.fromArray(migrated), Nat.equal, Hash.hash)
+    } else if (upgradeFreeItemClaimsV3.size() > 0) {
+        // One-time migration from V3: add canceledAt = null.
+        let migrated = Array.map<(Nat, OldFreeItemClaimV3), (Nat, FreeItemClaim)>(
+            upgradeFreeItemClaimsV3,
+            func((k, v) : (Nat, OldFreeItemClaimV3)) : (Nat, FreeItemClaim) {
+                (k, {
+                    id = v.id;
+                    itemId = v.itemId;
+                    itemName = v.itemName;
+                    seller = v.seller;
+                    buyer = v.buyer;
+                    ctime = v.ctime;
+                    comments = v.comments;
+                    closedAt = v.closedAt;
+                    canceledAt = null;
                 })
             },
         );
         TrieMap.fromEntries<Nat, FreeItemClaim>(Iter.fromArray(migrated), Nat.equal, Hash.hash)
     } else {
-        TrieMap.fromEntries<Nat, FreeItemClaim>(Iter.fromArray(upgradeFreeItemClaimsV3), Nat.equal, Hash.hash)
+        TrieMap.fromEntries<Nat, FreeItemClaim>(Iter.fromArray(upgradeFreeItemClaimsV4), Nat.equal, Hash.hash)
     };
     transient var freeItemClaimIndex = TrieMap.TrieMap<Text, Nat>(Text.equal, Text.hash);
     for (claim in freeItemClaims.vals()) {
@@ -1305,7 +1340,8 @@ persistent actor class EscrowService() = this {
                                         buyer = caller;
                                         ctime = Time.now();
                                         comments = [];
-                                        closedAt = null
+                                        closedAt = null;
+                                        canceledAt = null
                                     },
                                 );
                                 freeItemClaimIndex.put(claimKey, claimId);
@@ -1372,7 +1408,8 @@ persistent actor class EscrowService() = this {
                     buyer = claim.buyer;
                     ctime = claim.ctime;
                     comments = Array.append(claim.comments, [newComment]);
-                    closedAt = claim.closedAt
+                    closedAt = claim.closedAt;
+                    canceledAt = claim.canceledAt
                 };
                 freeItemClaims.put(claimId, updated);
                 let notifReceiver = if (caller == claim.seller) { claim.buyer } else { claim.seller };
@@ -1408,12 +1445,52 @@ persistent actor class EscrowService() = this {
                     buyer = claim.buyer;
                     ctime = claim.ctime;
                     comments = claim.comments;
-                    closedAt = ?Time.now()
+                    closedAt = ?Time.now();
+                    canceledAt = claim.canceledAt
                 };
                 freeItemClaims.put(claimId, updated);
                 // Award the seller (item giver) a ❤️ from the buyer when a free-item claim is closed.
                 awardHeart(claim.seller, claim.buyer);
                 ignore sendNotification(claim.buyer, "Your free item claim #" # Nat.toText(claimId) # " has been closed by the seller", caller);
+                #ok(claimId)
+            };
+            case (null) {
+                #err("claim not found")
+            }
+        }
+    };
+
+    // Buyer cancels their own claim (e.g. if the seller never responds).
+    public shared ({ caller }) func cancelClaim(claimId : Nat) : async Result.Result<Nat, Text> {
+        if (Principal.isAnonymous(caller)) {
+            return #err("not authenticated")
+        };
+        switch (freeItemClaims.get(claimId)) {
+            case (?claim) {
+                if (claim.buyer != caller) {
+                    return #err("only the buyer can cancel this claim")
+                };
+                switch (claim.closedAt) {
+                    case (?_) { return #err("claim is already closed") };
+                    case (null) {};
+                };
+                switch (claim.canceledAt) {
+                    case (?_) { return #err("claim is already canceled") };
+                    case (null) {};
+                };
+                let updated : FreeItemClaim = {
+                    id = claim.id;
+                    itemId = claim.itemId;
+                    itemName = claim.itemName;
+                    seller = claim.seller;
+                    buyer = claim.buyer;
+                    ctime = claim.ctime;
+                    comments = claim.comments;
+                    closedAt = claim.closedAt;
+                    canceledAt = ?Time.now()
+                };
+                freeItemClaims.put(claimId, updated);
+                ignore sendNotification(claim.seller, "Buyer canceled free item claim #" # Nat.toText(claimId) # " for \"" # claim.itemName # "\"", caller);
                 #ok(claimId)
             };
             case (null) {
@@ -1567,7 +1644,8 @@ persistent actor class EscrowService() = this {
         upgradeOrders := Iter.toArray(orders.entries());
         _upgradeItemId := items.toStableId();
         _upgradeItems := items.toStable();
-        upgradeFreeItemClaimsV3 := Iter.toArray(freeItemClaims.entries());
+        upgradeFreeItemClaimsV4 := Iter.toArray(freeItemClaims.entries());
+        upgradeFreeItemClaimsV3 := []; // clear old migration source
         upgradeFreeItemClaimsV2 := []; // clear old migration source
 
         // Reputation persistence
@@ -1582,7 +1660,8 @@ persistent actor class EscrowService() = this {
 
     system func postupgrade() {
         _upgradeItems := [];
-        upgradeFreeItemClaimsV2 := []; // ensure old migration source stays cleared
+        upgradeFreeItemClaimsV3 := []; // ensure old migration source stays cleared
+        upgradeFreeItemClaimsV2 := [];
     };
 
     public query func getBackupItems() : async [UpgradeTypes.U_Item] {

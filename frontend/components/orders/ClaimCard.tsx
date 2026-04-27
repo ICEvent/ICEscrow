@@ -35,11 +35,16 @@ const ClaimCard: React.FC<ClaimCardProps> = ({ claim, role, onUpdated }) => {
     const [commentText, setCommentText] = React.useState('');
     const [saving, setSaving] = React.useState(false);
     const [closing, setClosing] = React.useState(false);
+    const [canceling, setCanceling] = React.useState(false);
 
     const comments: any[] = claim.comments ?? [];
     const normalizedClosedAt = normalizeOptionalBigInt(claim.closedAt);
     const closedAt = extractOptionalBigInt(normalizedClosedAt);
     const isClosed = closedAt !== undefined && closedAt !== null;
+    const normalizedCanceledAt = normalizeOptionalBigInt(claim.canceledAt);
+    const canceledAt = extractOptionalBigInt(normalizedCanceledAt);
+    const isCanceled = canceledAt !== undefined && canceledAt !== null;
+    const isResolved = isClosed || isCanceled;
 
     const saveComment = async () => {
         const text = commentText.trim();
@@ -90,6 +95,28 @@ const ClaimCard: React.FC<ClaimCardProps> = ({ claim, role, onUpdated }) => {
         }
     };
 
+    const cancelClaim = async () => {
+        if (isResolved) return;
+        setCanceling(true);
+        try {
+            const res = await escrow.cancelClaim(claim.id);
+            if (res['ok'] !== undefined) {
+                toast.success('Claim canceled');
+                const optimisticCanceledAt = matchOptionalBigIntShape(
+                    normalizedCanceledAt,
+                    BigInt(Date.now()) * MS_TO_NANOSECONDS,
+                );
+                onUpdated({ ...claim, canceledAt: optimisticCanceledAt });
+            } else {
+                toast.error(res['err'] ?? 'Failed to cancel claim');
+            }
+        } catch {
+            toast.error('Failed to cancel claim');
+        } finally {
+            setCanceling(false);
+        }
+    };
+
     const shortPrincipal = (p: any) => {
         const s = p?.toString() ?? '';
         return s.length > 10 ? `${s.slice(0, 5)}...${s.slice(-5)}` : s;
@@ -122,10 +149,14 @@ const ClaimCard: React.FC<ClaimCardProps> = ({ claim, role, onUpdated }) => {
                             {comments.length} msg{comments.length !== 1 ? 's' : ''}
                         </span>
                     )}
-                    <span className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${isClosed ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
-                        {isClosed ? 'Closed' : role === 'buyer' ? 'Waiting for seller' : 'Pending'}
+                    <span className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${
+                        isCanceled ? 'bg-rose-100 text-rose-700' :
+                        isClosed ? 'bg-emerald-100 text-emerald-700' :
+                        'bg-amber-100 text-amber-700'
+                    }`}>
+                        {isCanceled ? 'Canceled' : isClosed ? 'Closed' : role === 'buyer' ? 'Waiting for seller' : 'Pending'}
                     </span>
-                    {role === 'seller' && !isClosed && (
+                    {role === 'seller' && !isResolved && (
                         <button
                             type="button"
                             onClick={closeClaim}
@@ -135,7 +166,17 @@ const ClaimCard: React.FC<ClaimCardProps> = ({ claim, role, onUpdated }) => {
                             {closing ? 'Closing…' : 'Close Claim'}
                         </button>
                     )}
-                    {!isClosed && (
+                    {role === 'buyer' && !isResolved && (
+                        <button
+                            type="button"
+                            onClick={cancelClaim}
+                            disabled={canceling}
+                            className="rounded-lg border border-rose-300 bg-white px-3 py-1 text-xs font-semibold text-rose-600 transition hover:bg-rose-50 disabled:opacity-40"
+                        >
+                            {canceling ? 'Canceling…' : 'Cancel Claim'}
+                        </button>
+                    )}
+                    {!isResolved && (
                         <button
                             type="button"
                             onClick={() => setShowComments((v) => !v)}
@@ -190,13 +231,13 @@ const ClaimCard: React.FC<ClaimCardProps> = ({ claim, role, onUpdated }) => {
                             onChange={(e) => setCommentText(e.target.value)}
                             onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); saveComment(); } }}
                             placeholder="Type a message…"
-                            disabled={saving || isClosed}
+                            disabled={saving || isResolved}
                             className="min-w-0 flex-1 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none transition focus:border-orange-400 disabled:opacity-50"
                         />
                         <button
                             type="button"
                             onClick={saveComment}
-                            disabled={saving || isClosed || !commentText.trim()}
+                            disabled={saving || isResolved || !commentText.trim()}
                             className="rounded-lg bg-orange-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-orange-600 disabled:opacity-40"
                         >
                             Send
