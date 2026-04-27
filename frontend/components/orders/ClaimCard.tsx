@@ -135,13 +135,15 @@ const ClaimCard: React.FC<ClaimCardProps> = ({ claim, role, onUpdated }) => {
                             {closing ? 'Closing…' : 'Close Claim'}
                         </button>
                     )}
-                    <button
-                        type="button"
-                        onClick={() => setShowComments((v) => !v)}
-                        className="rounded-lg border border-slate-300 bg-white px-3 py-1 text-xs font-semibold text-slate-700 transition hover:border-orange-400 hover:text-orange-700"
-                    >
-                        {showComments ? 'Hide' : 'Message'}
-                    </button>
+                    {!isClosed && (
+                        <button
+                            type="button"
+                            onClick={() => setShowComments((v) => !v)}
+                            className="rounded-lg border border-slate-300 bg-white px-3 py-1 text-xs font-semibold text-slate-700 transition hover:border-orange-400 hover:text-orange-700"
+                        >
+                            {showComments ? 'Hide' : 'Message'}
+                        </button>
+                    )}
                 </div>
             </div>
 

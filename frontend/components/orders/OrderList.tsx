@@ -109,6 +109,13 @@ export default () => {
         <OrderListItem key={o.id} order={o} />
     )
 
+    const isClaimClosed = (claim: any): boolean => {
+        const v = claim.closedAt;
+        if (v === null || v === undefined) return false;
+        if (Array.isArray(v)) return v.length > 0;
+        return true;
+    };
+
     const ClaimsSection = ({
         title,
         accentClass,
@@ -121,7 +128,12 @@ export default () => {
         claims: any[];
         role: 'buyer' | 'seller';
         onUpdated: (u: any) => void;
-    }) => (
+    }) => {
+        const [showClosed, setShowClosed] = React.useState(false);
+        const closedCount = claims.filter(isClaimClosed).length;
+        const visibleClaims = showClosed ? claims : claims.filter((c) => !isClaimClosed(c));
+
+        return (
         <div className="mt-6 rounded-2xl border border-white/50 bg-white/75 p-4 shadow-sm backdrop-blur">
             <div className="mb-3 flex items-center justify-between gap-2">
                 <p className={`text-xs font-bold uppercase tracking-[0.18em] ${accentClass}`}>{title}</p>
@@ -130,6 +142,15 @@ export default () => {
                         <span className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-slate-600">
                             {claims.length}
                         </span>
+                    )}
+                    {closedCount > 0 && (
+                        <button
+                            type="button"
+                            onClick={() => setShowClosed((v) => !v)}
+                            className="rounded-lg border border-slate-300 bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-600 transition hover:border-orange-400 hover:text-orange-700"
+                        >
+                            {showClosed ? 'Hide closed' : `Show closed (${closedCount})`}
+                        </button>
                     )}
                     <button
                         type="button"
@@ -144,12 +165,14 @@ export default () => {
             {claimsLoading && (
                 <div className="h-8 animate-pulse rounded bg-slate-200" />
             )}
-            {!claimsLoading && claims.length === 0 && (
-                <p className="text-sm text-slate-500">No claims here yet.</p>
+            {!claimsLoading && visibleClaims.length === 0 && (
+                <p className="text-sm text-slate-500">
+                    {claims.length === 0 ? 'No claims here yet.' : 'No open claims. Use "Show closed" to view resolved claims.'}
+                </p>
             )}
-            {!claimsLoading && claims.length > 0 && (
+            {!claimsLoading && visibleClaims.length > 0 && (
                 <div className="space-y-2">
-                    {claims.map((claim) => (
+                    {visibleClaims.map((claim) => (
                         <ClaimCard
                             key={String(claim.id)}
                             claim={claim}
@@ -160,7 +183,8 @@ export default () => {
                 </div>
             )}
         </div>
-    );
+        );
+    };
 
     return (
         <>
