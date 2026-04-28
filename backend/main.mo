@@ -1457,8 +1457,6 @@ persistent actor class EscrowService() = this {
                     canceledAt = claim.canceledAt
                 };
                 freeItemClaims.put(claimId, updated);
-                // Award the seller (item giver) a ❤️ from the buyer when a free-item claim is closed.
-                awardHeart(claim.seller, claim.buyer);
                 ignore sendNotification(claim.buyer, "Your free item claim #" # Nat.toText(claimId) # " has been closed by the seller", caller);
                 #ok(claimId)
             };
