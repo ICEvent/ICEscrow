@@ -1527,13 +1527,32 @@ persistent actor class EscrowService() = this {
         }
     };
 
-    // Anyone (authenticated) can give a ❤️ to a user.
+    // Only a buyer who has received a closed (non-canceled) free-item claim from `target` can give a ❤️.
     public shared ({ caller }) func heartUser(target : Principal) : async Result.Result<Nat, Text> {
         if (Principal.isAnonymous(caller)) {
             return #err("not authenticated")
         };
         if (caller == target) {
             return #err("cannot heart yourself")
+        };
+        // Verify the caller was a buyer in at least one closed (not canceled) claim from this seller.
+        let hasValidClaim = do {
+            var found = false;
+            label search for (claim in freeItemClaims.vals()) {
+                if (
+                    claim.buyer == caller and
+                    claim.seller == target and
+                    claim.closedAt != null and
+                    claim.canceledAt == null
+                ) {
+                    found := true;
+                    break search
+                }
+            };
+            found
+        };
+        if (not hasValidClaim) {
+            return #err("you can only heart a seller after receiving their item")
         };
         awardHeart(target, caller);
         let targetText = Principal.toText(target);
