@@ -8,9 +8,10 @@ interface ItemListProps {
     items: Item[];
     onItemClick?: (item: Item) => void;
     defaultFilter?: string; // Optional default filter
+    freeOnly?: boolean;
 }
 
-const ItemList: React.FC<ItemListProps> = ({ items, onItemClick, defaultFilter }) => {
+const ItemList: React.FC<ItemListProps> = ({ items, onItemClick, defaultFilter, freeOnly = false }) => {
     const navigate = useNavigate();
     const initialFilter = defaultFilter || 'all';
     const [activeFilter, setActiveFilter] = React.useState(initialFilter);
@@ -114,6 +115,7 @@ const ItemList: React.FC<ItemListProps> = ({ items, onItemClick, defaultFilter }
                     </button>
                 </div>
 
+                {!freeOnly && (
                 <div className="flex flex-wrap gap-2 reveal-delay-1">
                 {filters.map((filter) => (
                     <button
@@ -130,6 +132,7 @@ const ItemList: React.FC<ItemListProps> = ({ items, onItemClick, defaultFilter }
                     </button>
                 ))}
                 </div>
+                )}
             </div>
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">

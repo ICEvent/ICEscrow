@@ -17,7 +17,7 @@ import MyItems from "../components/items/MyItems";
 const Home = () => {
   const { menu } = useMenu();
   const { state: { isAuthed } } = useGlobalContext();
-  const showShop = !menu || menu == MENU_HOME || !isAuthed;
+  const showShop = !menu || menu == MENU_HOME || (!isAuthed && menu != MENU_FREE);
   const showFreeItems = menu == MENU_FREE;
 
   return (

@@ -109,7 +109,7 @@ export default ({ freeOnly = false }: OfferListProps) => {
                 onClick={() => setOpenListForm(true)}
                 className="btn-modern-primary commerce-gradient min-w-[170px] rounded-xl px-4 py-2.5 text-sm font-semibold text-white shadow-md"
               >
-                List New Product
+                List Item
               </button>
               <button
                 onClick={() => setOpenOrderForm(true)}
@@ -122,7 +122,7 @@ export default ({ freeOnly = false }: OfferListProps) => {
         </div>
       </section>
 
-      <ItemList items={offers} defaultFilter={freeOnly ? 'free' : 'all'} />
+      <ItemList items={freeOnly ? offers.filter(o => o.price === BigInt(0)) : offers} defaultFilter='all' freeOnly={freeOnly} />
 
       <div className="reveal-up reveal-delay-1 mt-4 flex items-center justify-center gap-3 p-2">
         <button
