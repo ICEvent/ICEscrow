@@ -36,6 +36,8 @@ const ClaimCard: React.FC<ClaimCardProps> = ({ claim, role, onUpdated }) => {
     const [saving, setSaving] = React.useState(false);
     const [closing, setClosing] = React.useState(false);
     const [canceling, setCanceling] = React.useState(false);
+    const [hearting, setHearting] = React.useState(false);
+    const [hearted, setHearted] = React.useState(false);
 
     const comments: any[] = claim.comments ?? [];
     const normalizedClosedAt = normalizeOptionalBigInt(claim.closedAt);
@@ -117,6 +119,23 @@ const ClaimCard: React.FC<ClaimCardProps> = ({ claim, role, onUpdated }) => {
         }
     };
 
+    const heartSeller = async () => {
+        setHearting(true);
+        try {
+            const res = await escrow.heartUser(claim.seller);
+            if (res['ok'] !== undefined) {
+                setHearted(true);
+                toast.success('❤️ Hearted!');
+            } else {
+                toast.error(res['err'] ?? 'Failed to heart seller');
+            }
+        } catch {
+            toast.error('Failed to heart seller');
+        } finally {
+            setHearting(false);
+        }
+    };
+
     const shortPrincipal = (p: any) => {
         const s = p?.toString() ?? '';
         return s.length > 10 ? `${s.slice(0, 5)}...${s.slice(-5)}` : s;
@@ -170,6 +189,16 @@ const ClaimCard: React.FC<ClaimCardProps> = ({ claim, role, onUpdated }) => {
                             className="rounded-lg border border-rose-300 bg-white px-3 py-1 text-xs font-semibold text-rose-600 transition hover:bg-rose-50 disabled:opacity-40"
                         >
                             {canceling ? 'Canceling…' : 'Cancel Claim'}
+                        </button>
+                    )}
+                    {role === 'buyer' && isClosed && (
+                        <button
+                            type="button"
+                            onClick={heartSeller}
+                            disabled={hearting || hearted}
+                            className="rounded-lg border border-pink-300 bg-white px-3 py-1 text-xs font-semibold text-pink-600 transition hover:bg-pink-50 disabled:opacity-40"
+                        >
+                            {hearted ? '❤️ Hearted' : hearting ? '…' : '🤍 Heart Seller'}
                         </button>
                     )}
                     <button
