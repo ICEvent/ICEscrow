@@ -1324,32 +1324,40 @@ persistent actor class EscrowService() = this {
                         #err("item is not available")
                     } else {
                         let claimKey = Nat.toText(itemId) # ":" # Principal.toText(caller);
-                        switch (freeItemClaimIndex.get(claimKey)) {
-                            case (?_) {
-                                #err("you already claimed this free item")
+                        let hasExistingOpenClaim : Bool = switch (freeItemClaimIndex.get(claimKey)) {
+                            case (?existingId) {
+                                switch (freeItemClaims.get(existingId)) {
+                                    case (?existing) {
+                                        existing.closedAt == null and existing.canceledAt == null
+                                    };
+                                    case (null) { false }
+                                }
                             };
-                            case (null) {
-                                let claimId = nextFreeItemClaimId;
-                                freeItemClaims.put(
-                                    claimId,
-                                    {
-                                        id = claimId;
-                                        itemId = itemId;
-                                        itemName = item.name;
-                                        seller = item.owner;
-                                        buyer = caller;
-                                        ctime = Time.now();
-                                        comments = [];
-                                        closedAt = null;
-                                        canceledAt = null
-                                    },
-                                );
-                                freeItemClaimIndex.put(claimKey, claimId);
-                                nextFreeItemClaimId := nextFreeItemClaimId + 1;
-                                ignore sendNotification(item.owner, "Someone claimed your free item \"" # item.name # "\" (claim #" # Nat.toText(claimId) # ")", caller);
-                                ignore sendNotification(caller, "Your claim #" # Nat.toText(claimId) # " for \"" # item.name # "\" has been submitted. The seller will be in touch.", item.owner);
-                                #ok(claimId)
-                            }
+                            case (null) { false }
+                        };
+                        if (hasExistingOpenClaim) {
+                            #err("you already claimed this free item")
+                        } else {
+                            let claimId = nextFreeItemClaimId;
+                            freeItemClaims.put(
+                                claimId,
+                                {
+                                    id = claimId;
+                                    itemId = itemId;
+                                    itemName = item.name;
+                                    seller = item.owner;
+                                    buyer = caller;
+                                    ctime = Time.now();
+                                    comments = [];
+                                    closedAt = null;
+                                    canceledAt = null
+                                },
+                            );
+                            freeItemClaimIndex.put(claimKey, claimId);
+                            nextFreeItemClaimId := nextFreeItemClaimId + 1;
+                            ignore sendNotification(item.owner, "Someone claimed your free item \"" # item.name # "\" (claim #" # Nat.toText(claimId) # ")", caller);
+                            ignore sendNotification(caller, "Your claim #" # Nat.toText(claimId) # " for \"" # item.name # "\" has been submitted. The seller will be in touch.", item.owner);
+                            #ok(claimId)
                         }
                     }
                 };
