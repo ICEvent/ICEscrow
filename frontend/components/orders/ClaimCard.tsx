@@ -207,12 +207,12 @@ const ClaimCard: React.FC<ClaimCardProps> = ({ claim, role, onUpdated }) => {
                                             className={`max-w-[85%] rounded-xl px-3 py-2 text-sm ${
                                                 isMe
                                                     ? 'bg-orange-500 text-white'
-                                                    : 'bg-slate-100 text-slate-800'
+                                                    : 'bg-slate-200 text-slate-900'
                                             }`}
                                         >
                                             {c.comment}
                                         </div>
-                                        <span className="mt-0.5 text-[10px] text-slate-400">
+                                        <span className="mt-0.5 text-[10px] text-slate-500">
                                             {isMe ? 'You' : <PrincipalName principal={c.user} />}
                                             {' · '}
                                             {moment(Number(c.ctime) / 1e6).fromNow()}
