@@ -4,36 +4,48 @@ import { useGlobalContext, useRam } from "./Store";
 import { Notification } from "../api/ram/ram.did";
 
 const POLL_INTERVAL_MS = 60_000;
-const NOTIFICATIONS_PAGE_SIZE = 50;
 
 export default function NotificationBell() {
   const ram = useRam();
   const { state: { isAuthed } } = useGlobalContext();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [open, setOpen] = useState(false);
-  const [limit, setLimit] = useState(NOTIFICATIONS_PAGE_SIZE);
+  const [page, setPage] = useState(0);
+  const [hasMore, setHasMore] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const pageRef = useRef(0);
 
   const unreadCount = notifications.filter((n) => !n.isread).length;
+
+  async function fetchPage(pageNum: number): Promise<Notification[]> {
+    const result = await ram.getMyNotifications(false, BigInt(pageNum));
+    return result.slice().reverse();
+  }
+
+  async function fetchUpToPage(upToPage: number): Promise<void> {
+    try {
+      const pages = await Promise.all(
+        Array.from({ length: upToPage + 1 }, (_, i) => fetchPage(i))
+      );
+      setNotifications(pages.flat());
+      setHasMore(pages[upToPage].length > 0);
+    } catch (e) {
+      // ignore
+    }
+  }
 
   useEffect(() => {
     if (!isAuthed) {
       setNotifications([]);
+      setPage(0);
+      pageRef.current = 0;
+      setHasMore(false);
       return;
     }
 
-    async function fetchNotifications() {
-      try {
-        const result = await ram.getMyNotifications(false, BigInt(NOTIFICATIONS_PAGE_SIZE));
-        setNotifications(result.slice().reverse());
-      } catch (e) {
-        // silently ignore errors (e.g. when not authenticated)
-      }
-    }
-
-    fetchNotifications();
-    const timer = setInterval(fetchNotifications, POLL_INTERVAL_MS);
+    fetchUpToPage(pageRef.current);
+    const timer = setInterval(() => fetchUpToPage(pageRef.current), POLL_INTERVAL_MS);
     return () => clearInterval(timer);
   }, [isAuthed, ram]);
 
@@ -68,33 +80,26 @@ export default function NotificationBell() {
     }
   }
 
-  async function handleOpen() {
-    const nextOpen = !open;
-    setOpen(nextOpen);
-    // Refresh when opening; reset limit so repeated open/close doesn't accumulate
-    if (nextOpen) {
-      setLimit(NOTIFICATIONS_PAGE_SIZE);
-      try {
-        const result = await ram.getMyNotifications(false, BigInt(NOTIFICATIONS_PAGE_SIZE));
-        setNotifications(result.slice().reverse());
-      } catch (e) {
-        // ignore
-      }
-    }
-  }
-
   async function handleLoadMore() {
-    const nextLimit = limit + NOTIFICATIONS_PAGE_SIZE;
     setLoadingMore(true);
     try {
-      const result = await ram.getMyNotifications(false, BigInt(nextLimit));
-      // Replace the list (never append) to prevent duplicate entries
-      setNotifications(result.slice().reverse());
-      setLimit(nextLimit);
+      const nextPage = page + 1;
+      const result = await fetchPage(nextPage);
+      setNotifications((prev) => [...prev, ...result]);
+      setPage(nextPage);
+      pageRef.current = nextPage;
+      setHasMore(result.length > 0);
     } catch (e) {
       // ignore
     } finally {
       setLoadingMore(false);
+    }
+  }
+
+  async function handleOpen() {
+    setOpen((prev) => !prev);
+    if (!open) {
+      await fetchUpToPage(pageRef.current);
     }
   }
 
@@ -187,20 +192,21 @@ export default function NotificationBell() {
                 </div>
               ))
             )}
+            {hasMore && (
+              <div className="border-t border-slate-100 px-4 py-2">
+                <button
+                  type="button"
+                  onClick={handleLoadMore}
+                  disabled={loadingMore}
+                  className="w-full rounded-lg py-1.5 text-[11px] font-semibold text-slate-500 transition hover:bg-slate-50 hover:text-slate-700 disabled:opacity-40"
+                >
+                  {loadingMore ? "Loading…" : "Load more"}
+                </button>
+              </div>
+            )}
           </div>
 
-          {notifications.length === limit && (
-            <div className="border-t border-slate-100 px-4 py-2">
-              <button
-                type="button"
-                onClick={handleLoadMore}
-                disabled={loadingMore}
-                className="w-full rounded-lg py-1.5 text-xs font-semibold text-slate-500 transition hover:bg-slate-50 hover:text-orange-600 disabled:opacity-40"
-              >
-                {loadingMore ? "Loading…" : "Load more"}
-              </button>
-            </div>
-          )}
+
         </div>
       )}
     </div>
