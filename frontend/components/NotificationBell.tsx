@@ -61,22 +61,24 @@ export default function NotificationBell() {
   }, [open]);
 
   async function handleMarkRead(id: bigint) {
+    setNotifications((prev) =>
+      prev.map((n) => (n.id === id ? { ...n, isread: true } : n))
+    );
     try {
       await ram.readNotification(id);
-      setNotifications((prev) =>
-        prev.map((n) => (n.id === id ? { ...n, isread: true } : n))
-      );
     } catch (e) {
-      // ignore
+      setNotifications((prev) =>
+        prev.map((n) => (n.id === id ? { ...n, isread: false } : n))
+      );
     }
   }
 
   async function handleDelete(id: bigint) {
+    setNotifications((prev) => prev.filter((n) => n.id !== id));
     try {
       await ram.deleteNotification(id);
-      setNotifications((prev) => prev.filter((n) => n.id !== id));
     } catch (e) {
-      // ignore
+      fetchUpToPage(pageRef.current);
     }
   }
 
@@ -152,8 +154,9 @@ export default function NotificationBell() {
               notifications.map((n) => (
                 <div
                   key={String(n.id)}
+                  onClick={() => !n.isread && handleMarkRead(n.id)}
                   className={`group flex items-start gap-3 border-b border-slate-50 px-4 py-3 transition ${
-                    n.isread ? "bg-white" : "bg-orange-50"
+                    n.isread ? "bg-white" : "cursor-pointer bg-orange-50 hover:bg-orange-100"
                   }`}
                 >
                   <div className="mt-0.5 flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-500">
@@ -169,7 +172,7 @@ export default function NotificationBell() {
                     {!n.isread && (
                       <button
                         type="button"
-                        onClick={() => handleMarkRead(n.id)}
+                        onClick={(e) => { e.stopPropagation(); handleMarkRead(n.id); }}
                         title="Mark as read"
                         className="rounded p-0.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
                       >
@@ -180,7 +183,7 @@ export default function NotificationBell() {
                     )}
                     <button
                       type="button"
-                      onClick={() => handleDelete(n.id)}
+                      onClick={(e) => { e.stopPropagation(); handleDelete(n.id); }}
                       title="Delete"
                       className="rounded p-0.5 text-slate-400 hover:bg-rose-50 hover:text-rose-500"
                     >
