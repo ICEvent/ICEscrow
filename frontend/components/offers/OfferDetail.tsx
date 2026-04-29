@@ -216,14 +216,13 @@ export default (props) => {
                         )}
                     </div>
 
-                    <div className="mt-4 rounded-2xl border border-slate-200 bg-white p-4">
-                        <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-500">Description</p>
-                        <p className="mt-2 text-sm leading-7 text-slate-700">{props.offer.description || 'No description provided by seller.'}</p>
-                    </div>
                 </div>
 
                 <div className="lg:col-span-5">
                     <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                        <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-500">Description</p>
+                        <p className="mt-2 mb-4 text-sm leading-7 text-slate-700">{props.offer.description || 'No description provided by seller.'}</p>
+
                         <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-500">Price</p>
                         {isFree ? (
                             <p className="mt-2 text-3xl font-extrabold tracking-tight text-emerald-600">FREE</p>
