@@ -11,43 +11,43 @@ export default (props) => {
     const openDetails = () => props.onOpen?.(props.offer);
 
     return (
-        <div className="soft-hover-card group overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <div className="soft-hover-card group overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm flex">
             <button
                 type="button"
                 onClick={openDetails}
-                className="relative block w-full"
+                className="relative block flex-shrink-0 w-40"
             >
-                <div className="absolute left-3 top-3 z-10 rounded-full border border-white/70 bg-white/90 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-slate-700">
+                <div className="absolute left-2 top-2 z-10 rounded-full border border-white/70 bg-white/90 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-slate-700">
                     {Object.getOwnPropertyNames(props.offer.itype)[0]}
                 </div>
 
                 {isFree && (
-                    <div className="absolute right-3 top-3 z-10 rounded-full bg-emerald-500 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white shadow">
+                    <div className="absolute right-2 top-2 z-10 rounded-full bg-emerald-500 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white shadow">
                         FREE
                     </div>
                 )}
 
                 {props.offer.image ? (
                     <img
-                        className="h-52 w-full object-cover transition duration-300 group-hover:scale-[1.03]"
+                        className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.03]"
                         src={props.offer.image}
                         alt={props.offer.name}
                         title={props.offer.description}
                     />
                 ) : (
-                    <div className="flex h-52 w-full items-center justify-center bg-slate-100 text-sm font-semibold text-slate-500">
-                        No product image
+                    <div className="flex h-full w-full min-h-[10rem] items-center justify-center bg-slate-100 text-sm font-semibold text-slate-500">
+                        No image
                     </div>
                 )}
             </button>
 
-            <div className="space-y-3 p-4">
+            <div className="flex flex-col justify-between p-4 flex-1">
                 <div>
                     <p className="line-clamp-1 text-base font-bold text-slate-900">{props.offer.name}</p>
-                    <p className="mt-1 line-clamp-2 text-sm text-slate-500">{props.offer.description || 'No description provided.'}</p>
+                    <p className="mt-1 line-clamp-3 text-sm text-slate-500">{props.offer.description || 'No description provided.'}</p>
                 </div>
 
-                <div className="flex items-end justify-between gap-2">
+                <div className="flex items-end justify-between gap-2 mt-3">
                     {isFree ? (
                         <p className="text-lg font-extrabold tracking-tight text-emerald-600">FREE</p>
                     ) : (
