@@ -109,14 +109,16 @@ export default ({ freeOnly = false }: OfferListProps) => {
                 onClick={() => setOpenListForm(true)}
                 className="btn-modern-primary commerce-gradient min-w-[170px] rounded-xl px-4 py-2.5 text-sm font-semibold text-white shadow-md"
               >
-                List Item
+                {freeOnly ? 'Give Away Item' : 'List Item'}
               </button>
-              <button
-                onClick={() => setOpenOrderForm(true)}
-                className="btn-modern-secondary min-w-[170px] rounded-xl border border-teal-600/60 bg-white px-4 py-2.5 text-sm font-semibold text-teal-700 shadow-sm"
-              >
-                Start Escrow Order
-              </button>
+              {!freeOnly && (
+                <button
+                  onClick={() => setOpenOrderForm(true)}
+                  className="btn-modern-secondary min-w-[170px] rounded-xl border border-teal-600/60 bg-white px-4 py-2.5 text-sm font-semibold text-teal-700 shadow-sm"
+                >
+                  Start Escrow Order
+                </button>
+              )}
             </div>
           )}
         </div>
@@ -154,7 +156,7 @@ export default ({ freeOnly = false }: OfferListProps) => {
               x
             </button>
             <h3 className="mb-4 text-lg font-bold text-slate-900">Input Item Information</h3>
-            <ListItemForm submit={saveList} itype={itemType} />
+            <ListItemForm submit={saveList} itype={itemType} freeOnly={freeOnly} />
           </div>
         </div>
       )}

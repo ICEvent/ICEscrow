@@ -3,6 +3,7 @@ import { CURRENCY_ICET, CURRENCY_ICP, LEDGER_E6S, LEDGER_E8S, LISTITEM_STATUS_LI
 import { toast } from 'react-toastify';
 
 export default function ListItemForm(props) {
+    const freeOnly = !!props.freeOnly;
 
 
     const [values, setValues] = React.useState({
@@ -21,7 +22,7 @@ export default function ListItemForm(props) {
 
     const list = () => {
         if (!values.name || values.name == "") { toast.warn("name is required") }
-        else if (values.price < 0) { toast.warn("Price cannot be negative") }
+        else if (!freeOnly && values.price < 0) { toast.warn("Price cannot be negative") }
         else {
             const currency = values.currency == CURRENCY_ICET ? { "ICET": null } : { "ICP": null };
             const listype = values.itype == LIST_ITEM_NFT ? {"nft": null}:
@@ -34,7 +35,7 @@ export default function ListItemForm(props) {
                 description: values.description,
                 image: values.image,
                 itype: listype,
-                price: BigInt(values.price * (values.currency == CURRENCY_ICET ? LEDGER_E6S : LEDGER_E8S)),
+                price: freeOnly ? BigInt(0) : BigInt(values.price * (values.currency == CURRENCY_ICET ? LEDGER_E6S : LEDGER_E8S)),
                 currency: currency,
                 status: { "list": null }
             };
@@ -73,29 +74,33 @@ export default function ListItemForm(props) {
                     />
                 </div>
 
-                <div className="sm:col-span-6">
-                    <label className="mb-1 block text-sm font-medium text-slate-700">Price</label>
-                    <input
-                        name="price"
-                        type="number"
-                        value={values.price}
-                        onChange={handleChange}
-                        className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-cyan-500"
-                    />
-                </div>
+                {!freeOnly && (
+                    <>
+                        <div className="sm:col-span-6">
+                            <label className="mb-1 block text-sm font-medium text-slate-700">Price</label>
+                            <input
+                                name="price"
+                                type="number"
+                                value={values.price}
+                                onChange={handleChange}
+                                className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-cyan-500"
+                            />
+                        </div>
 
-                <div className="sm:col-span-6">
-                    <label className="mb-1 block text-sm font-medium text-slate-700">Currency</label>
-                    <select
-                        value={values.currency}
-                        name="currency"
-                        onChange={handleChange}
-                        className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-cyan-500"
-                    >
-                        <option value={CURRENCY_ICP}>{CURRENCY_ICP}</option>
-                        <option value={CURRENCY_ICET}>{CURRENCY_ICET}</option>
-                    </select>
-                </div>
+                        <div className="sm:col-span-6">
+                            <label className="mb-1 block text-sm font-medium text-slate-700">Currency</label>
+                            <select
+                                value={values.currency}
+                                name="currency"
+                                onChange={handleChange}
+                                className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-cyan-500"
+                            >
+                                <option value={CURRENCY_ICP}>{CURRENCY_ICP}</option>
+                                <option value={CURRENCY_ICET}>{CURRENCY_ICET}</option>
+                            </select>
+                        </div>
+                    </>
+                )}
 
                 <div className="sm:col-span-12">
                     <label className="mb-1 block text-sm font-medium text-slate-700">Image url</label>
@@ -124,7 +129,7 @@ export default function ListItemForm(props) {
                         disabled={!values.name}
                         className="rounded-md bg-cyan-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-cyan-700 disabled:cursor-not-allowed disabled:bg-slate-300"
                     >
-                        List
+                        {freeOnly ? 'Give Away' : 'List'}
                     </button>
                 </div>
             </div>
