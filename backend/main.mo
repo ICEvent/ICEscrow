@@ -1511,8 +1511,9 @@ persistent actor class EscrowService() = this {
 
     // ---------------------- Reputation ----------------------------------------
 
-    // Internal helper: record that `giver` hearted `target`. Each call adds one heart entry,
-    // so the total count in the buffer reflects the number of claims used to give hearts.
+    // Internal helper: record that `giver` hearted `target`. Each call appends one entry,
+    // so buf.size() reflects the total number of hearts received (one per completed claim).
+    // The same giver may appear multiple times if they had multiple completed claims.
     func awardHeart(target : Principal, giver : Principal) {
         let targetText = Principal.toText(target);
         let giverText = Principal.toText(giver);
