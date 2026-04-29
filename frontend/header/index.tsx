@@ -139,7 +139,7 @@ const Header: FC = () => {
               onClick={openFreeItems}
               className={`rounded-lg px-3 py-1.5 text-xs font-bold uppercase tracking-wide transition ${menu == MENU_FREE ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}
             >
-              Free Items
+              Free 
             </button>
             {isAuthed && (
               <>

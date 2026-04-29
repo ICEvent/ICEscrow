@@ -63,6 +63,7 @@ input,
 textarea,
 select {
     font-family: "DM Sans", "Segoe UI", sans-serif;
+    color: #1f2937;
 }
 
 #root {
