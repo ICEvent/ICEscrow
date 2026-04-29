@@ -122,7 +122,7 @@ const ClaimCard: React.FC<ClaimCardProps> = ({ claim, role, onUpdated }) => {
     const heartSeller = async () => {
         setHearting(true);
         try {
-            const res = await escrow.heartUser(claim.seller);
+            const res = await escrow.heartUser(claim.seller, claim.id);
             if (res['ok'] !== undefined) {
                 setHearted(true);
                 toast.success('❤️ Hearted!');
