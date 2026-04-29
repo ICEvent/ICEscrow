@@ -138,6 +138,8 @@ persistent actor class EscrowService() = this {
     var upgradeReviews : [(Nat, Review)] = [];
     // hearts: target principal text → array of giver principal texts
     var upgradeHearts : [(Text, [Text])] = [];
+    // heartedClaims: set of claim IDs that have already been used to give a heart
+    var upgradeHeartedClaims : [Nat] = [];
 
     private func natHash(n : Nat) : Hash.Hash { Text.hash(Nat.toText(n)) };
 
@@ -209,6 +211,12 @@ persistent actor class EscrowService() = this {
         let buf = Buffer.Buffer<Text>(givers.size());
         for (g in givers.vals()) { buf.add(g) };
         hearts.put(target, buf);
+    };
+
+    // heartedClaims: tracks which claim IDs have already been used to give a heart
+    transient var heartedClaims = TrieMap.TrieMap<Nat, Bool>(Nat.equal, natHash);
+    for (claimId in upgradeHeartedClaims.vals()) {
+        heartedClaims.put(claimId, true);
     };
 
     public shared ({ caller }) func buy(newOrder : NewOrder) : async Result.Result<Nat, Text> {
@@ -1503,17 +1511,14 @@ persistent actor class EscrowService() = this {
 
     // ---------------------- Reputation ----------------------------------------
 
-    // Internal helper: record that `giver` hearted `target` (idempotent).
+    // Internal helper: record that `giver` hearted `target`. Each call adds one heart entry,
+    // so the total count in the buffer reflects the number of claims used to give hearts.
     func awardHeart(target : Principal, giver : Principal) {
         let targetText = Principal.toText(target);
         let giverText = Principal.toText(giver);
         switch (hearts.get(targetText)) {
             case (?buf) {
-                // Only add if giver not already present
-                let alreadyGiven = Buffer.contains<Text>(buf, giverText, Text.equal);
-                if (not alreadyGiven) {
-                    buf.add(giverText)
-                }
+                buf.add(giverText)
             };
             case (null) {
                 let buf = Buffer.Buffer<Text>(1);
@@ -1523,41 +1528,45 @@ persistent actor class EscrowService() = this {
         }
     };
 
-    // Only a buyer who has received a closed (non-canceled) free-item claim from `target` can give a ❤️.
-    public shared ({ caller }) func heartUser(target : Principal) : async Result.Result<Nat, Text> {
+    // A buyer gives a ❤️ for a specific closed free-item claim. Each claim can earn exactly one heart.
+    public shared ({ caller }) func heartUser(target : Principal, claimId : Nat) : async Result.Result<Nat, Text> {
         if (Principal.isAnonymous(caller)) {
             return #err("not authenticated")
         };
         if (caller == target) {
             return #err("cannot heart yourself")
         };
-        // Verify the caller was a buyer in at least one closed (not canceled) claim from this seller.
-        let hasValidClaim = do {
-            var found = false;
-            label search for (claim in freeItemClaims.vals()) {
-                if (
-                    claim.buyer == caller and
-                    claim.seller == target and
-                    claim.closedAt != null and
-                    claim.canceledAt == null
-                ) {
-                    found := true;
-                    break search
-                }
+        switch (freeItemClaims.get(claimId)) {
+            case (null) {
+                return #err("claim not found")
             };
-            found
-        };
-        if (not hasValidClaim) {
-            return #err("you can only heart a seller after receiving their item")
-        };
-        awardHeart(target, caller);
-        let targetText = Principal.toText(target);
-        let count = switch (hearts.get(targetText)) {
-            case (?buf) { buf.size() };
-            case (null) { 0 }
-        };
-        ignore sendNotification(target, "You received a ❤️", caller);
-        #ok(count)
+            case (?claim) {
+                if (claim.buyer != caller) {
+                    return #err("you can only heart a seller after receiving their item")
+                };
+                if (claim.seller != target) {
+                    return #err("claim does not match the target seller")
+                };
+                if (claim.closedAt == null) {
+                    return #err("claim must be closed before giving a heart")
+                };
+                if (claim.canceledAt != null) {
+                    return #err("cannot heart for a canceled claim")
+                };
+                if (heartedClaims.get(claimId) != null) {
+                    return #err("you have already given a heart for this claim")
+                };
+                heartedClaims.put(claimId, true);
+                awardHeart(target, caller);
+                let targetText = Principal.toText(target);
+                let count = switch (hearts.get(targetText)) {
+                    case (?buf) { buf.size() };
+                    case (null) { 0 }
+                };
+                ignore sendNotification(target, "You received a ❤️", caller);
+                #ok(count)
+            }
+        }
     };
 
     // Buyer of a released order leaves a 1–5 star review for the seller.
@@ -1677,6 +1686,7 @@ persistent actor class EscrowService() = this {
                 (k, Buffer.toArray(v))
             },
         );
+        upgradeHeartedClaims := Iter.toArray(heartedClaims.keys());
     };
 
     system func postupgrade() {
