@@ -5,13 +5,10 @@ import Array "mo:base/Array";
 import Blob "mo:base/Blob";
 import Bool "mo:base/Bool";
 import Buffer "mo:base/Buffer";
-import Debug "mo:base/Debug";
 import Error "mo:base/Error";
 import Float "mo:base/Float";
 import Hash "mo:base/Hash";
-import HashMap "mo:base/HashMap";
 import Int "mo:base/Int";
-import Int64 "mo:base/Int64";
 import Iter "mo:base/Iter";
 import List "mo:base/List";
 import Nat "mo:base/Nat";
@@ -24,8 +21,6 @@ import Time "mo:base/Time";
 import Trie "mo:base/Trie";
 import TrieMap "mo:base/TrieMap";
 
-import CRC32 "CRC32";
-import SHA224 "SHA224";
 import Account "./account";
 import Hex "./hex";
 import Types "./types";
@@ -86,11 +81,10 @@ persistent actor class EscrowService() = this {
 
     // transfer fee ICP
     transient let FEE : Nat64 = 10_000;
-    transient let E8S : Nat64 = 10_000_000;
 
-    stable var default_page_size = 20;
+    var default_page_size = 20;
 
-    stable var ESCROW_FEE : Nat64 = 0;
+    var ESCROW_FEE : Nat64 = 0;
 
     type AccountId = Types.AccountId; // Blob
     type AccountIdText = Types.AccountIdText;
@@ -117,39 +111,41 @@ persistent actor class EscrowService() = this {
         time : Time.Time
     };
 
-    stable var nextSubAccount : Nat = 1;
-    stable var nextOrderId : Nat = 1;
-    stable var upgradeOrders : [(Nat, Order)] = [];
+    var nextSubAccount : Nat = 1;
+    var nextOrderId : Nat = 1;
+    var upgradeOrders : [(Nat, Order)] = [];
 
-    stable var _upgradeItemId : Nat = 1;
-    stable var _upgradeItems : [(Nat, ItemTypes.Item)] = [];
-    stable var nextFreeItemClaimId : Nat = 1;
+    var _upgradeItemId : Nat = 1;
+    var _upgradeItems : [(Nat, ItemTypes.Item)] = [];
+    var nextFreeItemClaimId : Nat = 1;
     // upgradeFreeItemClaims (old name, deployed without `comments`) is intentionally dropped.
     // Dropping a stable var is a WARNING (data loss) not an ERROR — and the live canister
     // had zero claims since claimFreeItem was never successfully deployed.
     //
     // upgradeFreeItemClaimsV2 used the type WITHOUT closedAt. It is kept here with the old
     // type so stable memory deserialises correctly, then migrated to V3 during init.
-    stable var upgradeFreeItemClaimsV2 : [(Nat, OldFreeItemClaimV2)] = [];
+    var upgradeFreeItemClaimsV2 : [(Nat, OldFreeItemClaimV2)] = [];
     // V3 stable store — FreeItemClaim had closedAt but not canceledAt.
-    stable var upgradeFreeItemClaimsV3 : [(Nat, OldFreeItemClaimV3)] = [];
+    var upgradeFreeItemClaimsV3 : [(Nat, OldFreeItemClaimV3)] = [];
     // New stable store — FreeItemClaim now includes canceledAt.
-    stable var upgradeFreeItemClaimsV4 : [(Nat, FreeItemClaim)] = [];
+    var upgradeFreeItemClaimsV4 : [(Nat, FreeItemClaim)] = [];
 
     //backukp
-    stable var backupItems : [UpgradeTypes.U_Item] = [];
+    var backupItems : [UpgradeTypes.U_Item] = [];
 
     // Reputation stable storage
-    stable var nextReviewId : Nat = 1;
-    stable var upgradeReviews : [(Nat, Review)] = [];
+    var nextReviewId : Nat = 1;
+    var upgradeReviews : [(Nat, Review)] = [];
     // hearts: target principal text → array of giver principal texts
-    stable var upgradeHearts : [(Text, [Text])] = [];
+    var upgradeHearts : [(Text, [Text])] = [];
 
-    transient var orders = TrieMap.TrieMap<Nat, Order>(Nat.equal, Hash.hash);
-    orders := TrieMap.fromEntries<Nat, Order>(Iter.fromArray(upgradeOrders), Nat.equal, Hash.hash);
+    private func natHash(n : Nat) : Hash.Hash { Text.hash(Nat.toText(n)) };
+
+    transient var orders = TrieMap.TrieMap<Nat, Order>(Nat.equal, natHash);
+    orders := TrieMap.fromEntries<Nat, Order>(Iter.fromArray(upgradeOrders), Nat.equal, natHash);
 
     transient let items = Items.Items(_upgradeItemId, _upgradeItems);
-    transient var freeItemClaims = TrieMap.TrieMap<Nat, FreeItemClaim>(Nat.equal, Hash.hash);
+    transient var freeItemClaims = TrieMap.TrieMap<Nat, FreeItemClaim>(Nat.equal, natHash);
     freeItemClaims := if (upgradeFreeItemClaimsV2.size() > 0) {
         // One-time migration from V2: add closedAt = null and canceledAt = null.
         let migrated = Array.map<(Nat, OldFreeItemClaimV2), (Nat, FreeItemClaim)>(
@@ -168,7 +164,7 @@ persistent actor class EscrowService() = this {
                 })
             },
         );
-        TrieMap.fromEntries<Nat, FreeItemClaim>(Iter.fromArray(migrated), Nat.equal, Hash.hash)
+        TrieMap.fromEntries<Nat, FreeItemClaim>(Iter.fromArray(migrated), Nat.equal, natHash)
     } else if (upgradeFreeItemClaimsV3.size() > 0) {
         // One-time migration from V3: add canceledAt = null.
         let migrated = Array.map<(Nat, OldFreeItemClaimV3), (Nat, FreeItemClaim)>(
@@ -187,9 +183,9 @@ persistent actor class EscrowService() = this {
                 })
             },
         );
-        TrieMap.fromEntries<Nat, FreeItemClaim>(Iter.fromArray(migrated), Nat.equal, Hash.hash)
+        TrieMap.fromEntries<Nat, FreeItemClaim>(Iter.fromArray(migrated), Nat.equal, natHash)
     } else {
-        TrieMap.fromEntries<Nat, FreeItemClaim>(Iter.fromArray(upgradeFreeItemClaimsV4), Nat.equal, Hash.hash)
+        TrieMap.fromEntries<Nat, FreeItemClaim>(Iter.fromArray(upgradeFreeItemClaimsV4), Nat.equal, natHash)
     };
     transient var freeItemClaimIndex = TrieMap.TrieMap<Text, Nat>(Text.equal, Text.hash);
     for (claim in freeItemClaims.vals()) {
@@ -198,11 +194,11 @@ persistent actor class EscrowService() = this {
     };
 
     // Reputation transient maps
-    transient var reviews = TrieMap.TrieMap<Nat, Review>(Nat.equal, Hash.hash);
-    reviews := TrieMap.fromEntries<Nat, Review>(Iter.fromArray(upgradeReviews), Nat.equal, Hash.hash);
+    transient var reviews = TrieMap.TrieMap<Nat, Review>(Nat.equal, natHash);
+    reviews := TrieMap.fromEntries<Nat, Review>(Iter.fromArray(upgradeReviews), Nat.equal, natHash);
 
     // reviewByOrder index: orderId → reviewId (ensures one review per order)
-    transient var reviewByOrder = TrieMap.TrieMap<Nat, Nat>(Nat.equal, Hash.hash);
+    transient var reviewByOrder = TrieMap.TrieMap<Nat, Nat>(Nat.equal, natHash);
     for (r in reviews.vals()) {
         reviewByOrder.put(r.orderId, r.id);
     };
@@ -632,7 +628,7 @@ persistent actor class EscrowService() = this {
                             currency = order.currency
                         });
                         switch (trans) {
-                            case (#ok(block)) {
+                            case (#ok(_block)) {
                                 let log = {
                                     ltime = Time.now();
                                     log = "release fund to seller";
@@ -787,7 +783,7 @@ persistent actor class EscrowService() = this {
                             currency = order.currency
                         });
                         switch (r) {
-                            case (#ok(block)) {
+                            case (#ok(_block)) {
                                 refunded := true
                             };
                             case (#err(e)) {
@@ -893,7 +889,7 @@ persistent actor class EscrowService() = this {
                         currency = order.currency
                     });
                     switch (r) {
-                        case (#ok(block)) {
+                        case (#ok(_block)) {
                             var logger : {
                                 #buyer;
                                 #seller;
@@ -1113,7 +1109,7 @@ persistent actor class EscrowService() = this {
 
             });
             switch (res) {
-                case (#ok(b)) {
+                case (#ok(_)) {
                     #ok(1)
                 };
                 case (#err(e)) {
@@ -1186,7 +1182,7 @@ persistent actor class EscrowService() = this {
         })
     };
 
-    func accIdTextKey(s : AccountIdText) : Trie.Key<AccountIdText> {
+    func _accIdTextKey(s : AccountIdText) : Trie.Key<AccountIdText> {
         { key = s; hash = Text.hash(s) }
     };
 

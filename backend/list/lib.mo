@@ -7,11 +7,14 @@ import TrieMap "mo:base/TrieMap";
 import Nat "mo:base/Nat";
 import Iter "mo:base/Iter";
 import Hash "mo:base/Hash";
+import Text "mo:base/Text";
 
 import Types "types";
 
 
 module{
+
+    private func natHash(n : Nat) : Hash.Hash { Text.hash(Nat.toText(n)) };
 
     type Item = Types.Item;
     type NewItem = Types.NewItem;
@@ -22,8 +25,8 @@ module{
 
         //init states
         private var nextId: Nat = stableItemId;
-        private var items = TrieMap.TrieMap<Nat, Item>(Nat.equal, Hash.hash);
-        items := TrieMap.fromEntries<Nat, Item>(Iter.fromArray(stableItems), Nat.equal, Hash.hash);
+        private var items = TrieMap.TrieMap<Nat, Item>(Nat.equal, natHash);
+        items := TrieMap.fromEntries<Nat, Item>(Iter.fromArray(stableItems), Nat.equal, natHash);
         
 
         public func toStable(): [(Nat,Item)] {
