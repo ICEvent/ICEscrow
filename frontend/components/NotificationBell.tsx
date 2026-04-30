@@ -62,15 +62,11 @@ export default function NotificationBell() {
   }, [open]);
 
   async function handleMarkRead(id: bigint) {
-    setNotifications((prev) =>
-      prev.map((n) => (n.id === id ? { ...n, isread: true } : n))
-    );
+    setNotifications((prev) => prev.filter((n) => n.id !== id));
     try {
       await ram.readNotification(id);
     } catch (e) {
-      setNotifications((prev) =>
-        prev.map((n) => (n.id === id ? { ...n, isread: false } : n))
-      );
+      // ignore — notification already hidden from UI
     }
   }
 
