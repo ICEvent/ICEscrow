@@ -4,6 +4,7 @@ import { toast } from 'react-toastify';
 
 import { useEscrow, useGlobalContext } from '../Store';
 import OrderDetail from './OrderDetail';
+import Comments from './CommentList';
 import {
     ORDER_STATUS_NEW,
     ORDER_STATUS_DEPOSITED,
@@ -35,6 +36,7 @@ export default (props) => {
     const [busy, setBusy] = React.useState(false);
     const [showComment, setShowComment] = React.useState(false);
     const [commentText, setCommentText] = React.useState('');
+    const [comments, setComments] = React.useState<any[]>(props.order.comments ?? []);
 
     const currency = Object.getOwnPropertyNames(props.order.currency)[0];
     const es = currency === 'ICP' ? 100_000_000 : 1_000_000;
@@ -75,6 +77,7 @@ export default (props) => {
             const res = await escrow.comment(props.order.id, text);
             if (res['ok'] !== undefined) {
                 toast.success('Comment posted');
+                setComments(prev => [...prev, { user: principal, comment: text, ctime: BigInt(Date.now()) * BigInt(1_000_000) }]);
                 setCommentText('');
                 setShowComment(false);
             } else {
@@ -171,14 +174,12 @@ export default (props) => {
                                 Cancel
                             </button>
                         )}
-                        <button disabled={busy} onClick={() => act(() => escrow.close(props.order.id), ORDER_STATUS_CLOSED)}
-                            className="rounded-md border border-slate-400 px-3 py-1.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50">
-                            Close
-                        </button>
-                        <button type="button" onClick={() => setOpenOrder(true)}
-                            className="rounded-md border border-slate-300 px-3 py-1.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-50">
-                            Details
-                        </button>
+                        {isSeller && (
+                            <button disabled={busy} onClick={() => act(() => escrow.close(props.order.id), ORDER_STATUS_CLOSED)}
+                                className="rounded-md border border-slate-400 px-3 py-1.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50">
+                                Close
+                            </button>
+                        )}
                         <button type="button" onClick={() => setShowComment(v => !v)}
                             className="rounded-md border border-slate-300 px-3 py-1.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-50">
                             {showComment ? 'Cancel' : 'Comment'}
@@ -219,6 +220,10 @@ export default (props) => {
                             </button>
                         </div>
                     </div>
+                )}
+
+                {comments.length > 0 && (
+                    <Comments comments={comments} />
                 )}
             </div>
 
