@@ -145,6 +145,10 @@ persistent actor class EscrowService() = this {
     // Stablecoin registry: canister-id (Text) → StablecoinInfo
     var upgradeStablecoins : [(Text, StablecoinInterface.StablecoinInfo)] = [];
 
+    // Admin principals (allowed to manage the stablecoin registry).
+    // Empty on first deployment; use setAdmin to bootstrap.
+    var upgradeAdmins : [Text] = [];
+
     private func natHash(n : Nat) : Hash.Hash { Text.hash(Nat.toText(n)) };
 
     transient var orders = TrieMap.TrieMap<Nat, Order>(Nat.equal, natHash);
@@ -230,6 +234,17 @@ persistent actor class EscrowService() = this {
         Text.equal,
         Text.hash,
     );
+
+    // Admin set (transient, re-hydrated from upgradeAdmins on upgrade)
+    transient var adminSet = TrieMap.TrieMap<Text, Bool>(Text.equal, Text.hash);
+    for (a in upgradeAdmins.vals()) {
+        adminSet.put(a, true);
+    };
+
+    // Check whether a principal is authorised to manage the stablecoin registry.
+    func isAdmin(p : Principal) : Bool {
+        adminSet.get(Principal.toText(p)) == ?true
+    };
 
     public shared ({ caller }) func buy(newOrder : NewOrder) : async Result.Result<Nat, Text> {
 
@@ -644,6 +659,7 @@ persistent actor class EscrowService() = this {
                             memo = 1;
                             from = order.account.index;
                             to = Account.getAccountTextId(order.seller, 0);
+                            toPrincipal = ?order.seller;
                             amount = amount;
                             currency = order.currency
                         });
@@ -799,6 +815,7 @@ persistent actor class EscrowService() = this {
                             memo = 1;
                             from = order.account.index;
                             to = Account.getAccountTextId(order.buyer, 0);
+                            toPrincipal = ?order.buyer;
                             amount = balance;
                             currency = order.currency
                         });
@@ -905,6 +922,7 @@ persistent actor class EscrowService() = this {
                         memo = 1;
                         from = order.account.index;
                         to = Account.getAccountTextId(order.buyer, 0);
+                        toPrincipal = ?order.buyer;
                         amount = balance;
                         currency = order.currency
                     });
@@ -1088,24 +1106,57 @@ persistent actor class EscrowService() = this {
                 }
             };
             case (#ICRC1(info)) {
-                let ledger : StablecoinInterface.Ledger = actor (Principal.toText(info.canisterId));
-                let principal = getPrincipal();
-                // Derive the subaccount-zero owner account from the hex account id.
-                // For ICRC-1 we query by owner principal (escrow canister) + null subaccount
-                // because the escrow subaccount scheme uses Blob subaccounts.
-                // We re-derive the owner + subaccount from the account hex text.
-                let bal = await ledger.icrc1_balance_of({
-                    owner = principal;
-                    subaccount = null
-                });
-                if (info.decimals == 8) {
-                    #e8s(Nat64.fromNat(bal))
-                } else {
-                    #e6s(Nat64.fromNat(bal))
-                }
+                // For ICRC-1, the hex `account` string is an ICP AccountIdentifier and
+                // cannot be reverse-mapped to an ICRC-1 subaccount.
+                // Use getOrderBalance(orderId) for accurate ICRC-1 escrow-account balance.
+                // This branch is kept for API compatibility but returns 0.
+                ignore info;
+                #e6s(0)
             }
         };
 
+    };
+
+    /// Query the balance of an order's escrow account for any currency type.
+    /// Preferred over accountBalance for ICRC-1 orders because it resolves the
+    /// correct ICRC-1 subaccount from the order's account index.
+    public shared func getOrderBalance(orderId : Nat) : async Balance {
+        switch (orders.get(orderId)) {
+            case null { #e8s(0) };
+            case (?order) {
+                let subBlob = Utils.subToSubBlob(order.account.index);
+                switch (order.currency) {
+                    case (#ICP) {
+                        let bicp = await ICPLedger.account_balance({
+                            account = Utils.hexToAccountId(order.account.id)
+                        });
+                        #e8s(bicp.e8s)
+                    };
+                    case (#ICET) {
+                        let bicet = await ICETLedger.balance({
+                            token = ICET;
+                            user = #address(order.account.id)
+                        });
+                        switch (bicet) {
+                            case (#ok(b)) { #e6s(Nat64.fromNat(b)) };
+                            case (_) { #e6s(0) }
+                        }
+                    };
+                    case (#ICRC1(info)) {
+                        let ledger : StablecoinInterface.Ledger = actor (Principal.toText(info.canisterId));
+                        let bal = await ledger.icrc1_balance_of({
+                            owner = getPrincipal();
+                            subaccount = ?subBlob
+                        });
+                        if (info.decimals == 8) {
+                            #e8s(Nat64.fromNat(bal))
+                        } else {
+                            #e6s(Nat64.fromNat(bal))
+                        }
+                    }
+                }
+            }
+        }
     };
 
     func transfer(r : TransferRequest) : async Result.Result<Nat64, Text> {
@@ -1162,18 +1213,24 @@ persistent actor class EscrowService() = this {
                 }
             };
             case (#ICRC1(info)) {
-                // Look up the registered fee; fall back to 0 if not in registry.
+                // Look up the registered fee; null lets the ledger use its default fee.
                 let fee : ?Nat = switch (stablecoins.get(Principal.toText(info.canisterId))) {
                     case (?sc) { ?sc.fee };
                     case null { null }
                 };
                 let subAccountBlob = Utils.subToSubBlob(r.from);
                 let ledger : StablecoinInterface.Ledger = actor (Principal.toText(info.canisterId));
+                // Resolve the destination account: prefer the typed Principal when available.
+                let toAccount : StablecoinInterface.Account = switch (r.toPrincipal) {
+                    case (?p) { { owner = p; subaccount = null } };
+                    case null {
+                        // Fallback: re-use the canister's own account (should not happen
+                        // in normal operation since toPrincipal is always set).
+                        { owner = getPrincipal(); subaccount = null }
+                    }
+                };
                 let res = await ledger.icrc1_transfer({
-                    to = {
-                        owner = getPrincipal();
-                        subaccount = null
-                    };
+                    to = toAccount;
                     fee = fee;
                     memo = null;
                     from_subaccount = ?subAccountBlob;
@@ -1205,12 +1262,34 @@ persistent actor class EscrowService() = this {
         Iter.toArray(stablecoins.vals())
     };
 
-    /// Register or update a stablecoin (canister controller only).
-    /// Fetch live metadata (fee, decimals, symbol) from the ledger canister so the
-    /// caller does not have to supply them manually.
+    /// Bootstrap: add the first admin when the admin list is empty, or add a new
+    /// admin if the caller is already an admin.
+    public shared ({ caller }) func setAdmin(newAdmin : Principal) : async Result.Result<(), Text> {
+        if (Principal.isAnonymous(caller)) {
+            return #err("Anonymous caller not allowed")
+        };
+        if (adminSet.size() == 0 or isAdmin(caller)) {
+            adminSet.put(Principal.toText(newAdmin), true);
+            #ok(())
+        } else {
+            #err("Unauthorized: caller is not an admin")
+        }
+    };
+
+    /// Remove an admin (admin only).
+    public shared ({ caller }) func removeAdmin(target : Principal) : async Result.Result<(), Text> {
+        if (not isAdmin(caller)) {
+            return #err("Unauthorized: caller is not an admin")
+        };
+        adminSet.delete(Principal.toText(target));
+        #ok(())
+    };
+
+    /// Register or update a stablecoin (admin only).
+    /// Fetches live metadata (fee, decimals, symbol) from the ledger canister.
     public shared ({ caller }) func registerStablecoin(canisterId : Principal) : async Result.Result<StablecoinInterface.StablecoinInfo, Text> {
-        if (caller != getPrincipal()) {
-            return #err("Unauthorized: only the canister controller may register stablecoins")
+        if (not isAdmin(caller)) {
+            return #err("Unauthorized: caller is not an admin")
         };
         let ledger : StablecoinInterface.Ledger = actor (Principal.toText(canisterId));
         let fee = await ledger.icrc1_fee();
@@ -1226,10 +1305,10 @@ persistent actor class EscrowService() = this {
         #ok(info)
     };
 
-    /// Remove a stablecoin from the registry (canister controller only).
+    /// Remove a stablecoin from the registry (admin only).
     public shared ({ caller }) func removeStablecoin(canisterId : Principal) : async Result.Result<(), Text> {
-        if (caller != getPrincipal()) {
-            return #err("Unauthorized: only the canister controller may remove stablecoins")
+        if (not isAdmin(caller)) {
+            return #err("Unauthorized: caller is not an admin")
         };
         stablecoins.delete(Principal.toText(canisterId));
         #ok(())
@@ -1777,6 +1856,8 @@ persistent actor class EscrowService() = this {
         upgradeHeartedClaims := Iter.toArray(heartedClaims.keys());
         // Stablecoin registry persistence
         upgradeStablecoins := Iter.toArray(stablecoins.entries());
+        // Admin set persistence
+        upgradeAdmins := Iter.toArray(adminSet.keys());
     };
 
     system func postupgrade() {

@@ -62,21 +62,23 @@ export default (props) => {
     };
 
     function fetchBalance() {
-        setLoading(true)
-        escrow.accountBalance(order.account.id, order.currency).then(res => {
+        setLoading(true);
+        const currencyKey = Object.keys(order.currency)[0];
+        // For ICRC-1 orders, use getOrderBalance which resolves the correct subaccount.
+        const balancePromise = currencyKey === 'ICRC1'
+            ? escrow.getOrderBalance(order.id)
+            : escrow.accountBalance(order.account.id, order.currency);
+        balancePromise.then(res => {
             const base = currencyBase(order.currency);
-            if (res["e6s"] !== undefined) {
-                setBalance(parseInt(res["e6s"]) / 1_000_000)
-            } else if (res["e8s"] !== undefined) {
-                setBalance(parseInt(res["e8s"]) / 100_000_000)
+            if (res["e8s"] !== undefined) {
+                setBalance(parseInt(res["e8s"]) / 100_000_000);
+            } else if (res["e6s"] !== undefined) {
+                setBalance(parseInt(res["e6s"]) / 1_000_000);
             } else {
-                // generic fallback using the order's own currency base
-                const raw = res["e6s"] ?? res["e8s"] ?? 0;
-                setBalance(parseInt(raw) / base);
+                setBalance(0);
             }
-            setLoading(false)
-
-        })
+            setLoading(false);
+        });
     };
     const deposit = () => {
         setLoading(true)

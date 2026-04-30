@@ -27,7 +27,7 @@ export function currencyBase(currency: Record<string, any>): number {
     if (key === 'ICET') return 1_000_000;  // e6s
     if (key === 'ICRC1') {
         const info = currency['ICRC1'] as ICRC1Info;
-        return Math.pow(10, Number(info.decimals));
+        return 10 ** Number(info.decimals);
     }
     return 1_000_000;
 }
