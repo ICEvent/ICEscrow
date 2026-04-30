@@ -71,9 +71,9 @@ export default (props) => {
         balancePromise.then(res => {
             const base = currencyBase(order.currency);
             if (res["e8s"] !== undefined) {
-                setBalance(parseInt(res["e8s"]) / 100_000_000);
+                setBalance(parseInt(res["e8s"]) / base);
             } else if (res["e6s"] !== undefined) {
-                setBalance(parseInt(res["e6s"]) / 1_000_000);
+                setBalance(parseInt(res["e6s"]) / base);
             } else {
                 setBalance(0);
             }

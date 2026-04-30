@@ -1109,8 +1109,10 @@ persistent actor class EscrowService() = this {
                 // For ICRC-1, the hex `account` string is an ICP AccountIdentifier and
                 // cannot be reverse-mapped to an ICRC-1 subaccount.
                 // Use getOrderBalance(orderId) for accurate ICRC-1 escrow-account balance.
-                // This branch is kept for API compatibility but returns 0.
                 ignore info;
+                // Return a recognisable sentinel so callers know to use getOrderBalance.
+                // The Balance type currently only has #e8s and #e6s; we return #e6s(0)
+                // to signal "unknown – please use getOrderBalance".
                 #e6s(0)
             }
         };
@@ -1224,9 +1226,9 @@ persistent actor class EscrowService() = this {
                 let toAccount : StablecoinInterface.Account = switch (r.toPrincipal) {
                     case (?p) { { owner = p; subaccount = null } };
                     case null {
-                        // Fallback: re-use the canister's own account (should not happen
-                        // in normal operation since toPrincipal is always set).
-                        { owner = getPrincipal(); subaccount = null }
+                        // toPrincipal must always be set for ICRC-1 transfers.
+                        // Return an error to prevent accidental fund loss if it is missing.
+                        return #err("ICRC-1 transfer requires toPrincipal to be set")
                     }
                 };
                 let res = await ledger.icrc1_transfer({

@@ -29,7 +29,10 @@ export function currencyBase(currency: Record<string, any>): number {
         const info = currency['ICRC1'] as ICRC1Info;
         return 10 ** Number(info.decimals);
     }
-    return 1_000_000;
+    // Unknown currency type – default to 8 decimals to avoid division by zero
+    // while signalling that the currency should be registered.
+    console.warn('currencyBase: unknown currency variant', currency);
+    return 100_000_000;
 }
 
 /** Convert a raw (bigint/number) amount to a human-readable string with symbol. */
