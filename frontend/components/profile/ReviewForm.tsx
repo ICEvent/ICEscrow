@@ -76,7 +76,7 @@ const ReviewForm: React.FC<ReviewFormProps> = ({ orderId, onSubmitted }) => {
             onChange={(e) => setComment(e.target.value)}
             rows={3}
             placeholder="Share your experience with this seller..."
-            className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-amber-400"
+            className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-amber-400"
           />
         </div>
         <button

@@ -123,7 +123,7 @@ const ProfileForm = (props) => {
               <input
                 value={values.name}
                 onChange={handleChange('name')}
-                className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-orange-400"
+                className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-orange-400"
               />
             </div>
 
@@ -132,7 +132,7 @@ const ProfileForm = (props) => {
               <input
                 value={values.pfp}
                 onChange={handleChange('pfp')}
-                className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-orange-400"
+                className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-orange-400"
               />
             </div>
 
@@ -142,7 +142,7 @@ const ProfileForm = (props) => {
                 value={values.bio}
                 onChange={handleChange('bio')}
                 rows={5}
-                className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-orange-400"
+                className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-orange-400"
               />
             </div>
           </div>

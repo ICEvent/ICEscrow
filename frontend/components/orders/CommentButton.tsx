@@ -45,7 +45,7 @@ export default (props) => {
                         <h3 className="mb-3 text-lg font-semibold text-slate-900">Leave your comment</h3>
                         <textarea
                             defaultValue=""
-                            className="min-h-[120px] w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-cyan-500"
+                            className="min-h-[120px] w-full rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-cyan-500"
                             onChange={e => setComment(e.target.value)}
                         />
                         <div className="mt-4 flex justify-end gap-2">

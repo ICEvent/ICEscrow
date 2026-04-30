@@ -114,7 +114,7 @@ const LinkDialog = (props) => {
                 <label className="mb-1 block text-sm font-medium text-slate-700">Name</label>
                 <input
                   id="linkname"
-                  className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-cyan-500"
+                  className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-cyan-500"
                   onChange={handleChange('linkname')}
                 />
               </div>
@@ -122,7 +122,7 @@ const LinkDialog = (props) => {
                 <label className="mb-1 block text-sm font-medium text-slate-700">URL</label>
                 <input
                   id="url"
-                  className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-cyan-500"
+                  className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-cyan-500"
                   onChange={handleChange('linkurl')}
                 />
               </div>

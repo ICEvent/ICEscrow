@@ -102,7 +102,7 @@ export default function OrderForm(props) {
                         name="item"
                         value={state.item}
                         onChange={handleChange}
-                        className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-cyan-500"
+                        className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-cyan-500"
                     />
                 </div>
 
@@ -127,7 +127,7 @@ export default function OrderForm(props) {
                             name="buyer"
                             value={state.buyer}
                             onChange={handleChange}
-                            className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-cyan-500"
+                            className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-cyan-500"
                         />
                     </div>
                 )}
@@ -139,7 +139,7 @@ export default function OrderForm(props) {
                             name="seller"
                             value={state.seller}
                             onChange={handleChange}
-                            className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-cyan-500"
+                            className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-cyan-500"
                         />
                     </div>
                 )}
@@ -151,7 +151,7 @@ export default function OrderForm(props) {
                         type="number"
                         value={state.amount}
                         onChange={handleChange}
-                        className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-cyan-500"
+                        className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-cyan-500"
                     />
                 </div>
 
@@ -161,7 +161,7 @@ export default function OrderForm(props) {
                         name="currency"
                         value={state.currency}
                         onChange={handleChange}
-                        className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-cyan-500"
+                        className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-cyan-500"
                     >
                         <option value={CURRENCY_ICP}>{CURRENCY_ICP}</option>
                         <option value={CURRENCY_ICET}>{CURRENCY_ICET}</option>

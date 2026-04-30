@@ -54,7 +54,7 @@ export default function ListItemForm(props) {
                         value={values.itype}
                         name="itype"
                         onChange={handleChange}
-                        className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-cyan-500"
+                        className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-cyan-500"
                     >
                         <option value={LIST_ITEM_NFT}>{LIST_ITEM_NFT}</option>
                         <option value={LIST_ITEM_COIN}>{LIST_ITEM_COIN}</option>
@@ -70,7 +70,7 @@ export default function ListItemForm(props) {
                         name="name"
                         value={values.name}
                         onChange={handleChange}
-                        className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-cyan-500"
+                        className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-cyan-500"
                     />
                 </div>
 
@@ -83,7 +83,7 @@ export default function ListItemForm(props) {
                                 type="number"
                                 value={values.price}
                                 onChange={handleChange}
-                                className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-cyan-500"
+                                className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-cyan-500"
                             />
                         </div>
 
@@ -93,7 +93,7 @@ export default function ListItemForm(props) {
                                 value={values.currency}
                                 name="currency"
                                 onChange={handleChange}
-                                className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-cyan-500"
+                                className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-cyan-500"
                             >
                                 <option value={CURRENCY_ICP}>{CURRENCY_ICP}</option>
                                 <option value={CURRENCY_ICET}>{CURRENCY_ICET}</option>
@@ -108,7 +108,7 @@ export default function ListItemForm(props) {
                         name="image"
                         value={values.image}
                         onChange={handleChange}
-                        className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-cyan-500"
+                        className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-cyan-500"
                     />
                 </div>
 
@@ -118,7 +118,7 @@ export default function ListItemForm(props) {
                         name="description"
                         value={values.description}
                         onChange={handleChange}
-                        className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-cyan-500"
+                        className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-cyan-500"
                     />
                 </div>
 
