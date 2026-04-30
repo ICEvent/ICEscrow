@@ -28,7 +28,8 @@ export default function NotificationBell() {
       const pages = await Promise.all(
         Array.from({ length: upToPage + 1 }, (_, i) => fetchPage(i))
       );
-      setNotifications(pages.flat());
+      const sorted = pages.flat().sort((a, b) => Number(b.sendtime - a.sendtime));
+      setNotifications(sorted);
       setHasMore(pages[upToPage].length > 0);
     } catch (e) {
       // ignore
@@ -87,7 +88,7 @@ export default function NotificationBell() {
     try {
       const nextPage = page + 1;
       const result = await fetchPage(nextPage);
-      setNotifications((prev) => [...prev, ...result]);
+      setNotifications((prev) => [...prev, ...result].sort((a, b) => Number(b.sendtime - a.sendtime)));
       setPage(nextPage);
       pageRef.current = nextPage;
       setHasMore(result.length > 0);

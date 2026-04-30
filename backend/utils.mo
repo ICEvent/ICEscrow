@@ -1,5 +1,6 @@
 import Array    "mo:base/Array";
 import Blob     "mo:base/Blob";
+import Int      "mo:base/Int";
 import Nat8     "mo:base/Nat8";
 import Nat32    "mo:base/Nat32";
 
@@ -52,7 +53,7 @@ module {
     public func subBlobToSubNat8Arr (sub : SubaccountBlob) : SubaccountNat8Arr {
         let subZero : [var Nat8] = [var 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0];
         let subArray = Blob.toArray(sub);
-        let sizeDiff = if (subZero.size() >= subArray.size()) { subZero.size() - subArray.size() } else { 0 };
+        let sizeDiff : Nat = Int.abs((subZero.size() : Int) - (subArray.size() : Int));
         var i = 0;
         while (i < subZero.size()) {
             if (i >= sizeDiff) {

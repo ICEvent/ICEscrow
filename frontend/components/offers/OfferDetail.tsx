@@ -18,6 +18,8 @@ export default (props) => {
     const { setMenu } = useMenu();
 
     const [loading, setLoading] = React.useState(false);
+    const [claimModalOpen, setClaimModalOpen] = React.useState(false);
+    const [claimMessage, setClaimMessage] = React.useState('');
     const currency = Object.getOwnPropertyNames(props.offer.currency)[0] == CURRENCY_ICP ? CURRENCY_ICP : CURRENCY_ICET;
     const [itemStatus, setItemStatus] = React.useState(Object.getOwnPropertyNames(props.offer.status)[0]);
 
@@ -48,22 +50,30 @@ export default (props) => {
         }
     };
 
-    const claimFree = () => {
+    const claimFree = async () => {
         if (!isAuthed) {
             toast.warn("Please login first");
-        } else {
-            setLoading(true);
-            escrow.claimFreeItem(props.offer.id).then(res => {
-                setLoading(false);
-                if (res["ok"]) {
-                    toast.success("Claim sent! Redirecting to your claims list…");
-                    props.close ? props.close() : null;
-                    setMenu(MENU_ORDERS);
-                } else {
-                    toast.error(res["err"] ? res["err"] : "Failed to claim item");
-                    props.close ? props.close() : null;
+            return;
+        }
+        setLoading(true);
+        try {
+            const res = await escrow.claimFreeItem(props.offer.id);
+            if (res["ok"] !== undefined) {
+                const claimId: bigint = res["ok"];
+                if (claimMessage.trim()) {
+                    try { await escrow.commentOnClaim(claimId, claimMessage.trim()); } catch (_) {}
                 }
-            });
+                toast.success("Claim sent! Redirecting to your claims list…");
+                props.close ? props.close() : null;
+                setMenu(MENU_ORDERS);
+            } else {
+                toast.error(res["err"] ? res["err"] : "Failed to claim item");
+                props.close ? props.close() : null;
+            }
+        } finally {
+            setLoading(false);
+            setClaimModalOpen(false);
+            setClaimMessage('');
         }
     };
 
@@ -164,6 +174,7 @@ export default (props) => {
     const isSold = itemStatus === "sold";
 
     return (
+        <>
         <div className="reveal-up relative rounded-3xl border border-white/50 bg-gradient-to-b from-white to-orange-50/30 p-4 shadow-xl sm:p-6">
             {props.close && (
                 <button
@@ -248,7 +259,7 @@ export default (props) => {
                                     {!isOwner && isFree && !isHeld && !isSold && (
                                         <button
                                             disabled={loading || !isAuthed}
-                                            onClick={claimFree}
+                                            onClick={() => setClaimModalOpen(true)}
                                             className="w-full rounded-xl bg-emerald-500 px-4 py-3 text-sm font-semibold text-white shadow-md transition hover:-translate-y-0.5 hover:bg-emerald-600 hover:shadow-lg disabled:cursor-not-allowed disabled:bg-slate-300"
                                         >
                                             Claim Free Item
@@ -338,5 +349,49 @@ export default (props) => {
                 </div>
             </div>
         </div>
+
+        {claimModalOpen && (
+            <div
+                className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm"
+                onClick={() => { setClaimModalOpen(false); setClaimMessage(''); }}
+            >
+                <div
+                    className="reveal-up w-full max-w-md rounded-2xl border border-white/50 bg-white p-6 shadow-2xl"
+                    onClick={(e) => e.stopPropagation()}
+                >
+                    <h3 className="text-lg font-bold text-slate-900">Claim Free Item</h3>
+                    <p className="mt-1 text-sm text-slate-600">
+                        You're about to claim <span className="font-semibold text-slate-800">{props.offer.name}</span>.
+                        Leave an optional message to the seller.
+                    </p>
+                    <textarea
+                        className="mt-4 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-800 placeholder-slate-400 outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                        rows={3}
+                        placeholder="Optional message to seller…"
+                        value={claimMessage}
+                        onChange={(e) => setClaimMessage(e.target.value)}
+                        maxLength={500}
+                    />
+                    <div className="mt-4 flex gap-3">
+                        <button
+                            type="button"
+                            onClick={() => { setClaimModalOpen(false); setClaimMessage(''); }}
+                            className="flex-1 rounded-xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            type="button"
+                            disabled={loading}
+                            onClick={claimFree}
+                            className="flex-1 rounded-xl bg-emerald-500 px-4 py-2.5 text-sm font-semibold text-white shadow-md transition hover:bg-emerald-600 disabled:cursor-not-allowed disabled:bg-slate-300"
+                        >
+                            {loading ? 'Sending…' : 'Confirm Claim'}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        )}
+        </>
     );
 }
