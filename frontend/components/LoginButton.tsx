@@ -166,14 +166,14 @@ const DropdownMenu: React.FC = () => {
             <DfinityIcon />
             Internet Identity
           </button>
-          <button
+          {/* <button
             type="button"
             onClick={handleNFIDLogin}
             className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm text-slate-700 transition hover:bg-slate-100"
           >
             <span aria-hidden="true">G</span>
             NFID - Gmail
-          </button>
+          </button> */}
           <button
             type="button"
             onClick={connectPlug}
