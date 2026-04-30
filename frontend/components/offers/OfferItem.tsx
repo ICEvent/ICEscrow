@@ -1,14 +1,15 @@
 import * as React from 'react';
 import moment from 'moment';
-import { CURRENCY_ICET, CURRENCY_ICP, LEDGER_E6S, LEDGER_E8S } from '../../lib/constants';
 
 import OfferDetail from "./OfferDetail";
+import { currencyBase, currencySymbol } from '../../lib/currencyUtils';
 
 export default (props) => {
     const [openOfferDetail, setOpenOfferDetail] = React.useState(false);
-    const currency = Object.getOwnPropertyNames(props.offer.currency)[0] == CURRENCY_ICP ? CURRENCY_ICP : CURRENCY_ICET;
+    const currency = currencySymbol(props.offer.currency);
+    const base = currencyBase(props.offer.currency);
 
-    const price = currency == CURRENCY_ICP ? parseInt(props.offer.price) / LEDGER_E8S : parseInt(props.offer.price) / LEDGER_E6S;
+    const price = parseInt(props.offer.price) / base;
     const isFree = price === 0;
 
     return (

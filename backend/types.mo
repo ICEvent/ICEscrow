@@ -17,7 +17,11 @@ module {
     };
     public type Currency = {
         #ICP;
-        #ICET
+        #ICET;
+        // Any ICRC-1 compatible token (ckUSDC, ckUSDT, ckBTC, ckETH, …).
+        // The canisterId uniquely identifies the ledger; symbol and decimals
+        // are cached here so order records are self-describing.
+        #ICRC1 : { canisterId : Principal; symbol : Text; decimals : Nat8 }
     };
     public type Status = {
         #new;

@@ -9,6 +9,7 @@ import PrincipalName from '../PrincipalName';
 import CommentButton from './CommentButton';
 import Comments from './CommentList';
 import ReviewForm from '../profile/ReviewForm';
+import { currencyBase, currencySymbol } from '../../lib/currencyUtils';
 
 
 
@@ -24,8 +25,8 @@ export default (props) => {
     const [comments, setComments] = React.useState(props.order.comments);
     const [status, setStatus] = React.useState<string>(Object.getOwnPropertyNames(order.status)[0])
 
-    const currency = Object.getOwnPropertyNames(order.currency)[0];
-    let es = currency == "ICP" ? 100000000 : 1000000;
+    const currency = currencySymbol(order.currency);
+    const es = currencyBase(order.currency);
     const amount = parseInt(order.amount) / es;
     const isFreeOrder = amount === 0;
     const amountLabel = isFreeOrder ? "FREE" : `${amount} (${currency})`;
@@ -63,10 +64,15 @@ export default (props) => {
     function fetchBalance() {
         setLoading(true)
         escrow.accountBalance(order.account.id, order.currency).then(res => {
-            if (res["e6s"]) {
-                setBalance(parseInt(res["e6s"]) / 1000000)
-            } else if (res["e8s"]) {
-                setBalance(parseInt(res["e8s"]) / 100000000)
+            const base = currencyBase(order.currency);
+            if (res["e6s"] !== undefined) {
+                setBalance(parseInt(res["e6s"]) / 1_000_000)
+            } else if (res["e8s"] !== undefined) {
+                setBalance(parseInt(res["e8s"]) / 100_000_000)
+            } else {
+                // generic fallback using the order's own currency base
+                const raw = res["e6s"] ?? res["e8s"] ?? 0;
+                setBalance(parseInt(raw) / base);
             }
             setLoading(false)
 

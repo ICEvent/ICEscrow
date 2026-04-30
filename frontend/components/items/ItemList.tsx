@@ -2,6 +2,7 @@ import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Item } from '../../api/escrow/service.did';
 import OfferCard from '../offers/OfferCard';
+import { currencyBase } from '../../lib/currencyUtils';
 
 
 interface ItemListProps {
@@ -29,8 +30,7 @@ const ItemList: React.FC<ItemListProps> = ({ items, onItemClick, defaultFilter, 
 
     const toPriceNumber = React.useCallback((item: Item) => {
         const raw = Number(item.price);
-        const currency = Object.getOwnPropertyNames(item.currency)[0];
-        return currency === 'ICP' ? raw / 100_000_000 : raw / 1_000_000;
+        return raw / currencyBase(item.currency as any);
     }, []);
 
     const toListTime = React.useCallback((item: Item) => Number(item.listime), []);

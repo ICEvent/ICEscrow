@@ -27,6 +27,7 @@ import Types "./types";
 import Utils "./utils";
 
 import ICETTypes "./ICETTypes";
+import StablecoinInterface "./StablecoinInterface";
 
 import Page "./page";
 
@@ -141,6 +142,9 @@ persistent actor class EscrowService() = this {
     // heartedClaims: set of claim IDs that have already been used to give a heart
     var upgradeHeartedClaims : [Nat] = [];
 
+    // Stablecoin registry: canister-id (Text) → StablecoinInfo
+    var upgradeStablecoins : [(Text, StablecoinInterface.StablecoinInfo)] = [];
+
     private func natHash(n : Nat) : Hash.Hash { Text.hash(Nat.toText(n)) };
 
     transient var orders = TrieMap.TrieMap<Nat, Order>(Nat.equal, natHash);
@@ -218,6 +222,14 @@ persistent actor class EscrowService() = this {
     for (claimId in upgradeHeartedClaims.vals()) {
         heartedClaims.put(claimId, true);
     };
+
+    // Stablecoin registry (transient map re-hydrated from stable store on upgrade)
+    transient var stablecoins = TrieMap.TrieMap<Text, StablecoinInterface.StablecoinInfo>(Text.equal, Text.hash);
+    stablecoins := TrieMap.fromEntries<Text, StablecoinInterface.StablecoinInfo>(
+        Iter.fromArray(upgradeStablecoins),
+        Text.equal,
+        Text.hash,
+    );
 
     public shared ({ caller }) func buy(newOrder : NewOrder) : async Result.Result<Nat, Text> {
 
@@ -1074,7 +1086,23 @@ persistent actor class EscrowService() = this {
                         #e6s(0)
                     }
                 }
-
+            };
+            case (#ICRC1(info)) {
+                let ledger : StablecoinInterface.Ledger = actor (Principal.toText(info.canisterId));
+                let principal = getPrincipal();
+                // Derive the subaccount-zero owner account from the hex account id.
+                // For ICRC-1 we query by owner principal (escrow canister) + null subaccount
+                // because the escrow subaccount scheme uses Blob subaccounts.
+                // We re-derive the owner + subaccount from the account hex text.
+                let bal = await ledger.icrc1_balance_of({
+                    owner = principal;
+                    subaccount = null
+                });
+                if (info.decimals == 8) {
+                    #e8s(Nat64.fromNat(bal))
+                } else {
+                    #e6s(Nat64.fromNat(bal))
+                }
             }
         };
 
@@ -1082,70 +1110,129 @@ persistent actor class EscrowService() = this {
 
     func transfer(r : TransferRequest) : async Result.Result<Nat64, Text> {
 
-        if (r.currency == #ICP) {
-            let res = await ICPLedger.transfer({
-                memo = r.memo;
-                from_subaccount = ?Utils.subToSubBlob(r.from);
-                to = Blob.fromArray(Hex.decode(r.to));
-                amount = { e8s = r.amount };
-                fee = { e8s = FEE };
-                created_at_time = ?{
-                    timestamp_nanos = Nat64.fromNat(Int.abs(Time.now()))
+        switch (r.currency) {
+            case (#ICP) {
+                let res = await ICPLedger.transfer({
+                    memo = r.memo;
+                    from_subaccount = ?Utils.subToSubBlob(r.from);
+                    to = Blob.fromArray(Hex.decode(r.to));
+                    amount = { e8s = r.amount };
+                    fee = { e8s = FEE };
+                    created_at_time = ?{
+                        timestamp_nanos = Nat64.fromNat(Int.abs(Time.now()))
+                    }
+                });
+                switch (res) {
+                    case (#Ok(blockIndex)) {
+                        #ok(blockIndex)
+                    };
+                    case (#Err(#InsufficientFunds { balance })) {
+                        throw Error.reject("No enough fund! The balance is only " # debug_show balance # " e8s")
+                    };
+                    case (#Err(other)) {
+                        throw Error.reject("Unexpected error: " # debug_show other)
+                    }
                 }
-            });
-            switch (res) {
-                case (#Ok(blockIndex)) {
-                    #ok(blockIndex)
-                };
-                case (#Err(#InsufficientFunds { balance })) {
-                    throw Error.reject("No enough fund! The balance is only " # debug_show balance # " e8s")
-                };
-                case (#Err(other)) {
-                    throw Error.reject("Unexpected error: " # debug_show other)
-                }
-            }
-        } else {
-            let subAccountBlob = Utils.subToSubBlob(r.from);
-            let res = await ICETLedger.transfer({
-                to = #address(r.to);
-                token = ICET;
-                notify = false;
-                from = #address(Utils.accountIdToHex(Account.accountIdentifier(getPrincipal(), subAccountBlob)));
-                memo = [Nat8.fromNat(Nat64.toNat(r.memo))];
-                subaccount = ?Blob.toArray(subAccountBlob);
-                amount = Nat64.toNat(r.amount);
-
-            });
-            switch (res) {
-                case (#ok(_)) {
-                    #ok(1)
-                };
-                case (#err(e)) {
-
-                    switch (e) {
-                        case (#CannotNotify(e)) {
-                            #err("CannotNotify")
-                        };
-                        case (#InsufficientBalance) {
-                            #err("InsufficientBalance")
-                        };
-                        case (#InvalidToken(e)) {
-                            #err("InvalidToken")
-                        };
-                        case (#Rejected) {
-                            #err("Rejected")
-                        };
-                        case (#Unauthorized(e)) {
-                            #err("Unauthorized")
-                        };
-                        case (#Other(o)) {
-                            #err(o)
+            };
+            case (#ICET) {
+                let subAccountBlob = Utils.subToSubBlob(r.from);
+                let res = await ICETLedger.transfer({
+                    to = #address(r.to);
+                    token = ICET;
+                    notify = false;
+                    from = #address(Utils.accountIdToHex(Account.accountIdentifier(getPrincipal(), subAccountBlob)));
+                    memo = [Nat8.fromNat(Nat64.toNat(r.memo))];
+                    subaccount = ?Blob.toArray(subAccountBlob);
+                    amount = Nat64.toNat(r.amount);
+                });
+                switch (res) {
+                    case (#ok(_)) {
+                        #ok(1)
+                    };
+                    case (#err(e)) {
+                        switch (e) {
+                            case (#CannotNotify(_)) { #err("CannotNotify") };
+                            case (#InsufficientBalance) { #err("InsufficientBalance") };
+                            case (#InvalidToken(_)) { #err("InvalidToken") };
+                            case (#Rejected) { #err("Rejected") };
+                            case (#Unauthorized(_)) { #err("Unauthorized") };
+                            case (#Other(o)) { #err(o) }
                         }
                     }
-
+                }
+            };
+            case (#ICRC1(info)) {
+                // Look up the registered fee; fall back to 0 if not in registry.
+                let fee : ?Nat = switch (stablecoins.get(Principal.toText(info.canisterId))) {
+                    case (?sc) { ?sc.fee };
+                    case null { null }
+                };
+                let subAccountBlob = Utils.subToSubBlob(r.from);
+                let ledger : StablecoinInterface.Ledger = actor (Principal.toText(info.canisterId));
+                let res = await ledger.icrc1_transfer({
+                    to = {
+                        owner = getPrincipal();
+                        subaccount = null
+                    };
+                    fee = fee;
+                    memo = null;
+                    from_subaccount = ?subAccountBlob;
+                    created_at_time = ?Nat64.fromNat(Int.abs(Time.now()));
+                    amount = Nat64.toNat(r.amount)
+                });
+                switch (res) {
+                    case (#Ok(blockIndex)) {
+                        #ok(Nat64.fromNat(blockIndex))
+                    };
+                    case (#Err(#InsufficientFunds { balance })) {
+                        #err("InsufficientFunds: balance=" # Nat.toText(balance))
+                    };
+                    case (#Err(#BadFee { expected_fee })) {
+                        #err("BadFee: expected=" # Nat.toText(expected_fee))
+                    };
+                    case (#Err(other)) {
+                        #err("Transfer error: " # debug_show other)
+                    }
                 }
             }
         }
+    };
+
+    // ── Stablecoin Registry ─────────────────────────────────────────────────
+
+    /// Return all stablecoins currently registered with the escrow canister.
+    public query func getSupportedStablecoins() : async [StablecoinInterface.StablecoinInfo] {
+        Iter.toArray(stablecoins.vals())
+    };
+
+    /// Register or update a stablecoin (canister controller only).
+    /// Fetch live metadata (fee, decimals, symbol) from the ledger canister so the
+    /// caller does not have to supply them manually.
+    public shared ({ caller }) func registerStablecoin(canisterId : Principal) : async Result.Result<StablecoinInterface.StablecoinInfo, Text> {
+        if (caller != getPrincipal()) {
+            return #err("Unauthorized: only the canister controller may register stablecoins")
+        };
+        let ledger : StablecoinInterface.Ledger = actor (Principal.toText(canisterId));
+        let fee = await ledger.icrc1_fee();
+        let decimals = await ledger.icrc1_decimals();
+        let symbol = await ledger.icrc1_symbol();
+        let info : StablecoinInterface.StablecoinInfo = {
+            canisterId;
+            symbol;
+            decimals;
+            fee
+        };
+        stablecoins.put(Principal.toText(canisterId), info);
+        #ok(info)
+    };
+
+    /// Remove a stablecoin from the registry (canister controller only).
+    public shared ({ caller }) func removeStablecoin(canisterId : Principal) : async Result.Result<(), Text> {
+        if (caller != getPrincipal()) {
+            return #err("Unauthorized: only the canister controller may remove stablecoins")
+        };
+        stablecoins.delete(Principal.toText(canisterId));
+        #ok(())
     };
 
     func writeLog(order : Order, log : Log) : () {
@@ -1688,6 +1775,8 @@ persistent actor class EscrowService() = this {
             },
         );
         upgradeHeartedClaims := Iter.toArray(heartedClaims.keys());
+        // Stablecoin registry persistence
+        upgradeStablecoins := Iter.toArray(stablecoins.entries());
     };
 
     system func postupgrade() {

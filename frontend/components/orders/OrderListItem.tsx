@@ -14,6 +14,7 @@ import {
     ORDER_STATUS_CLOSED,
     ORDER_STATUS_CANCELED,
 } from '../../lib/constants';
+import { currencyBase, currencySymbol } from '../../lib/currencyUtils';
 
 const STATUS_COLORS: Record<string, string> = {
     new: 'bg-sky-50 text-sky-700 border-sky-300',
@@ -38,8 +39,8 @@ export default (props) => {
     const [commentText, setCommentText] = React.useState('');
     const [comments, setComments] = React.useState<any[]>(props.order.comments ?? []);
 
-    const currency = Object.getOwnPropertyNames(props.order.currency)[0];
-    const es = currency === 'ICP' ? 100_000_000 : 1_000_000;
+    const currency = currencySymbol(props.order.currency);
+    const es = currencyBase(props.order.currency);
     const amount = parseInt(props.order.amount) / es;
     const isFreeOrder = amount === 0;
     const isBuyer = principal?.toString() === props.order.buyer.toString();
