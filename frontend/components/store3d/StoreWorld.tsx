@@ -35,7 +35,7 @@ const StoreWorld: React.FC<StoreWorldProps> = ({ items }) => {
     const map: Record<string, Item[]> = {}
     for (const cat of CATEGORIES) {
       if (cat.key === 'free') {
-        map.free = available.filter(i => Number(i.price) === 0)
+        map.free = available.filter(i => i.price === 0n)
       } else {
         map[cat.key] = available.filter(
           i => (Object.keys(i.itype)[0] || '').toLowerCase() === cat.key

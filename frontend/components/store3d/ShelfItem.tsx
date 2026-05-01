@@ -14,16 +14,20 @@ const ShelfItem: React.FC<ShelfItemProps> = ({ item, position, rotation = [0, 0,
   const [hovered, setHovered] = useState(false)
 
   const currency = Object.keys(item.currency)[0]
-  const price = currency === 'ICP' ? Number(item.price) / 1e8 : Number(item.price) / 1e6
-  const isFree = price === 0
+  const isFree = item.price === 0n
+  const divisor = currency === 'ICP' ? 100_000_000n : 1_000_000n
+  const whole = item.price / divisor
+  const fraction = item.price % divisor
+  const decimals = currency === 'ICP' ? 8 : 6
+  const priceDisplay = `${whole}.${String(fraction).padStart(decimals, '0').slice(0, 2)}`
   const itemType = (Object.keys(item.itype)[0] || '').toUpperCase()
   const displayName = item.name ? item.name.slice(0, 24) : 'Item'
-  const priceLabel = isFree ? 'FREE' : `${currency} ${price.toFixed(2)}`
+  const priceLabel = isFree ? 'FREE' : `${currency} ${priceDisplay}`
   const cardColor = hovered ? '#fed7aa' : isFree ? '#d1fae5' : '#f8fafc'
   const priceColor = isFree ? '#059669' : '#d97706'
 
   return (
-    <group position={position} rotation={rotation as any}>
+    <group position={position} rotation={rotation as [number, number, number]}>
       {/* Card body */}
       <mesh
         onPointerOver={(e) => { e.stopPropagation(); setHovered(true) }}
