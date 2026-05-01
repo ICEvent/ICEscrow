@@ -1,9 +1,5 @@
 import * as React from 'react';
 import {
-    CANISTER_CKUSDC,
-    CANISTER_CKUSDT,
-    CURRENCY_CKUSDC,
-    CURRENCY_CKUSDT,
     CURRENCY_ICET,
     CURRENCY_ICP,
     LEDGER_E6S,
@@ -17,17 +13,13 @@ import {
 } from '../../lib/constants';
 import { toast } from 'react-toastify';
 import { Principal } from '@dfinity/principal';
+import { useGlobalContext } from '../Store';
+import { useStablecoins, StablecoinMap } from '../../lib/hooks/useStablecoins';
 
-/** Known ICRC-1 stablecoins available for listing. */
-const ICRC1_TOKENS: Record<string, { canisterId: string; symbol: string; decimals: number }> = {
-    [CURRENCY_CKUSDC]: { canisterId: CANISTER_CKUSDC, symbol: CURRENCY_CKUSDC, decimals: 6 },
-    [CURRENCY_CKUSDT]: { canisterId: CANISTER_CKUSDT, symbol: CURRENCY_CKUSDT, decimals: 6 },
-};
-
-function buildCurrencyVariant(currencyKey: string): Record<string, any> {
+function buildCurrencyVariant(currencyKey: string, icrc1Tokens: StablecoinMap): Record<string, any> {
     if (currencyKey === CURRENCY_ICP) return { ICP: null };
     if (currencyKey === CURRENCY_ICET) return { ICET: null };
-    const info = ICRC1_TOKENS[currencyKey];
+    const info = icrc1Tokens[currencyKey];
     if (info) {
         return {
             ICRC1: {
@@ -40,15 +32,17 @@ function buildCurrencyVariant(currencyKey: string): Record<string, any> {
     return { ICP: null };
 }
 
-function ledgerBase(currencyKey: string): number {
+function ledgerBase(currencyKey: string, icrc1Tokens: StablecoinMap): number {
     if (currencyKey === CURRENCY_ICET) return LEDGER_E6S;
-    const info = ICRC1_TOKENS[currencyKey];
+    const info = icrc1Tokens[currencyKey];
     if (info) return Math.pow(10, info.decimals);
     return LEDGER_E8S;
 }
 
 export default function ListItemForm(props) {
     const freeOnly = !!props.freeOnly;
+    const { state: { escrow } } = useGlobalContext();
+    const { stablecoins } = useStablecoins(escrow);
 
 
     const [values, setValues] = React.useState({
@@ -69,8 +63,8 @@ export default function ListItemForm(props) {
         if (!values.name || values.name == "") { toast.warn("name is required") }
         else if (!freeOnly && values.price < 0) { toast.warn("Price cannot be negative") }
         else {
-            const currency = buildCurrencyVariant(values.currency);
-            const base = ledgerBase(values.currency);
+            const currency = buildCurrencyVariant(values.currency, stablecoins);
+            const base = ledgerBase(values.currency, stablecoins);
             const listype = values.itype == LIST_ITEM_NFT ? {"nft": null}:
                             values.itype == LIST_ITEM_COIN ? {"coin": null}:
                             values.itype == LIST_ITEM_MERCHANDISE ? {"merchandise": null}:
@@ -143,8 +137,9 @@ export default function ListItemForm(props) {
                             >
                                 <option value={CURRENCY_ICP}>{CURRENCY_ICP}</option>
                                 <option value={CURRENCY_ICET}>{CURRENCY_ICET}</option>
-                                <option value={CURRENCY_CKUSDC}>{CURRENCY_CKUSDC}</option>
-                                <option value={CURRENCY_CKUSDT}>{CURRENCY_CKUSDT}</option>
+                                {Object.values(stablecoins).map(sc => (
+                                    <option key={sc.symbol} value={sc.symbol}>{sc.symbol}</option>
+                                ))}
                             </select>
                         </div>
                     </>

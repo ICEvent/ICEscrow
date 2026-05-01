@@ -4,10 +4,6 @@ import moment from 'moment';
 import { toast } from 'react-toastify';
 
 import {
-    CANISTER_CKUSDC,
-    CANISTER_CKUSDT,
-    CURRENCY_CKUSDC,
-    CURRENCY_CKUSDT,
     CURRENCY_ICET,
     CURRENCY_ICP,
     LEDGER_E6S,
@@ -15,18 +11,13 @@ import {
     ORDER_DEFAULT_EXPIRED_DAYS,
 } from '../../lib/constants';
 import { useGlobalContext } from '../Store';
-
-/** Known ICRC-1 stablecoins selectable in the order form. */
-const ICRC1_TOKENS: Record<string, { canisterId: string; symbol: string; decimals: number }> = {
-    [CURRENCY_CKUSDC]: { canisterId: CANISTER_CKUSDC, symbol: CURRENCY_CKUSDC, decimals: 6 },
-    [CURRENCY_CKUSDT]: { canisterId: CANISTER_CKUSDT, symbol: CURRENCY_CKUSDT, decimals: 6 },
-};
+import { useStablecoins, StablecoinMap } from '../../lib/hooks/useStablecoins';
 
 /** Build the Candid Currency variant object expected by the backend. */
-function buildCurrencyVariant(currencyKey: string): Record<string, any> {
+function buildCurrencyVariant(currencyKey: string, icrc1Tokens: StablecoinMap): Record<string, any> {
     if (currencyKey === CURRENCY_ICP) return { ICP: null };
     if (currencyKey === CURRENCY_ICET) return { ICET: null };
-    const info = ICRC1_TOKENS[currencyKey];
+    const info = icrc1Tokens[currencyKey];
     if (info) {
         return {
             ICRC1: {
@@ -40,17 +31,19 @@ function buildCurrencyVariant(currencyKey: string): Record<string, any> {
 }
 
 /** Return the ledger base (smallest units per whole token) for a given key. */
-function ledgerBase(currencyKey: string): number {
+function ledgerBase(currencyKey: string, icrc1Tokens: StablecoinMap): number {
     if (currencyKey === CURRENCY_ICET) return LEDGER_E6S;
-    const info = ICRC1_TOKENS[currencyKey];
+    const info = icrc1Tokens[currencyKey];
     if (info) return Math.pow(10, info.decimals);
     return LEDGER_E8S;
 }
 
 export default function OrderForm(props) {
     const {
-        state: { principal },
+        state: { principal, escrow },
     } = useGlobalContext();
+
+    const { stablecoins } = useStablecoins(escrow);
 
     const [state, setState] = React.useState({
         item: '',
@@ -92,8 +85,8 @@ export default function OrderForm(props) {
             return;
         }
 
-        const base = ledgerBase(state.currency);
-        const currency = buildCurrencyVariant(state.currency);
+        const base = ledgerBase(state.currency, stablecoins);
+        const currency = buildCurrencyVariant(state.currency, stablecoins);
         const expiration = BigInt(moment().add(ORDER_DEFAULT_EXPIRED_DAYS, 'days').unix());
         const amount = BigInt(Math.floor(state.amount * base));
 
@@ -206,8 +199,9 @@ export default function OrderForm(props) {
                     >
                         <option value={CURRENCY_ICP}>{CURRENCY_ICP}</option>
                         <option value={CURRENCY_ICET}>{CURRENCY_ICET}</option>
-                        <option value={CURRENCY_CKUSDC}>{CURRENCY_CKUSDC}</option>
-                        <option value={CURRENCY_CKUSDT}>{CURRENCY_CKUSDT}</option>
+                        {Object.values(stablecoins).map(sc => (
+                            <option key={sc.symbol} value={sc.symbol}>{sc.symbol}</option>
+                        ))}
                     </select>
                 </div>
 
