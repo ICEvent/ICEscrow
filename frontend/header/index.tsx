@@ -52,6 +52,10 @@ const Header: FC = () => {
     navigate("/", { replace: true });
   }
 
+  const openStore3D = () => {
+    navigate("/store3d");
+  }
+
   const openFreeItems = () => {
     setMenu(MENU_FREE);
     navigate("/", { replace: true });
@@ -140,6 +144,13 @@ const Header: FC = () => {
               className={`rounded-lg px-3 py-1.5 text-xs font-bold uppercase tracking-wide transition ${menu == MENU_FREE ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}
             >
               Free 
+            </button>
+            <button
+              type="button"
+              onClick={openStore3D}
+              className="rounded-lg px-3 py-1.5 text-xs font-bold uppercase tracking-wide transition text-slate-600 hover:text-slate-900"
+            >
+              🏪 3D Store
             </button>
             {isAuthed && (
               <>

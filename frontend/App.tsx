@@ -16,6 +16,7 @@ import { Home } from "./pages/Home";
 import Item from "./pages/Item";
 import UserItems from "./pages/UserItems";
 import GiveAwayPage from "./pages/GiveAway";
+import Store3DPage from "./pages/Store3DPage";
 declare global {
   interface Window {
     ic: {
@@ -73,6 +74,7 @@ export default () => {
               <Route path="/item/:id" element={<Item />} />
               <Route path="/userid/:userId" element={<UserItems />} />
               <Route path="/giveaway/:id" element={<GiveAwayPage />} />
+              <Route path="/store3d" element={<Store3DPage />} />
               <Route path="/" element={<Home />} />
             </Routes>
           </main>
