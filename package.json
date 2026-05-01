@@ -24,7 +24,8 @@
     "react-dom": "^18.1.0",
     "react-router-dom": "^6.4.5",
     "react-toastify": "^9.1.1",
-    "three": "^0.176.0"
+    "three": "^0.176.0",
+    "three-mesh-bvh": "^0.8.0"
   },
   "devDependencies": {
     "@types/node": "^17.0.36",
