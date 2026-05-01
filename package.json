@@ -17,11 +17,14 @@
     "@dfinity/identity": "^0.15.1",
     "@dfinity/principal": "^0.15.1",
     "@infu/icblast": "^2.0.46",
+    "@react-three/drei": "^9.122.0",
+    "@react-three/fiber": "^8.18.0",
     "moment": "^2.29.4",
     "react": "^18.1.0",
     "react-dom": "^18.1.0",
     "react-router-dom": "^6.4.5",
-    "react-toastify": "^9.1.1"
+    "react-toastify": "^9.1.1",
+    "three": "^0.176.0"
   },
   "devDependencies": {
     "@types/node": "^17.0.36",
