@@ -17,7 +17,11 @@ module {
     };
     public type Currency = {
         #ICP;
-        #ICET
+        #ICET;
+        // Any ICRC-1 compatible token (ckUSDC, ckUSDT, ckBTC, ckETH, …).
+        // The canisterId uniquely identifies the ledger; symbol and decimals
+        // are cached here so order records are self-describing.
+        #ICRC1 : { canisterId : Principal; symbol : Text; decimals : Nat8 }
     };
     public type Status = {
         #new;
@@ -108,6 +112,9 @@ module {
         memo : Nat64;
         from : Nat;
         to : AccountIdText;
+        // For ICRC-1 tokens the destination is a Principal, not an AccountIdentifier.
+        // This field is used in preference to `to` when the currency is #ICRC1.
+        toPrincipal : ?Principal;
         amount : Nat64;
         currency : Currency
     };

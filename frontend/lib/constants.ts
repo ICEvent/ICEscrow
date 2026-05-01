@@ -47,6 +47,12 @@ export const LISTITEM_STATUS_UNLIST = "unlist";
 
 export const CURRENCY_ICP = "ICP";
 export const CURRENCY_ICET = "ICET";
+export const CURRENCY_CKUSDC = "ckUSDC";
+export const CURRENCY_CKUSDT = "ckUSDT";
+
+// ICRC-1 stablecoin canister IDs on the IC mainnet
+export const CANISTER_CKUSDC = "xevnm-gaaaa-aaaar-qafnq-cai";
+export const CANISTER_CKUSDT = "cngnf-vqaaa-aaaar-qag4q-cai";
 
 export const LIST_ITEM_ALL = "all";
 export const LIST_ITEM_INSCRIPTION = "inscription";

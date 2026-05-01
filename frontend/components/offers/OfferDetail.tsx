@@ -2,7 +2,8 @@ import * as React from 'react';
 import { useGlobalContext, useEscrow, useMenu } from '../Store';
 import { toast } from 'react-toastify';
 import moment from 'moment';
-import { CURRENCY_ICET, CURRENCY_ICP, LEDGER_E6S, LEDGER_E8S, ORDER_DEFAULT_EXPIRED_DAYS, MENU_ORDERS } from '../../lib/constants';
+import { MENU_ORDERS, ORDER_DEFAULT_EXPIRED_DAYS } from '../../lib/constants';
+import { currencyBase, currencySymbol } from '../../lib/currencyUtils';
 import { Link } from 'react-router-dom';
 import PrincipalName from '../PrincipalName';
 
@@ -20,10 +21,11 @@ export default (props) => {
     const [loading, setLoading] = React.useState(false);
     const [claimModalOpen, setClaimModalOpen] = React.useState(false);
     const [claimMessage, setClaimMessage] = React.useState('');
-    const currency = Object.getOwnPropertyNames(props.offer.currency)[0] == CURRENCY_ICP ? CURRENCY_ICP : CURRENCY_ICET;
+    const currency = currencySymbol(props.offer.currency);
     const [itemStatus, setItemStatus] = React.useState(Object.getOwnPropertyNames(props.offer.status)[0]);
 
-    const price = currency == CURRENCY_ICP ? parseInt(props.offer.price) / LEDGER_E8S : parseInt(props.offer.price) / LEDGER_E6S;
+    const base = currencyBase(props.offer.currency);
+    const price = parseInt(props.offer.price) / base;
     const isFree = price === 0;
 
     const buyit = () => {

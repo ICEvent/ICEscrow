@@ -26,6 +26,7 @@ module {
         currency : {
             #ICP;
             #ICET;
+            #ICRC1 : { canisterId : Principal; symbol : Text; decimals : Nat8 };
         };
         status : ItemStatus;
         owner: Principal;
@@ -41,6 +42,7 @@ module {
         currency : {
             #ICP;
             #ICET;
+            #ICRC1 : { canisterId : Principal; symbol : Text; decimals : Nat8 };
         };        
         status : ItemStatus;
     };

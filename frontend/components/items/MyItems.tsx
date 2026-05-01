@@ -3,15 +3,12 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { useEscrow } from '../Store';
 import {
-    CURRENCY_ICP,
-    CURRENCY_ICET,
-    LEDGER_E8S,
-    LEDGER_E6S,
     LISTITEM_STATUS_LIST,
     LISTITEM_STATUS_PENDING,
     LISTITEM_STATUS_SOLD,
     LISTITEM_STATUS_UNLIST,
 } from '../../lib/constants';
+import { currencyBase, currencySymbol } from '../../lib/currencyUtils';
 
 const STATUS_LABELS: Record<string, { label: string; className: string }> = {
     list:    { label: 'Listed',   className: 'bg-emerald-100 text-emerald-700' },
@@ -137,9 +134,9 @@ const MyItems: React.FC = () => {
     };
 
     const getPrice = (item: any) => {
-        const currency = Object.getOwnPropertyNames(item.currency)[0];
+        const currency = currencySymbol(item.currency);
         const raw = Number(item.price);
-        return { currency, price: currency === CURRENCY_ICP ? raw / LEDGER_E8S : raw / LEDGER_E6S };
+        return { currency, price: raw / currencyBase(item.currency) };
     };
 
     const getStatus = (item: any): string => Object.getOwnPropertyNames(item.status)[0];
