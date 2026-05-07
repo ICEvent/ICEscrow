@@ -132,7 +132,7 @@ const Header: FC = () => {
               onClick={openShop}
               className={`rounded-lg px-3 py-1.5 text-xs font-bold uppercase tracking-wide transition ${menu == MENU_HOME ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}
             >
-              Shop
+              Market
             </button>
             <button
               type="button"
