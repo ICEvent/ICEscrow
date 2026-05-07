@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { CURRENCY_ICP, LEDGER_E8S } from '../../lib/constants';
 import { currencyBase, currencySymbol } from '../../lib/currencyUtils';
+import { getItemImageSrc } from '../../lib/itemImage';
 
 
 
@@ -11,6 +12,7 @@ export default (props) => {
     const price = parseInt(props.offer.price) / base;
     const isFree = price === 0;
     const openDetails = () => props.onOpen?.(props.offer);
+    const imageSrc = getItemImageSrc(props.offer);
 
     return (
         <div className="soft-hover-card group overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
@@ -29,18 +31,12 @@ export default (props) => {
                     </div>
                 )}
 
-                {props.offer.image ? (
-                    <img
-                        className="h-52 w-full object-cover transition duration-300 group-hover:scale-[1.03]"
-                        src={props.offer.image}
-                        alt={props.offer.name}
-                        title={props.offer.description}
-                    />
-                ) : (
-                    <div className="flex h-52 w-full items-center justify-center bg-slate-100 text-sm font-semibold text-slate-500">
-                        No product image
-                    </div>
-                )}
+                <img
+                    className="h-52 w-full object-cover transition duration-300 group-hover:scale-[1.03]"
+                    src={imageSrc}
+                    alt={props.offer.name}
+                    title={props.offer.description}
+                />
             </button>
 
             <div className="space-y-3 p-4">

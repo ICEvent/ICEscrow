@@ -4,6 +4,7 @@ import { toast } from 'react-toastify';
 import moment from 'moment';
 import { MENU_ORDERS, ORDER_DEFAULT_EXPIRED_DAYS } from '../../lib/constants';
 import { currencyBase, currencySymbol } from '../../lib/currencyUtils';
+import { getItemImageSrc } from '../../lib/itemImage';
 import { Link } from 'react-router-dom';
 import PrincipalName from '../PrincipalName';
 
@@ -174,6 +175,7 @@ export default (props) => {
     const itemType = Object.getOwnPropertyNames(props.offer.itype)[0];
     const isHeld = itemStatus === "pending";
     const isSold = itemStatus === "sold";
+    const imageSrc = getItemImageSrc(props.offer);
 
     return (
         <>
@@ -216,17 +218,11 @@ export default (props) => {
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-12 lg:gap-6">
                 <div className="lg:col-span-7">
                     <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
-                        {props.offer.image ? (
-                            <img
-                                className="h-[340px] w-full bg-slate-100 object-cover sm:h-[430px]"
-                                src={props.offer.image}
-                                alt={props.offer.name}
-                            />
-                        ) : (
-                            <div className="flex h-[340px] w-full items-center justify-center bg-slate-100 text-sm font-semibold text-slate-500 sm:h-[430px]">
-                                No image available
-                            </div>
-                        )}
+                        <img
+                            className="h-[340px] w-full bg-slate-100 object-cover sm:h-[430px]"
+                            src={imageSrc}
+                            alt={props.offer.name}
+                        />
                     </div>
 
                 </div>

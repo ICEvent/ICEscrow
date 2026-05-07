@@ -3,6 +3,7 @@ import moment from 'moment';
 
 import OfferDetail from "./OfferDetail";
 import { currencyBase, currencySymbol } from '../../lib/currencyUtils';
+import { getItemImageSrc } from '../../lib/itemImage';
 
 export default (props) => {
     const [openOfferDetail, setOpenOfferDetail] = React.useState(false);
@@ -11,6 +12,7 @@ export default (props) => {
 
     const price = parseInt(props.offer.price) / base;
     const isFree = price === 0;
+    const imageSrc = getItemImageSrc(props.offer);
 
     return (
         <>
@@ -19,17 +21,11 @@ export default (props) => {
             onClick={() => setOpenOfferDetail(true)}
             className="soft-hover-card group flex cursor-pointer items-center gap-4 rounded-2xl border border-white/60 bg-white/90 px-4 py-3 shadow-sm transition hover:-translate-y-0.5 hover:border-cyan-300 hover:bg-white hover:shadow-lg"
         >
-                {props.offer.image ? (
-                    <img
-                        src={props.offer.image}
-                        alt={props.offer.name}
-                        className="h-14 w-14 rounded-xl object-cover ring-1 ring-slate-200"
-                    />
-                ) : (
-                    <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-slate-200 text-xs text-slate-500 ring-1 ring-slate-200">
-                        No image
-                    </div>
-                )}
+                <img
+                    src={imageSrc}
+                    alt={props.offer.name}
+                    className="h-14 w-14 rounded-xl object-cover ring-1 ring-slate-200"
+                />
                 <div className="w-full">
                     <div className="flex items-center justify-between gap-3">
                         <div>
