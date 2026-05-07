@@ -78,10 +78,11 @@ export function getItemTypeKey(itemType: ItemTypeValue): string {
 function defaultImageSvg(itemType: ItemTypeValue): string {
     const typeKey = getItemTypeKey(itemType);
     const theme = ITEM_IMAGE_THEMES[typeKey] ?? ITEM_IMAGE_THEMES[LIST_ITEM_OTHER];
-    const badge = theme.label.slice(0, 1).toUpperCase();
+    const safeLabel = escapeSvgText(theme.label);
+    const badge = escapeSvgText(theme.label.slice(0, 1).toUpperCase());
 
     return `
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 900" role="img" aria-label="${theme.label} default image">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 900" role="img" aria-label="${safeLabel} default image">
             <defs>
                 <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
                     <stop offset="0%" stop-color="${theme.backgroundStart}" />
@@ -93,13 +94,22 @@ function defaultImageSvg(itemType: ItemTypeValue): string {
             <circle cx="195" cy="730" r="144" fill="${theme.accentSoft}" opacity="0.9" />
             <rect x="86" y="86" width="180" height="180" rx="42" fill="${theme.accent}" opacity="0.95" />
             <text x="176" y="198" text-anchor="middle" font-family="Arial, sans-serif" font-size="88" font-weight="700" fill="#ffffff">${badge}</text>
-            <text x="86" y="384" font-family="Arial, sans-serif" font-size="64" font-weight="700" fill="${theme.accent}">${theme.label}</text>
+            <text x="86" y="384" font-family="Arial, sans-serif" font-size="64" font-weight="700" fill="${theme.accent}">${safeLabel}</text>
             <text x="86" y="468" font-family="Arial, sans-serif" font-size="36" fill="#334155">Default item image</text>
             <rect x="86" y="548" width="1028" height="18" rx="9" fill="${theme.accentSoft}" />
             <rect x="86" y="600" width="720" height="18" rx="9" fill="${theme.accentSoft}" opacity="0.8" />
             <rect x="86" y="652" width="864" height="18" rx="9" fill="${theme.accentSoft}" opacity="0.65" />
         </svg>
     `.trim();
+}
+
+function escapeSvgText(value: string): string {
+    return value
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
 }
 
 function toDataUri(svg: string): string {
