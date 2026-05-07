@@ -9,6 +9,7 @@ import {
     LISTITEM_STATUS_UNLIST,
 } from '../../lib/constants';
 import { currencyBase, currencySymbol } from '../../lib/currencyUtils';
+import { getItemImageSrc } from '../../lib/itemImage';
 
 const STATUS_LABELS: Record<string, { label: string; className: string }> = {
     list:    { label: 'Listed',   className: 'bg-emerald-100 text-emerald-700' },
@@ -173,23 +174,18 @@ const MyItems: React.FC = () => {
                         const isFree = price === 0;
                         const busy = changingId === item.id;
                         const statusInfo = STATUS_LABELS[status] ?? { label: status, className: 'bg-slate-100 text-slate-500' };
+                        const imageSrc = getItemImageSrc(item);
 
                         return (
                             <div
                                 key={String(item.id)}
                                 className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4 sm:flex-row sm:items-center"
                             >
-                                {item.image ? (
-                                    <img
-                                        src={item.image}
-                                        alt={item.name}
-                                        className="h-16 w-16 flex-shrink-0 rounded-xl object-cover"
-                                    />
-                                ) : (
-                                    <div className="flex h-16 w-16 flex-shrink-0 items-center justify-center rounded-xl bg-slate-100 text-xs text-slate-400">
-                                        No img
-                                    </div>
-                                )}
+                                <img
+                                    src={imageSrc}
+                                    alt={item.name}
+                                    className="h-16 w-16 flex-shrink-0 rounded-xl object-cover"
+                                />
 
                                 <div className="min-w-0 flex-1">
                                     <div className="flex flex-wrap items-center gap-2">

@@ -5,6 +5,7 @@ import { toast } from 'react-toastify';
 import { useEscrow, useGlobalContext, useMenu } from '../components/Store';
 import { Item } from 'frontend/api/escrow/service.did';
 import { MENU_HOME } from '../lib/constants';
+import { getItemImageSrc } from '../lib/itemImage';
 
 export default function GiveAwayPage() {
     const escrow = useEscrow();
@@ -26,6 +27,7 @@ export default function GiveAwayPage() {
     }, []);
 
     const isOwner = item && principal && item.owner.toString() === principal.toString();
+    const imageSrc = item ? getItemImageSrc(item) : '';
 
     const validateRecipient = (value: string): boolean => {
         if (!value.trim()) {
@@ -96,15 +98,13 @@ export default function GiveAwayPage() {
                         </p>
                     </div>
 
-                    {item.image && (
-                        <div className="mb-5 overflow-hidden rounded-2xl border border-slate-200 bg-white">
-                            <img
-                                className="h-48 w-full object-cover"
-                                src={item.image}
-                                alt={item.name}
-                            />
-                        </div>
-                    )}
+                    <div className="mb-5 overflow-hidden rounded-2xl border border-slate-200 bg-white">
+                        <img
+                            className="h-48 w-full object-cover"
+                            src={imageSrc}
+                            alt={item.name}
+                        />
+                    </div>
 
                     <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600 mb-5">
                         <p className="font-semibold text-slate-800 mb-1">Item details</p>
