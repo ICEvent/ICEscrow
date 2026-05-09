@@ -10,6 +10,7 @@ import {
 } from '../../lib/constants';
 import { currencyBase, currencySymbol } from '../../lib/currencyUtils';
 import { getItemImageSrc } from '../../lib/itemImage';
+import EditItemForm from '../offers/EditItemForm';
 
 const STATUS_LABELS: Record<string, { label: string; className: string }> = {
     list:    { label: 'Listed',   className: 'bg-emerald-100 text-emerald-700' },
@@ -72,6 +73,7 @@ const MyItems: React.FC = () => {
     const [loading, setLoading] = React.useState(false);
     const [changingId, setChangingId] = React.useState<bigint | null>(null);
     const [deleteTarget, setDeleteTarget] = React.useState<{ id: bigint; name: string } | null>(null);
+    const [editTarget, setEditTarget] = React.useState<any | null>(null);
 
     const loadItems = React.useCallback(async () => {
         try {
@@ -131,6 +133,28 @@ const MyItems: React.FC = () => {
         } finally {
             setChangingId(null);
             setDeleteTarget(null);
+        }
+    };
+
+    const saveEdit = async (payload: any) => {
+        if (!editTarget) return;
+        try {
+            const res = await escrow.updateItem(editTarget.id, payload);
+            if (res['ok'] !== undefined) {
+                toast.success('Item updated');
+                setItems((prev) =>
+                    prev.map((item) =>
+                        item.id === editTarget.id
+                            ? { ...item, ...payload, price: payload.price, currency: payload.currency, itype: payload.itype, location: payload.location }
+                            : item
+                    )
+                );
+                setEditTarget(null);
+            } else {
+                toast.error(res['err'] ?? 'Failed to update item');
+            }
+        } catch {
+            toast.error('Failed to update item');
         }
     };
 
@@ -266,6 +290,14 @@ const MyItems: React.FC = () => {
                                     <button
                                         type="button"
                                         disabled={busy}
+                                        onClick={() => setEditTarget(item)}
+                                        className="rounded-lg border border-cyan-300 bg-cyan-50 px-3 py-1.5 text-xs font-semibold text-cyan-700 transition hover:bg-cyan-100 disabled:opacity-50"
+                                    >
+                                        Edit
+                                    </button>
+                                    <button
+                                        type="button"
+                                        disabled={busy}
                                         onClick={() => setDeleteTarget({ id: item.id, name: item.name })}
                                         className="rounded-lg border border-rose-300 bg-rose-50 px-3 py-1.5 text-xs font-semibold text-rose-600 transition hover:bg-rose-100 disabled:opacity-50"
                                     >
@@ -284,6 +316,25 @@ const MyItems: React.FC = () => {
                     onConfirm={() => deleteItem(deleteTarget.id)}
                     onCancel={() => setDeleteTarget(null)}
                 />
+            )}
+
+            {editTarget && (
+                <div
+                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+                    onClick={() => setEditTarget(null)}
+                >
+                    <div
+                        className="w-full max-w-lg rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <h3 className="mb-4 text-base font-bold text-slate-900">Edit Item</h3>
+                        <EditItemForm
+                            item={editTarget}
+                            onSave={saveEdit}
+                            onCancel={() => setEditTarget(null)}
+                        />
+                    </div>
+                </div>
             )}
         </section>
     );

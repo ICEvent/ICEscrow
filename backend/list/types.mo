@@ -16,6 +16,11 @@ module {
             #other;
         };
 
+    public type Location = {
+            #online;
+            #physical : Text;
+        };
+
     public type Item = {
         id: Nat;
         name : Text;
@@ -28,6 +33,7 @@ module {
             #ICET;
             #ICRC1 : { canisterId : Principal; symbol : Text; decimals : Nat8 };
         };
+        location : Location;
         status : ItemStatus;
         owner: Principal;
         listime : Int;
@@ -44,7 +50,22 @@ module {
             #ICET;
             #ICRC1 : { canisterId : Principal; symbol : Text; decimals : Nat8 };
         };        
+        location : Location;
         status : ItemStatus;
+    };
+
+    public type UpdateItem = {
+        name : Text;
+        description : Text;
+        image : Text;
+        itype : Itype;
+        price : Nat64;
+        currency : {
+            #ICP;
+            #ICET;
+            #ICRC1 : { canisterId : Principal; symbol : Text; decimals : Nat8 };
+        };
+        location : Location;
     };
     
 

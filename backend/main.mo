@@ -116,8 +116,29 @@ persistent actor class EscrowService() = this {
     var nextOrderId : Nat = 1;
     var upgradeOrders : [(Nat, Order)] = [];
 
+    // Old deployed Item type — no `location` field. Kept to deserialise stable memory on this upgrade only.
+    type OldItem = {
+        id : Nat;
+        name : Text;
+        description : Text;
+        image : Text;
+        itype : ItemTypes.Itype;
+        price : Nat64;
+        currency : {
+            #ICP;
+            #ICET;
+            #ICRC1 : { canisterId : Principal; symbol : Text; decimals : Nat8 }
+        };
+        status : ItemTypes.ItemStatus;
+        owner : Principal;
+        listime : Int
+    };
+
     var _upgradeItemId : Nat = 1;
-    var _upgradeItems : [(Nat, ItemTypes.Item)] = [];
+    // Old stable store — Item without location. Kept for one-time migration.
+    var _upgradeItems : [(Nat, OldItem)] = [];
+    // New stable store — Item with location.
+    var _upgradeItemsV2 : [(Nat, ItemTypes.Item)] = [];
     var nextFreeItemClaimId : Nat = 1;
     // upgradeFreeItemClaims (old name, deployed without `comments`) is intentionally dropped.
     // Dropping a stable var is a WARNING (data loss) not an ERROR — and the live canister
@@ -154,7 +175,28 @@ persistent actor class EscrowService() = this {
     transient var orders = TrieMap.TrieMap<Nat, Order>(Nat.equal, natHash);
     orders := TrieMap.fromEntries<Nat, Order>(Iter.fromArray(upgradeOrders), Nat.equal, natHash);
 
-    transient let items = Items.Items(_upgradeItemId, _upgradeItems);
+    // One-time migration: add location = #online to items that don't have it yet.
+    transient let _migratedItems : [(Nat, ItemTypes.Item)] = if (_upgradeItems.size() > 0) {
+        Array.map<(Nat, OldItem), (Nat, ItemTypes.Item)>(
+            _upgradeItems,
+            func((k, v) : (Nat, OldItem)) : (Nat, ItemTypes.Item) {
+                (k, {
+                    id = v.id;
+                    name = v.name;
+                    description = v.description;
+                    image = v.image;
+                    itype = v.itype;
+                    price = v.price;
+                    currency = v.currency;
+                    status = v.status;
+                    owner = v.owner;
+                    listime = v.listime;
+                    location = #online
+                })
+            }
+        )
+    } else { _upgradeItemsV2 };
+    transient let items = Items.Items(_upgradeItemId, _migratedItems);
     transient var freeItemClaims = TrieMap.TrieMap<Nat, FreeItemClaim>(Nat.equal, natHash);
     freeItemClaims := if (upgradeFreeItemClaimsV2.size() > 0) {
         // One-time migration from V2: add closedAt = null and canceledAt = null.
@@ -1373,6 +1415,26 @@ persistent actor class EscrowService() = this {
         }
     };
 
+    public shared ({ caller }) func updateItem(id : Nat, data : ItemTypes.UpdateItem) : async Result.Result<Nat, Text> {
+        if (Principal.isAnonymous(caller)) {
+            #err("no authenticated")
+        } else {
+            let item = items.retrieve(id);
+            switch (item) {
+                case (?item) {
+                    if (item.owner == caller) {
+                        items.update(id, data)
+                    } else {
+                        #err("no permission")
+                    }
+                };
+                case (_) {
+                    #err("no item found")
+                };
+            };
+        }
+    };
+
     public query func searchItems(itype : ItemTypes.Itype, page : Nat) : async [ItemTypes.Item] {
         let titems = items.getTypeItems(itype);
         Page.getArrayPage(titems, page, default_page_size)
@@ -1842,7 +1904,8 @@ persistent actor class EscrowService() = this {
     system func preupgrade() {
         upgradeOrders := Iter.toArray(orders.entries());
         _upgradeItemId := items.toStableId();
-        _upgradeItems := items.toStable();
+        _upgradeItemsV2 := items.toStable();
+        _upgradeItems := []; // clear old migration source
         upgradeFreeItemClaimsV4 := Iter.toArray(freeItemClaims.entries());
         upgradeFreeItemClaimsV3 := []; // clear old migration source
         upgradeFreeItemClaimsV2 := []; // clear old migration source
@@ -1864,6 +1927,7 @@ persistent actor class EscrowService() = this {
 
     system func postupgrade() {
         _upgradeItems := [];
+        _upgradeItemsV2 := [];
         upgradeFreeItemClaimsV3 := []; // ensure old migration source stays cleared
         upgradeFreeItemClaimsV2 := [];
     };
@@ -1873,7 +1937,7 @@ persistent actor class EscrowService() = this {
     };
 
     public query func getItemsSize() : async Nat {
-        _upgradeItems.size()
+        _upgradeItemsV2.size()
     };
 
     public query func availableCycles() : async Nat {

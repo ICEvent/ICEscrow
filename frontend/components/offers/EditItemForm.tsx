@@ -4,7 +4,6 @@ import {
     CURRENCY_ICP,
     LEDGER_E6S,
     LEDGER_E8S,
-    LISTITEM_STATUS_LIST,
     LIST_ITEM_COIN,
     LIST_ITEM_MERCHANDISE,
     LIST_ITEM_NFT,
@@ -15,6 +14,7 @@ import { toast } from 'react-toastify';
 import { Principal } from '@dfinity/principal';
 import { useGlobalContext } from '../Store';
 import { useStablecoins, StablecoinMap } from '../../lib/hooks/useStablecoins';
+import { currencyBase, currencySymbol } from '../../lib/currencyUtils';
 
 function buildCurrencyVariant(currencyKey: string, icrc1Tokens: StablecoinMap): Record<string, any> {
     if (currencyKey === CURRENCY_ICP) return { ICP: null };
@@ -39,56 +39,76 @@ function ledgerBase(currencyKey: string, icrc1Tokens: StablecoinMap): number {
     return LEDGER_E8S;
 }
 
-export default function ListItemForm(props) {
-    const freeOnly = !!props.freeOnly;
+/** Derive the currency key string (ICP / ICET / symbol) from a canister currency variant. */
+function currencyToKey(currency: any): string {
+    if ('ICP' in currency) return CURRENCY_ICP;
+    if ('ICET' in currency) return CURRENCY_ICET;
+    if ('ICRC1' in currency) return currency.ICRC1.symbol;
+    return CURRENCY_ICP;
+}
+
+export default function EditItemForm({ item, onSave, onCancel }: {
+    item: any;
+    onSave: (updated: any) => Promise<void>;
+    onCancel: () => void;
+}) {
     const { state: { escrow } } = useGlobalContext();
     const { stablecoins } = useStablecoins(escrow);
 
+    const locationKey = item.location
+        ? ('online' in item.location ? 'online' : 'physical')
+        : 'online';
+    const cityValue = item.location && 'physical' in item.location
+        ? item.location.physical
+        : '';
+    const itypeKey = Object.getOwnPropertyNames(item.itype)[0];
+    const base = currencyBase(item.currency);
 
     const [values, setValues] = React.useState({
-        name: "",
-        description: "",
-        image: "",
-        itype: props.itype,
-        price: 0,
-        currency: CURRENCY_ICP,
-        location: "online",
-        city: "",
-        status: LISTITEM_STATUS_LIST
+        name: item.name ?? '',
+        description: item.description ?? '',
+        image: item.image ?? '',
+        itype: itypeKey,
+        price: Number(item.price) / base,
+        currency: currencyToKey(item.currency),
+        location: locationKey,
+        city: cityValue,
     });
+    const [saving, setSaving] = React.useState(false);
 
-    const handleChange = (e) => {
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         setValues({ ...values, [e.target.name]: e.target.value });
     };
 
-    const list = () => {
-        if (!values.name || values.name == "") { toast.warn("name is required") }
-        else if (!freeOnly && values.price < 0) { toast.warn("Price cannot be negative") }
-        else {
-            const currency = buildCurrencyVariant(values.currency, stablecoins);
-            const base = ledgerBase(values.currency, stablecoins);
-            const listype = values.itype == LIST_ITEM_NFT ? {"nft": null}:
-                            values.itype == LIST_ITEM_COIN ? {"coin": null}:
-                            values.itype == LIST_ITEM_MERCHANDISE ? {"merchandise": null}:
-                            values.itype == LIST_ITEM_SERVICE ? {"service": null}:{"other": null}
-            
-            const location = values.location === "online"
-                ? { online: null }
-                : { physical: values.city };
-            let i = {
-                name: values.name,
-                description: values.description,
-                image: values.image,
-                itype: listype,
-                price: freeOnly ? BigInt(0) : BigInt(Math.floor(values.price * base)),
-                currency: currency,
-                location: location,
-                status: { "list": null }
-            };
-            props.submit(i);
+    const save = async () => {
+        if (!values.name) { toast.warn('Name is required'); return; }
+        const currency = buildCurrencyVariant(values.currency, stablecoins);
+        const base = ledgerBase(values.currency, stablecoins);
+        const itype =
+            values.itype === LIST_ITEM_NFT ? { nft: null } :
+            values.itype === LIST_ITEM_COIN ? { coin: null } :
+            values.itype === LIST_ITEM_MERCHANDISE ? { merchandise: null } :
+            values.itype === LIST_ITEM_SERVICE ? { service: null } :
+            { other: null };
+        const location = values.location === 'online'
+            ? { online: null }
+            : { physical: values.city };
 
+        const payload = {
+            name: values.name,
+            description: values.description,
+            image: values.image,
+            itype,
+            price: BigInt(Math.floor(values.price * base)),
+            currency,
+            location,
+        };
+        setSaving(true);
+        try {
+            await onSave(payload);
+        } finally {
+            setSaving(false);
         }
-
     };
 
     return (
@@ -120,39 +140,35 @@ export default function ListItemForm(props) {
                     />
                 </div>
 
-                {!freeOnly && (
-                    <>
-                        <div className="sm:col-span-6">
-                            <label className="mb-1 block text-sm font-medium text-slate-700">Price</label>
-                            <input
-                                name="price"
-                                type="number"
-                                value={values.price}
-                                onChange={handleChange}
-                                className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-cyan-500"
-                            />
-                        </div>
+                <div className="sm:col-span-6">
+                    <label className="mb-1 block text-sm font-medium text-slate-700">Price</label>
+                    <input
+                        name="price"
+                        type="number"
+                        value={values.price}
+                        onChange={handleChange}
+                        className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-cyan-500"
+                    />
+                </div>
 
-                        <div className="sm:col-span-6">
-                            <label className="mb-1 block text-sm font-medium text-slate-700">Currency</label>
-                            <select
-                                value={values.currency}
-                                name="currency"
-                                onChange={handleChange}
-                                className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-cyan-500"
-                            >
-                                <option value={CURRENCY_ICP}>{CURRENCY_ICP}</option>
-                                <option value={CURRENCY_ICET}>{CURRENCY_ICET}</option>
-                                {Object.values(stablecoins).map(sc => (
-                                    <option key={sc.symbol} value={sc.symbol}>{sc.symbol}</option>
-                                ))}
-                            </select>
-                        </div>
-                    </>
-                )}
+                <div className="sm:col-span-6">
+                    <label className="mb-1 block text-sm font-medium text-slate-700">Currency</label>
+                    <select
+                        value={values.currency}
+                        name="currency"
+                        onChange={handleChange}
+                        className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-cyan-500"
+                    >
+                        <option value={CURRENCY_ICP}>{CURRENCY_ICP}</option>
+                        <option value={CURRENCY_ICET}>{CURRENCY_ICET}</option>
+                        {Object.values(stablecoins).map(sc => (
+                            <option key={sc.symbol} value={sc.symbol}>{sc.symbol}</option>
+                        ))}
+                    </select>
+                </div>
 
                 <div className="sm:col-span-12">
-                    <label className="mb-1 block text-sm font-medium text-slate-700">Image url</label>
+                    <label className="mb-1 block text-sm font-medium text-slate-700">Image URL</label>
                     <input
                         name="image"
                         value={values.image}
@@ -173,10 +189,10 @@ export default function ListItemForm(props) {
                             <option value="online">Online</option>
                             <option value="physical">Physical</option>
                         </select>
-                        {values.location === "physical" && (
+                        {values.location === 'physical' && (
                             <input
                                 name="city"
-                                placeholder="where it is (e.g City, town, etc.)"
+                                placeholder="City"
                                 value={values.city}
                                 onChange={handleChange}
                                 className="flex-1 rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-cyan-500"
@@ -195,18 +211,25 @@ export default function ListItemForm(props) {
                     />
                 </div>
 
-                <div className="sm:col-span-12">
+                <div className="sm:col-span-12 flex gap-2">
                     <button
                         type="button"
-                        onClick={list}
-                        disabled={!values.name}
+                        onClick={save}
+                        disabled={saving || !values.name}
                         className="rounded-md bg-cyan-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-cyan-700 disabled:cursor-not-allowed disabled:bg-slate-300"
                     >
-                        {freeOnly ? 'Give Away' : 'List'}
+                        {saving ? 'Saving…' : 'Save'}
+                    </button>
+                    <button
+                        type="button"
+                        onClick={onCancel}
+                        disabled={saving}
+                        className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"
+                    >
+                        Cancel
                     </button>
                 </div>
             </div>
         </div>
-
     );
 }

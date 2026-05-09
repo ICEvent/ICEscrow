@@ -18,6 +18,7 @@ module{
 
     type Item = Types.Item;
     type NewItem = Types.NewItem;
+    type UpdateItem = Types.UpdateItem;
     type Status = Types.ItemStatus;
     type Itype = Types.Itype;
 
@@ -50,6 +51,7 @@ module{
                 itype = newData.itype;
                 price  = newData.price;
                 currency  = newData.currency;
+                location = newData.location;
                 status = newData.status;
                 owner = owner;
                 listime = Time.now();
@@ -73,6 +75,7 @@ module{
                         itype = fitem.itype;
                         price  = fitem.price;
                         currency  = fitem.currency;
+                        location = fitem.location;
                         status = status;
                         owner = fitem.owner;
                         listime = fitem.listime;
@@ -123,6 +126,32 @@ module{
             items.get(id)
         };
 
+        public func update(id: Nat, data: UpdateItem): Result.Result<Nat, Text> {
+            let fitem = items.get(id);
+            switch (fitem) {
+                case (?fitem) {
+                    let udata = {
+                        id = fitem.id;
+                        name = data.name;
+                        description = data.description;
+                        image = data.image;
+                        itype = data.itype;
+                        price = data.price;
+                        currency = data.currency;
+                        location = data.location;
+                        status = fitem.status;
+                        owner = fitem.owner;
+                        listime = fitem.listime;
+                    };
+                    items.put(id, udata);
+                    #ok(1)
+                };
+                case (_) {
+                    #err("no item found")
+                };
+            };
+        };
+
         public func delete(id: Nat): ?Item{
             items.remove(id);
         };
@@ -139,6 +168,7 @@ module{
                         itype = fitem.itype;
                         price  = fitem.price;
                         currency  = fitem.currency;
+                        location = fitem.location;
                         status = #unlist;
                         owner = newOwner;
                         listime = fitem.listime;

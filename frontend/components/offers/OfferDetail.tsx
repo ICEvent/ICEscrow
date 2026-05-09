@@ -173,6 +173,9 @@ export default (props) => {
     const isOwner = principal && props.offer.owner.toString() === principal.toString();
     const listedDate = moment.unix(Number(props.offer.listime) / 1000000000).format('MMMM DD, YYYY');
     const itemType = Object.getOwnPropertyNames(props.offer.itype)[0];
+    const locationLabel = props.offer.location
+        ? ('online' in props.offer.location ? 'Online' : `${props.offer.location.physical}`)
+        : null;
     const isHeld = itemStatus === "pending";
     const isSold = itemStatus === "sold";
     const imageSrc = getItemImageSrc(props.offer);
@@ -241,6 +244,9 @@ export default (props) => {
 
                         <div className="mt-4 space-y-2 rounded-xl border border-slate-200 bg-slate-50 p-3">
                             <p className="text-xs text-slate-600">Listed on: <span className="font-semibold text-slate-800">{listedDate}</span></p>
+                            {locationLabel && (
+                                <p className="text-xs text-slate-600">Location: <span className="font-semibold text-slate-800">{locationLabel}</span></p>
+                            )}
                             <p className="text-xs text-slate-600">
                                 Seller:{" "}
                                 <Link className="font-semibold text-cyan-700 hover:text-cyan-800 hover:underline" to={`/userid/${props.offer.owner.toString()}`}>
