@@ -29,27 +29,31 @@ export default (props) => {
     const price = parseInt(props.offer.price) / base;
     const isFree = price === 0;
 
-    const buyit = () => {
+    const buyit = async () => {
         if (!isAuthed) {
             toast.warn("Plseae login first");
-
-        } else {
-            setLoading(true)
-            escrow.create({
+            return;
+        }
+        setLoading(true);
+        try {
+            const res = await escrow.create({
                 seller: props.offer.owner,
                 memo: props.offer.name,
                 amount: props.offer.price,
                 currency: props.offer.currency,
                 expiration: BigInt(moment().add(ORDER_DEFAULT_EXPIRED_DAYS, "days").unix())
-            }).then(res => {
-                setLoading(false)
-                if (res["ok"]) {
-                    toast.success("Your order has been created, check your order list!")
-                } else {
-                    toast.error(res["err"] ? res["err"] : "check console log for error message")
-                };
-                props.close ? props.close() : null;
             });
+            if (res["ok"] !== undefined) {
+                toast.success("Your order has been created, check your order list!");
+            } else {
+                toast.error(res["err"] ? res["err"] : "check console log for error message");
+            }
+            props.close ? props.close() : null;
+        } catch (e) {
+            console.error("create order error", e);
+            toast.error("Failed to create order: " + (e instanceof Error ? e.message : String(e)));
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -80,18 +84,22 @@ export default (props) => {
         }
     };
 
-    const holdItem = () => {
-        setLoading(true)
-        escrow.changeItemStatus(props.offer.id, { "pending": null }).then(res => {
+    const holdItem = async () => {
+        setLoading(true);
+        try {
+            const res = await escrow.changeItemStatus(props.offer.id, { "pending": null });
             if (res["ok"]) {
-                toast.success("Item set to hold")
-                setItemStatus("pending")
+                toast.success("Item set to hold");
+                setItemStatus("pending");
             } else {
-                toast.error(res["err"])
-            };
-            setLoading(false)
-
-        })
+                toast.error(res["err"]);
+            }
+        } catch (e) {
+            console.error("holdItem error", e);
+            toast.error("Failed to hold item: " + (e instanceof Error ? e.message : String(e)));
+        } finally {
+            setLoading(false);
+        }
     };
 
     const getOrderStatus = (order) => Object.getOwnPropertyNames(order.status)[0];
@@ -142,32 +150,40 @@ export default (props) => {
         }
     };
 
-    const relist = () => {
-        setLoading(true)
-        escrow.changeItemStatus(props.offer.id, { "list": null }).then(res => {
+    const relist = async () => {
+        setLoading(true);
+        try {
+            const res = await escrow.changeItemStatus(props.offer.id, { "list": null });
             if (res["ok"]) {
-                toast.success("Item relisted")
-                setItemStatus("list")
+                toast.success("Item relisted");
+                setItemStatus("list");
             } else {
-                toast.error(res["err"])
-            };
-            setLoading(false)
-
-        })
+                toast.error(res["err"]);
+            }
+        } catch (e) {
+            console.error("relist error", e);
+            toast.error("Failed to relist item: " + (e instanceof Error ? e.message : String(e)));
+        } finally {
+            setLoading(false);
+        }
     };
 
-    const unlist = () => {
-        setLoading(true)
-        escrow.changeItemStatus(props.offer.id, { "unlist": null }).then(res => {
+    const unlist = async () => {
+        setLoading(true);
+        try {
+            const res = await escrow.changeItemStatus(props.offer.id, { "unlist": null });
             if (res["ok"]) {
-                toast.success("unlist this item")
-                setItemStatus("unlist")
+                toast.success("unlist this item");
+                setItemStatus("unlist");
             } else {
-                toast.error(res["err"])
-            };
-            setLoading(false)
-
-        })
+                toast.error(res["err"]);
+            }
+        } catch (e) {
+            console.error("unlist error", e);
+            toast.error("Failed to unlist item: " + (e instanceof Error ? e.message : String(e)));
+        } finally {
+            setLoading(false);
+        }
     };
 
     const isOwner = principal && props.offer.owner.toString() === principal.toString();
