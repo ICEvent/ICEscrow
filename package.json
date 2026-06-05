@@ -3,7 +3,7 @@
   "version": "0.0.1",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build",
+    "build": "tsc && vite build && cp frontend/.ic-assets.json5 dist/.ic-assets.json5 && mkdir -p dist/.well-known && cp frontend/.well-known/* dist/.well-known/",
     "serve": "vite preview",
     "deploy": "DFX_WARNING=-mainnet_plaintext_identity dfx canister --ic install escrow --mode upgrade --wasm-memory-persistence keep && DFX_WARNING=-mainnet_plaintext_identity dfx canister --ic install escrow_assets --mode upgrade",
     "deploy:backend": "DFX_WARNING=-mainnet_plaintext_identity dfx canister --ic install escrow --mode upgrade --wasm-memory-persistence keep",

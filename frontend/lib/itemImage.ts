@@ -116,9 +116,21 @@ function toDataUri(svg: string): string {
     return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
 }
 
+function isAllowedImageUrl(value: string): boolean {
+    if (/^data:image\//i.test(value)) return true;
+    if (/^blob:/i.test(value)) return true;
+
+    try {
+        const parsed = new URL(value);
+        return parsed.protocol === 'https:' || parsed.protocol === 'http:';
+    } catch {
+        return false;
+    }
+}
+
 export function getItemImageSrc(item: { image?: string; itype?: ItemTypeValue } | null | undefined): string {
     const image = item?.image?.trim();
-    if (image) {
+    if (image && isAllowedImageUrl(image)) {
         return image;
     }
 
