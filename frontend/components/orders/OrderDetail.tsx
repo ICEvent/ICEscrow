@@ -159,15 +159,15 @@ export default (props) => {
     return (
         <div className="space-y-4 rounded-lg border border-slate-200 bg-white p-4">
             <div className="grid grid-cols-1 gap-2 text-sm sm:grid-cols-2">
-                <div className="rounded-md bg-slate-50 px-3 py-2"><span className="font-semibold text-slate-700">Create Time:</span> {moment.unix(parseInt(order.createtime) / 1000000000).format("YYYY-MM-DD hh:mm")}</div>
-                <div className="rounded-md bg-slate-50 px-3 py-2"><span className="font-semibold text-slate-700">ID:</span> {parseInt(order.id)}</div>
-                <div className="rounded-md bg-slate-50 px-3 py-2"><span className="font-semibold text-slate-700">Amount:</span> {amountLabel}</div>
-                {!isFreeOrder && <div className="rounded-md bg-slate-50 px-3 py-2"><span className="font-semibold text-slate-700">Escrow Account:</span> {order.account.id}</div>}
-                <div className="rounded-md bg-slate-50 px-3 py-2 sm:col-span-2"><span className="font-semibold text-slate-700">Buyer {order.buyer.toString() == principal.toString() ? "(you)" : ""}:</span> <PrincipalName principal={order.buyer} /></div>
-                <div className="rounded-md bg-slate-50 px-3 py-2 sm:col-span-2"><span className="font-semibold text-slate-700">Seller {order.seller.toString() == principal.toString() ? "(you)" : ""}:</span> <PrincipalName principal={order.seller} /></div>
+                <div className="rounded-md bg-slate-50 px-3 py-2 text-slate-900"><span className="font-semibold text-slate-800">Create Time:</span> {moment.unix(parseInt(order.createtime) / 1000000000).format("YYYY-MM-DD hh:mm")}</div>
+                <div className="rounded-md bg-slate-50 px-3 py-2 text-slate-900"><span className="font-semibold text-slate-800">ID:</span> {parseInt(order.id)}</div>
+                <div className="rounded-md bg-slate-50 px-3 py-2 text-slate-900"><span className="font-semibold text-slate-800">Amount:</span> {amountLabel}</div>
+                {!isFreeOrder && <div className="rounded-md bg-slate-50 px-3 py-2 text-slate-900 break-all"><span className="font-semibold text-slate-800">Escrow Account:</span> {order.account.id}</div>}
+                <div className="rounded-md bg-slate-50 px-3 py-2 text-slate-900 sm:col-span-2"><span className="font-semibold text-slate-800">Buyer {order.buyer.toString() == principal.toString() ? "(you)" : ""}:</span> <PrincipalName principal={order.buyer} /></div>
+                <div className="rounded-md bg-slate-50 px-3 py-2 text-slate-900 sm:col-span-2"><span className="font-semibold text-slate-800">Seller {order.seller.toString() == principal.toString() ? "(you)" : ""}:</span> <PrincipalName principal={order.seller} /></div>
                 {!isFreeOrder && (
-                    <div className="rounded-md bg-slate-50 px-3 py-2 sm:col-span-2">
-                        <span className="font-semibold text-slate-700">Balance:</span> {balance}
+                    <div className="rounded-md bg-slate-50 px-3 py-2 text-slate-900 sm:col-span-2">
+                        <span className="font-semibold text-slate-800">Balance:</span> {balance}
                         <button
                             type="button"
                             onClick={fetchBalance}
