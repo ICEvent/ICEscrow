@@ -115,7 +115,7 @@ export const WHITELIST = [
 ].filter(
   Boolean
 );
-export const IDENTITY_PROVIDER_IC = 'https://identity.ic0.app';
+export const IDENTITY_PROVIDER_IC = "https://id.ai";//'https://identity.ic0.app';
 export const IDENTITY_PROVIDER_NFID = "https://nfid.one";
 export const DERIVATION_ORIGION = "https://32pz7-5qaaa-aaaag-qacra-cai.raw.ic0.app";
 export const APP_LOGO = "/blocklist_logo.png";

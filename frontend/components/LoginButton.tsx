@@ -73,7 +73,7 @@ const DropdownMenu: React.FC = () => {
 
   const [showIILogin, setShowIILogin] = useState(false)
 
-  const APPLICATION_NAME = "ICEvent"
+  const APPLICATION_NAME = "Vansday"
   const APPLICATION_LOGO_URL = APP_LOGO
 
   const AUTH_PATH =
