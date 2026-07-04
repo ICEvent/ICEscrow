@@ -36,61 +36,72 @@ export default ({ freeOnly = false }: OfferListProps) => {
   }, [page])
 
 
-  const saveList = (data) => {
+  const saveList = async (data) => {
     setOpenListForm(false)
     setLoading(true)
-    escrow.listItem(data).then((res) => {
-      if (res["ok"]) {
+    try {
+      const res = await escrow.listItem(data)
+      if (res?.ok) {
         toast.success("Item has been listed")
-        loadOffers()
+        await loadOffers()
       } else {
-        toast.error(res["err"])
+        toast.error(res?.err?.toString() ?? "Failed to list item")
       }
-
+    } catch (err) {
+      toast.error(err?.toString() ?? "Unable to list item")
+    } finally {
       setLoading(false)
-    })
+    }
   }
-  const loadOffers = () => {
-    setLoading(true)
-    escrow.getItems(BigInt(page)).then((res) => {
 
-      setLoading(false)
+  const loadOffers = async () => {
+    setLoading(true)
+    try {
+      const res = await escrow.getItems(BigInt(page))
       setOffers(res)
-    })
+    } catch (err) {
+      toast.error(err?.toString() ?? "Unable to load offers")
+    } finally {
+      setLoading(false)
+    }
   }
 
   function buy(newOrder: NewOrder) {
-    try {
-      setLoading(true)
-      escrow.buy(newOrder).then((res) => {
-        setLoading(false)
-        if (res["ok"]) {
+    setLoading(true)
+    escrow.buy(newOrder)
+      .then((res) => {
+        if (res?.ok) {
           toast.success("your order has created!")
         } else {
-          toast.error(res["err"].toString())
+          toast.error(res?.err?.toString() ?? "Failed to create order")
         }
       })
-      setOpenOrderForm(false)
-    } catch (err) {
-      toast.error(err.toString())
-    }
+      .catch((err) => {
+        toast.error(err?.toString() ?? "Unable to create order")
+      })
+      .finally(() => {
+        setLoading(false)
+      })
+    setOpenOrderForm(false)
   }
 
   function sell(newOrder: NewSellOrder) {
-    try {
-      setLoading(true)
-      escrow.sell(newOrder).then((res) => {
-        setLoading(false)
-        if (res["ok"]) {
+    setLoading(true)
+    escrow.sell(newOrder)
+      .then((res) => {
+        if (res?.ok) {
           toast.success("your order has created!")
         } else {
-          toast.error(res["err"].toString())
+          toast.error(res?.err?.toString() ?? "Failed to create order")
         }
       })
-      setOpenOrderForm(false)
-    } catch (err) {
-      toast.error(err.toString())
-    }
+      .catch((err) => {
+        toast.error(err?.toString() ?? "Unable to create order")
+      })
+      .finally(() => {
+        setLoading(false)
+      })
+    setOpenOrderForm(false)
   }
 
   return (
