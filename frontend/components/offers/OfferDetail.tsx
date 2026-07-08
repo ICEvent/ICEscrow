@@ -7,6 +7,7 @@ import { currencyBase, currencySymbol } from '../../lib/currencyUtils';
 import { getItemImageSrc } from '../../lib/itemImage';
 import { Link } from 'react-router-dom';
 import PrincipalName from '../PrincipalName';
+import { getCanisterErrorMessage, isCanisterOkResult } from '../../lib/canisterResult';
 
 
 
@@ -154,15 +155,26 @@ export default (props) => {
         setLoading(true);
         try {
             const res = await escrow.changeItemStatus(props.offer.id, { "list": null });
-            if (res["ok"]) {
+            if (isCanisterOkResult(res)) {
                 toast.success("Item relisted");
                 setItemStatus("list");
             } else {
-                toast.error(res["err"]);
+                toast.error(getCanisterErrorMessage(res, "Failed to relist item"));
             }
         } catch (e) {
             console.error("relist error", e);
-            toast.error("Failed to relist item: " + (e instanceof Error ? e.message : String(e)));
+            try {
+                const refreshed = await escrow.getItem(props.offer.id);
+                const updatedOffer = refreshed?.[0];
+                if (updatedOffer && Object.getOwnPropertyNames(updatedOffer.status)[0] === 'list') {
+                    toast.success("Item relisted");
+                    setItemStatus('list');
+                } else {
+                    toast.warn("The relist action may have been applied. Please refresh to verify it.");
+                }
+            } catch {
+                toast.warn("The relist action may have been applied. Please refresh to verify it.");
+            }
         } finally {
             setLoading(false);
         }
@@ -172,15 +184,26 @@ export default (props) => {
         setLoading(true);
         try {
             const res = await escrow.changeItemStatus(props.offer.id, { "unlist": null });
-            if (res["ok"]) {
+            if (isCanisterOkResult(res)) {
                 toast.success("unlist this item");
                 setItemStatus("unlist");
             } else {
-                toast.error(res["err"]);
+                toast.error(getCanisterErrorMessage(res, "Failed to unlist item"));
             }
         } catch (e) {
             console.error("unlist error", e);
-            toast.error("Failed to unlist item: " + (e instanceof Error ? e.message : String(e)));
+            try {
+                const refreshed = await escrow.getItem(props.offer.id);
+                const updatedOffer = refreshed?.[0];
+                if (updatedOffer && Object.getOwnPropertyNames(updatedOffer.status)[0] === 'unlist') {
+                    toast.success("Item unlisted");
+                    setItemStatus('unlist');
+                } else {
+                    toast.warn("The unlist action may have been applied. Please refresh to verify it.");
+                }
+            } catch {
+                toast.warn("The unlist action may have been applied. Please refresh to verify it.");
+            }
         } finally {
             setLoading(false);
         }

@@ -11,6 +11,7 @@ import {
   LIST_ITEM_NFT,
 } from "../../lib/constants"
 import OrderForm from "../orders/OrderForm"
+import { getCanisterErrorMessage, isCanisterOkResult } from "../../lib/canisterResult"
 
 type OfferListProps = {
   freeOnly?: boolean;
@@ -30,9 +31,7 @@ export default ({ freeOnly = false }: OfferListProps) => {
   const [page, setPage] = React.useState(1);
 
   React.useEffect(() => {
-
-    loadOffers()
-
+    loadOffers({ showError: false })
   }, [page])
 
 
@@ -41,11 +40,11 @@ export default ({ freeOnly = false }: OfferListProps) => {
     setLoading(true)
     try {
       const res = await escrow.listItem(data)
-      if (res?.ok) {
+      if (isCanisterOkResult(res)) {
         toast.success("Item has been listed")
-        await loadOffers()
+        await loadOffers({ showError: false })
       } else {
-        toast.error(res?.err?.toString() ?? "Failed to list item")
+        toast.error(getCanisterErrorMessage(res, "Failed to list item"))
       }
     } catch (err) {
       toast.error(err?.toString() ?? "Unable to list item")
@@ -54,13 +53,16 @@ export default ({ freeOnly = false }: OfferListProps) => {
     }
   }
 
-  const loadOffers = async () => {
+  const loadOffers = async ({ showError = true }: { showError?: boolean } = {}) => {
     setLoading(true)
     try {
       const res = await escrow.getItems(BigInt(page))
       setOffers(res)
     } catch (err) {
-      toast.error(err?.toString() ?? "Unable to load offers")
+      if (showError) {
+        toast.error(err?.toString() ?? "Unable to load offers")
+      }
+      console.error("Unable to load offers", err)
     } finally {
       setLoading(false)
     }
@@ -70,10 +72,10 @@ export default ({ freeOnly = false }: OfferListProps) => {
     setLoading(true)
     escrow.buy(newOrder)
       .then((res) => {
-        if (res?.ok) {
+        if (isCanisterOkResult(res)) {
           toast.success("your order has created!")
         } else {
-          toast.error(res?.err?.toString() ?? "Failed to create order")
+          toast.error(getCanisterErrorMessage(res, "Failed to create order"))
         }
       })
       .catch((err) => {
@@ -89,10 +91,10 @@ export default ({ freeOnly = false }: OfferListProps) => {
     setLoading(true)
     escrow.sell(newOrder)
       .then((res) => {
-        if (res?.ok) {
+        if (isCanisterOkResult(res)) {
           toast.success("your order has created!")
         } else {
-          toast.error(res?.err?.toString() ?? "Failed to create order")
+          toast.error(getCanisterErrorMessage(res, "Failed to create order"))
         }
       })
       .catch((err) => {

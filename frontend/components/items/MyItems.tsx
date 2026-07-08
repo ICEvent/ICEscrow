@@ -11,6 +11,7 @@ import {
 import { currencyBase, currencySymbol } from '../../lib/currencyUtils';
 import { getItemImageSrc } from '../../lib/itemImage';
 import EditItemForm from '../offers/EditItemForm';
+import { getCanisterErrorMessage, isCanisterOkResult } from '../../lib/canisterResult';
 
 const STATUS_LABELS: Record<string, { label: string; className: string }> = {
     list:    { label: 'Listed',   className: 'bg-emerald-100 text-emerald-700' },
@@ -101,18 +102,35 @@ const MyItems: React.FC = () => {
             const statusArg = { list: null, pending: null, sold: null, unlist: null } as any;
             Object.keys(statusArg).forEach(k => { if (k !== newStatus) delete statusArg[k]; });
             const res = await escrow.changeItemStatus(itemId, statusArg);
-            if (res['ok'] !== undefined) {
+            if (isCanisterOkResult(res)) {
                 toast.success('Item status updated');
                 setItems((prev) =>
                     prev.map((item) =>
                         item.id === itemId ? { ...item, status: { [newStatus]: null } } : item,
                     ),
                 );
+                await loadItems();
             } else {
-                toast.error(res['err'] ?? 'Failed to update status');
+                toast.error(getCanisterErrorMessage(res, 'Failed to update status'));
             }
         } catch {
-            toast.error('Failed to update status');
+            try {
+                const refreshed = await escrow.getItem(itemId);
+                const updatedItem = refreshed?.[0];
+                if (updatedItem && getStatus(updatedItem) === newStatus) {
+                    toast.success('Item status updated');
+                    setItems((prev) =>
+                        prev.map((item) =>
+                            item.id === itemId ? { ...item, status: updatedItem.status } : item,
+                        ),
+                    );
+                    await loadItems();
+                } else {
+                    toast.warn('The status change may have been applied. Please refresh to verify it.');
+                }
+            } catch {
+                toast.warn('The status change may have been applied. Please refresh to verify it.');
+            }
         } finally {
             setChangingId(null);
         }
@@ -140,7 +158,7 @@ const MyItems: React.FC = () => {
         if (!editTarget) return;
         try {
             const res = await escrow.updateItem(editTarget.id, payload);
-            if (res['ok'] !== undefined) {
+            if (isCanisterOkResult(res)) {
                 toast.success('Item updated');
                 setItems((prev) =>
                     prev.map((item) =>
@@ -151,7 +169,7 @@ const MyItems: React.FC = () => {
                 );
                 setEditTarget(null);
             } else {
-                toast.error(res['err'] ?? 'Failed to update item');
+                toast.error(getCanisterErrorMessage(res, 'Failed to update item'));
             }
         } catch {
             toast.error('Failed to update item');
