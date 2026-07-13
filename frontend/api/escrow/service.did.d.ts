@@ -1,9 +1,9 @@
 import type { Principal } from '@dfinity/principal';
 import type { ActorMethod } from '@dfinity/agent';
 import type { IDL } from '@dfinity/candid';
-import type { ItemType, ServiceInfo, ServiceId, PricingModel, Availability, Coverage } from './serviceModels';
+import type { ItemType, ServiceInfo, ServiceId, PricingModel, Availability, Coverage, ProviderInfo } from './serviceModels';
 
-export type { ItemType, ServiceInfo, ServiceId, PricingModel, Availability, Coverage };
+export type { ItemType, ServiceInfo, ServiceId, PricingModel, Availability, Coverage, ProviderInfo };
 
 export type Result<T = bigint> = { ok: T } | { err: string };
 export type ItemStatus = { list: null } | { pending: null } | { sold: null } | { unlist: null };
@@ -35,10 +35,7 @@ export interface StablecoinInfo { canisterId: string; symbol: string; decimals: 
 
 export interface NewServiceInfo {
   provider: Principal;
-  providerName: string;
-  providerPhone: [] | [string];
-  providerEmail: [] | [string];
-  providerWebsite: [] | [string];
+  providerInfo: ProviderInfo;
   serviceTypes: string[];
   keywords: string[];
   pricing: PricingModel;

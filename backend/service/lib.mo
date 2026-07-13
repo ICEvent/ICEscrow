@@ -31,10 +31,7 @@ module {
             let service : Types.ServiceInfo = {
                 id;
                 provider = data.provider;
-                providerName = data.providerName;
-                providerPhone = data.providerPhone;
-                providerEmail = data.providerEmail;
-                providerWebsite = data.providerWebsite;
+                providerInfo = data.providerInfo;
                 owner;
                 serviceTypes = data.serviceTypes;
                 keywords = data.keywords;
@@ -56,10 +53,7 @@ module {
                     services.put(id, {
                         id = service.id;
                         provider = data.provider;
-                        providerName = data.providerName;
-                        providerPhone = data.providerPhone;
-                        providerEmail = data.providerEmail;
-                        providerWebsite = data.providerWebsite;
+                        providerInfo = data.providerInfo;
                         owner = service.owner;
                         serviceTypes = data.serviceTypes;
                         keywords = data.keywords;

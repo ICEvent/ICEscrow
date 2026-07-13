@@ -22,13 +22,17 @@ module {
         radius : ?Nat;
     };
 
+    public type ProviderInfo = {
+        name : Text;
+        phone : ?Text;
+        email : ?Text;
+        website : ?Text;
+    };
+
     public type ServiceInfo = {
         id : ServiceId;
         provider : Principal;
-        providerName : Text;
-        providerPhone : ?Text;
-        providerEmail : ?Text;
-        providerWebsite : ?Text;
+        providerInfo : ProviderInfo;
         owner : Principal;
         serviceTypes : [Text];
         keywords : [Text];
@@ -42,10 +46,7 @@ module {
 
     public type NewServiceInfo = {
         provider : Principal;
-        providerName : Text;
-        providerPhone : ?Text;
-        providerEmail : ?Text;
-        providerWebsite : ?Text;
+        providerInfo : ProviderInfo;
         serviceTypes : [Text];
         keywords : [Text];
         pricing : PricingModel;
@@ -56,10 +57,7 @@ module {
 
     public type UpdateServiceInfo = {
         provider : Principal;
-        providerName : Text;
-        providerPhone : ?Text;
-        providerEmail : ?Text;
-        providerWebsite : ?Text;
+        providerInfo : ProviderInfo;
         serviceTypes : [Text];
         keywords : [Text];
         pricing : PricingModel;

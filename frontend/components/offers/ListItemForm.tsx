@@ -106,10 +106,12 @@ export default function ListItemForm(props) {
             const capacity: any = values.capacity === "" ? [] : [BigInt(values.capacity)];
             const serviceRes = await escrow.createService({
                 provider: principal,
-                providerName: values.providerName.trim(),
-                providerPhone: values.providerPhone.trim() ? [values.providerPhone.trim()] : [],
-                providerEmail: values.providerEmail.trim() ? [values.providerEmail.trim()] : [],
-                providerWebsite: values.providerWebsite.trim() ? [values.providerWebsite.trim()] : [],
+                providerInfo: {
+                    name: values.providerName.trim(),
+                    phone: values.providerPhone.trim() ? [values.providerPhone.trim()] : [],
+                    email: values.providerEmail.trim() ? [values.providerEmail.trim()] : [],
+                    website: values.providerWebsite.trim() ? [values.providerWebsite.trim()] : [],
+                },
                 serviceTypes: commaList(values.serviceTypes),
                 keywords: commaList(values.keywords),
                 pricing,
