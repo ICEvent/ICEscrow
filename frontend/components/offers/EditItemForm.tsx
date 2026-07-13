@@ -88,7 +88,7 @@ export default function EditItemForm({ item, onSave, onCancel }: {
             values.itype === LIST_ITEM_NFT ? { nft: null } :
             values.itype === LIST_ITEM_COIN ? { coin: null } :
             values.itype === LIST_ITEM_MERCHANDISE ? { merchandise: null } :
-            values.itype === LIST_ITEM_SERVICE ? { service: null } :
+            values.itype === LIST_ITEM_SERVICE ? { service: BigInt(item.itype?.service ?? 0) } :
             { other: null };
         const location = values.location === 'online'
             ? { online: null }
