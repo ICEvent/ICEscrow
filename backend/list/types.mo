@@ -8,10 +8,12 @@ module {
             #sold;
             #unlist;
         };
+    public type ServiceId = Nat;
+
     public type Itype = {
             #nft;
             #coin;
-            #service;
+            #service : ServiceId;
             #merchandise;
             #other;
         };

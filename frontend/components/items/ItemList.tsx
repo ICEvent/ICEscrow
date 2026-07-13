@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Item } from '../../api/escrow/service.did';
 import OfferCard from '../offers/OfferCard';
 import { currencyBase } from '../../lib/currencyUtils';
+import { getServiceId } from '../../api/escrow/serviceModels';
 
 
 interface ItemListProps {
@@ -25,6 +26,8 @@ const ItemList: React.FC<ItemListProps> = ({ items, onItemClick, defaultFilter, 
     }, [items]);
 
     const getItemType = React.useCallback((item: Item) => {
+        const serviceId = getServiceId(item.itype as any);
+        if (serviceId !== null) return 'service';
         return Object.getOwnPropertyNames(item.itype)[0].toLowerCase();
     }, []);
 
