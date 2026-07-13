@@ -35,8 +35,7 @@ export interface ProviderInfo {
 
 export interface ServiceInfo {
     id: ServiceId;
-    provider: Principal;
-    providerInfo: ProviderInfo;
+    provider: ProviderInfo;
     owner: Principal;
     serviceTypes: string[];
     keywords: string[];

@@ -31,8 +31,7 @@ module {
 
     public type ServiceInfo = {
         id : ServiceId;
-        provider : Principal;
-        providerInfo : ProviderInfo;
+        provider : ProviderInfo;
         owner : Principal;
         serviceTypes : [Text];
         keywords : [Text];
@@ -45,8 +44,7 @@ module {
     };
 
     public type NewServiceInfo = {
-        provider : Principal;
-        providerInfo : ProviderInfo;
+        provider : ProviderInfo;
         serviceTypes : [Text];
         keywords : [Text];
         pricing : PricingModel;
@@ -56,8 +54,7 @@ module {
     };
 
     public type UpdateServiceInfo = {
-        provider : Principal;
-        providerInfo : ProviderInfo;
+        provider : ProviderInfo;
         serviceTypes : [Text];
         keywords : [Text];
         pricing : PricingModel;

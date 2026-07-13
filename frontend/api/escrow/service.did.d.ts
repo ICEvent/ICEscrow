@@ -34,8 +34,7 @@ export interface UserStats { [key: string]: any }
 export interface StablecoinInfo { canisterId: string; symbol: string; decimals: number; fee: bigint; enabled: boolean }
 
 export interface NewServiceInfo {
-  provider: Principal;
-  providerInfo: ProviderInfo;
+  provider: ProviderInfo;
   serviceTypes: string[];
   keywords: string[];
   pricing: PricingModel;

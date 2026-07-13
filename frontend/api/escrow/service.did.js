@@ -51,8 +51,7 @@ export const idlFactory = ({ IDL }) => {
   });
   const ServiceInfo = IDL.Record({
     id: IDL.Nat,
-    provider: IDL.Principal,
-    providerInfo: ProviderInfo,
+    provider: ProviderInfo,
     owner: IDL.Principal,
     serviceTypes: IDL.Vec(IDL.Text),
     keywords: IDL.Vec(IDL.Text),
@@ -64,8 +63,7 @@ export const idlFactory = ({ IDL }) => {
     updatedAt: IDL.Int,
   });
   const NewServiceInfo = IDL.Record({
-    provider: IDL.Principal,
-    providerInfo: ProviderInfo,
+    provider: ProviderInfo,
     serviceTypes: IDL.Vec(IDL.Text),
     keywords: IDL.Vec(IDL.Text),
     pricing: PricingModel,
