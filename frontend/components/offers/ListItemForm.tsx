@@ -70,7 +70,7 @@ export default function ListItemForm(props) {
             const listype = values.itype == LIST_ITEM_NFT ? {"nft": null}:
                             values.itype == LIST_ITEM_COIN ? {"coin": null}:
                             values.itype == LIST_ITEM_MERCHANDISE ? {"merchandise": null}:
-                            values.itype == LIST_ITEM_SERVICE ? {"service": null}:{"other": null}
+                            values.itype == LIST_ITEM_SERVICE ? {"service": BigInt(0)}:{"other": null}
             
             const location = values.location === "online"
                 ? { online: null }
