@@ -33,6 +33,8 @@ import Page "./page";
 
 import ItemTypes "./list/types";
 import Items "./list";
+import ServiceTypes "./service/types";
+import Services "./service";
 
 import UpgradeTypes "./list/upgradeTypes";
 
@@ -117,12 +119,20 @@ persistent actor class EscrowService() = this {
     var upgradeOrders : [(Nat, Order)] = [];
 
     // Old deployed Item type — no `location` field. Kept to deserialise stable memory on this upgrade only.
+    type OldItype = {
+        #nft;
+        #coin;
+        #service;
+        #merchandise;
+        #other;
+    };
+
     type OldItem = {
         id : Nat;
         name : Text;
         description : Text;
         image : Text;
-        itype : ItemTypes.Itype;
+        itype : OldItype;
         price : Nat64;
         currency : {
             #ICP;
@@ -134,11 +144,43 @@ persistent actor class EscrowService() = this {
         listime : Int
     };
 
+    type OldItemV2 = {
+        id : Nat;
+        name : Text;
+        description : Text;
+        image : Text;
+        itype : OldItype;
+        price : Nat64;
+        currency : {
+            #ICP;
+            #ICET;
+            #ICRC1 : { canisterId : Principal; symbol : Text; decimals : Nat8 }
+        };
+        location : ItemTypes.Location;
+        status : ItemTypes.ItemStatus;
+        owner : Principal;
+        listime : Int
+    };
+
+    func migrateItype(itype : OldItype) : ItemTypes.Itype {
+        switch (itype) {
+            case (#nft) { #nft };
+            case (#coin) { #coin };
+            case (#service) { #service(0) };
+            case (#merchandise) { #merchandise };
+            case (#other) { #other };
+        }
+    };
+
     var _upgradeItemId : Nat = 1;
     // Old stable store — Item without location. Kept for one-time migration.
     var _upgradeItems : [(Nat, OldItem)] = [];
-    // New stable store — Item with location.
-    var _upgradeItemsV2 : [(Nat, ItemTypes.Item)] = [];
+    // Old stable store — Item with location and unlinked #service. Kept for one-time migration.
+    var _upgradeItemsV2 : [(Nat, OldItemV2)] = [];
+    // New stable store — Item with #service(ServiceId).
+    var _upgradeItemsV3 : [(Nat, ItemTypes.Item)] = [];
+    var _upgradeServiceId : Nat = 1;
+    var _upgradeServices : [(ServiceTypes.ServiceId, ServiceTypes.ServiceInfo)] = [];
     var nextFreeItemClaimId : Nat = 1;
     // upgradeFreeItemClaims (old name, deployed without `comments`) is intentionally dropped.
     // Dropping a stable var is a WARNING (data loss) not an ERROR — and the live canister
@@ -185,7 +227,7 @@ persistent actor class EscrowService() = this {
                     name = v.name;
                     description = v.description;
                     image = v.image;
-                    itype = v.itype;
+                    itype = migrateItype(v.itype);
                     price = v.price;
                     currency = v.currency;
                     status = v.status;
@@ -195,8 +237,28 @@ persistent actor class EscrowService() = this {
                 })
             }
         )
-    } else { _upgradeItemsV2 };
+    } else if (_upgradeItemsV2.size() > 0) {
+        Array.map<(Nat, OldItemV2), (Nat, ItemTypes.Item)>(
+            _upgradeItemsV2,
+            func((k, v) : (Nat, OldItemV2)) : (Nat, ItemTypes.Item) {
+                (k, {
+                    id = v.id;
+                    name = v.name;
+                    description = v.description;
+                    image = v.image;
+                    itype = migrateItype(v.itype);
+                    price = v.price;
+                    currency = v.currency;
+                    status = v.status;
+                    owner = v.owner;
+                    listime = v.listime;
+                    location = v.location
+                })
+            }
+        )
+    } else { _upgradeItemsV3 };
     transient let items = Items.Items(_upgradeItemId, _migratedItems);
+    transient let services = Services.Services(_upgradeServiceId, _upgradeServices);
     transient var freeItemClaims = TrieMap.TrieMap<Nat, FreeItemClaim>(Nat.equal, natHash);
     freeItemClaims := if (upgradeFreeItemClaimsV2.size() > 0) {
         // One-time migration from V2: add closedAt = null and canceledAt = null.
@@ -1457,6 +1519,53 @@ persistent actor class EscrowService() = this {
     public query func getItem(id : Nat) : async ?ItemTypes.Item {
         items.retrieve(id)
     };
+
+    //-----------------------  Service Info ---------------------------------------
+
+    public shared ({ caller }) func createService(data : ServiceTypes.NewServiceInfo) : async Result.Result<ServiceTypes.ServiceId, Text> {
+        if (Principal.isAnonymous(caller)) {
+            #err("no authenticated")
+        } else {
+            #ok(services.create(data, caller))
+        }
+    };
+
+    public shared ({ caller }) func updateService(id : ServiceTypes.ServiceId, data : ServiceTypes.UpdateServiceInfo) : async Result.Result<ServiceTypes.ServiceId, Text> {
+        if (Principal.isAnonymous(caller)) {
+            #err("no authenticated")
+        } else {
+            switch (services.retrieve(id)) {
+                case (?service) {
+                    if (service.owner == caller) { services.update(id, data) } else { #err("no permission") }
+                };
+                case null { #err("no service found") };
+            }
+        }
+    };
+
+    public shared ({ caller }) func deleteService(id : ServiceTypes.ServiceId) : async Result.Result<ServiceTypes.ServiceId, Text> {
+        if (Principal.isAnonymous(caller)) {
+            #err("no authenticated")
+        } else {
+            switch (services.retrieve(id)) {
+                case (?service) {
+                    if (service.owner == caller) {
+                        ignore services.delete(id);
+                        #ok(id)
+                    } else { #err("no permission") }
+                };
+                case null { #err("no service found") };
+            }
+        }
+    };
+
+    public query func getService(id : ServiceTypes.ServiceId) : async ?ServiceTypes.ServiceInfo {
+        services.retrieve(id)
+    };
+
+    public query func listServices() : async [ServiceTypes.ServiceInfo] {
+        services.list()
+    };
     // public shared ({ caller }) func lockItem(id : Nat) : async Result.Result<Nat, Text> {
     //     if (Principal.isAnonymous(caller)) {
     //         #err("no authenticated")
@@ -1904,8 +2013,11 @@ persistent actor class EscrowService() = this {
     system func preupgrade() {
         upgradeOrders := Iter.toArray(orders.entries());
         _upgradeItemId := items.toStableId();
-        _upgradeItemsV2 := items.toStable();
+        _upgradeItemsV3 := items.toStable();
+        _upgradeItemsV2 := []; // clear old migration source
         _upgradeItems := []; // clear old migration source
+        _upgradeServiceId := services.toStableId();
+        _upgradeServices := services.toStable();
         upgradeFreeItemClaimsV4 := Iter.toArray(freeItemClaims.entries());
         upgradeFreeItemClaimsV3 := []; // clear old migration source
         upgradeFreeItemClaimsV2 := []; // clear old migration source
@@ -1928,6 +2040,7 @@ persistent actor class EscrowService() = this {
     system func postupgrade() {
         _upgradeItems := [];
         _upgradeItemsV2 := [];
+        _upgradeItemsV3 := [];
         upgradeFreeItemClaimsV3 := []; // ensure old migration source stays cleared
         upgradeFreeItemClaimsV2 := [];
     };
@@ -1937,7 +2050,7 @@ persistent actor class EscrowService() = this {
     };
 
     public query func getItemsSize() : async Nat {
-        _upgradeItemsV2.size()
+        items.getItems().size()
     };
 
     public query func availableCycles() : async Nat {
