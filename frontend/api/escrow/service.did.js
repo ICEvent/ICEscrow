@@ -43,9 +43,15 @@ export const idlFactory = ({ IDL }) => {
   const PricingModel = IDL.Variant({ free: IDL.Null, donation: IDL.Null, fixed: IDL.Nat64, hourly: IDL.Nat64, quote: IDL.Null });
   const Availability = IDL.Variant({ always: IDL.Null, onDemand: IDL.Null, schedule: IDL.Vec(IDL.Text) });
   const Coverage = IDL.Record({ cities: IDL.Vec(IDL.Text), radius: IDL.Opt(IDL.Nat) });
+  const ProviderInfo = IDL.Record({
+    name: IDL.Text,
+    phone: IDL.Opt(IDL.Text),
+    email: IDL.Opt(IDL.Text),
+    website: IDL.Opt(IDL.Text),
+  });
   const ServiceInfo = IDL.Record({
     id: IDL.Nat,
-    provider: IDL.Principal,
+    provider: ProviderInfo,
     owner: IDL.Principal,
     serviceTypes: IDL.Vec(IDL.Text),
     keywords: IDL.Vec(IDL.Text),
@@ -57,7 +63,7 @@ export const idlFactory = ({ IDL }) => {
     updatedAt: IDL.Int,
   });
   const NewServiceInfo = IDL.Record({
-    provider: IDL.Principal,
+    provider: ProviderInfo,
     serviceTypes: IDL.Vec(IDL.Text),
     keywords: IDL.Vec(IDL.Text),
     pricing: PricingModel,

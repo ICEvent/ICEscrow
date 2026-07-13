@@ -26,9 +26,16 @@ export interface Coverage {
     radius: [] | [bigint];
 }
 
+export interface ProviderInfo {
+    name: string;
+    phone: [] | [string];
+    email: [] | [string];
+    website: [] | [string];
+}
+
 export interface ServiceInfo {
     id: ServiceId;
-    provider: Principal;
+    provider: ProviderInfo;
     owner: Principal;
     serviceTypes: string[];
     keywords: string[];

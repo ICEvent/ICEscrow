@@ -60,6 +60,10 @@ export default function ListItemForm(props) {
         location: "online",
         city: "",
         status: LISTITEM_STATUS_LIST,
+        providerName: "",
+        providerPhone: "",
+        providerEmail: "",
+        providerWebsite: "",
         serviceTypes: "",
         keywords: "",
         pricingModel: freeOnly ? "free" : "fixed",
@@ -101,7 +105,12 @@ export default function ListItemForm(props) {
                 : [];
             const capacity: any = values.capacity === "" ? [] : [BigInt(values.capacity)];
             const serviceRes = await escrow.createService({
-                provider: principal,
+                provider: {
+                    name: values.providerName.trim(),
+                    phone: values.providerPhone.trim() ? [values.providerPhone.trim()] : [],
+                    email: values.providerEmail.trim() ? [values.providerEmail.trim()] : [],
+                    website: values.providerWebsite.trim() ? [values.providerWebsite.trim()] : [],
+                },
                 serviceTypes: commaList(values.serviceTypes),
                 keywords: commaList(values.keywords),
                 pricing,
@@ -245,6 +254,48 @@ export default function ListItemForm(props) {
                     <div className="sm:col-span-12 rounded-xl border border-cyan-100 bg-cyan-50/60 p-3">
                         <p className="mb-3 text-sm font-bold text-slate-800">Service details</p>
                         <div className="grid grid-cols-1 gap-3 sm:grid-cols-12">
+
+                            <div className="sm:col-span-6">
+                                <label className="mb-1 block text-sm font-medium text-slate-700">Provider name</label>
+                                <input
+                                    name="providerName"
+                                    value={values.providerName}
+                                    onChange={handleChange}
+                                    placeholder="Business or contact name"
+                                    className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-cyan-500"
+                                />
+                            </div>
+                            <div className="sm:col-span-6">
+                                <label className="mb-1 block text-sm font-medium text-slate-700">Provider phone</label>
+                                <input
+                                    name="providerPhone"
+                                    value={values.providerPhone}
+                                    onChange={handleChange}
+                                    placeholder="Optional phone number"
+                                    className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-cyan-500"
+                                />
+                            </div>
+                            <div className="sm:col-span-6">
+                                <label className="mb-1 block text-sm font-medium text-slate-700">Provider email</label>
+                                <input
+                                    name="providerEmail"
+                                    type="email"
+                                    value={values.providerEmail}
+                                    onChange={handleChange}
+                                    placeholder="Optional email"
+                                    className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-cyan-500"
+                                />
+                            </div>
+                            <div className="sm:col-span-6">
+                                <label className="mb-1 block text-sm font-medium text-slate-700">Provider website</label>
+                                <input
+                                    name="providerWebsite"
+                                    value={values.providerWebsite}
+                                    onChange={handleChange}
+                                    placeholder="Optional website or profile"
+                                    className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-cyan-500"
+                                />
+                            </div>
                             <div className="sm:col-span-6">
                                 <label className="mb-1 block text-sm font-medium text-slate-700">Service types</label>
                                 <input
