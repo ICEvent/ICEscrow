@@ -40,6 +40,10 @@ function ledgerBase(currencyKey: string, icrc1Tokens: StablecoinMap): number {
 }
 
 /** Derive the currency key string (ICP / ICET / symbol) from a canister currency variant. */
+function commaList(value: string): string[] {
+    return value.split(',').map((part) => part.trim()).filter(Boolean);
+}
+
 function currencyToKey(currency: any): string {
     if ('ICP' in currency) return CURRENCY_ICP;
     if ('ICET' in currency) return CURRENCY_ICET;
@@ -68,6 +72,7 @@ export default function EditItemForm({ item, onSave, onCancel }: {
         name: item.name ?? '',
         description: item.description ?? '',
         image: item.image ?? '',
+        tags: (item.tags ?? []).join(', '),
         itype: itypeKey,
         price: Number(item.price) / base,
         currency: currencyToKey(item.currency),
@@ -98,6 +103,7 @@ export default function EditItemForm({ item, onSave, onCancel }: {
             name: values.name,
             description: values.description,
             image: values.image,
+            tags: commaList(values.tags),
             itype,
             price: BigInt(Math.floor(values.price * base)),
             currency,
@@ -173,6 +179,17 @@ export default function EditItemForm({ item, onSave, onCancel }: {
                         name="image"
                         value={values.image}
                         onChange={handleChange}
+                        className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-cyan-500"
+                    />
+                </div>
+
+                <div className="sm:col-span-12">
+                    <label className="mb-1 block text-sm font-medium text-slate-700">Tags</label>
+                    <input
+                        name="tags"
+                        value={values.tags}
+                        onChange={handleChange}
+                        placeholder="Comma-separated tags, e.g. vintage, local, handmade"
                         className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-cyan-500"
                     />
                 </div>

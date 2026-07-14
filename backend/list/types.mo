@@ -28,6 +28,7 @@ module {
         name : Text;
         description: Text;
         image: Text;
+        tags : [Text];
         itype : Itype;
         price : Nat64;
         currency : {
@@ -45,6 +46,7 @@ module {
         name : Text;
         description: Text;
         image: Text;
+        tags : [Text];
         itype : Itype;
         price : Nat64;
         currency : {
@@ -60,6 +62,7 @@ module {
         name : Text;
         description : Text;
         image : Text;
+        tags : [Text];
         itype : Itype;
         price : Nat64;
         currency : {

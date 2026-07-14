@@ -162,6 +162,25 @@ persistent actor class EscrowService() = this {
         listime : Int
     };
 
+
+    type OldItemV3 = {
+        id : Nat;
+        name : Text;
+        description : Text;
+        image : Text;
+        itype : ItemTypes.Itype;
+        price : Nat64;
+        currency : {
+            #ICP;
+            #ICET;
+            #ICRC1 : { canisterId : Principal; symbol : Text; decimals : Nat8 }
+        };
+        location : ItemTypes.Location;
+        status : ItemTypes.ItemStatus;
+        owner : Principal;
+        listime : Int
+    };
+
     func migrateItype(itype : OldItype) : ItemTypes.Itype {
         switch (itype) {
             case (#nft) { #nft };
@@ -177,8 +196,10 @@ persistent actor class EscrowService() = this {
     var _upgradeItems : [(Nat, OldItem)] = [];
     // Old stable store — Item with location and unlinked #service. Kept for one-time migration.
     var _upgradeItemsV2 : [(Nat, OldItemV2)] = [];
-    // New stable store — Item with #service(ServiceId).
-    var _upgradeItemsV3 : [(Nat, ItemTypes.Item)] = [];
+    // Old stable store — Item with #service(ServiceId), but no tags. Kept for one-time migration.
+    var _upgradeItemsV3 : [(Nat, OldItemV3)] = [];
+    // New stable store — Item with tags.
+    var _upgradeItemsV4 : [(Nat, ItemTypes.Item)] = [];
     var _upgradeServiceId : Nat = 1;
     var _upgradeServices : [(ServiceTypes.ServiceId, ServiceTypes.ServiceInfo)] = [];
     var nextFreeItemClaimId : Nat = 1;
@@ -227,6 +248,7 @@ persistent actor class EscrowService() = this {
                     name = v.name;
                     description = v.description;
                     image = v.image;
+                    tags = [];
                     itype = migrateItype(v.itype);
                     price = v.price;
                     currency = v.currency;
@@ -246,6 +268,7 @@ persistent actor class EscrowService() = this {
                     name = v.name;
                     description = v.description;
                     image = v.image;
+                    tags = [];
                     itype = migrateItype(v.itype);
                     price = v.price;
                     currency = v.currency;
@@ -256,7 +279,27 @@ persistent actor class EscrowService() = this {
                 })
             }
         )
-    } else { _upgradeItemsV3 };
+    } else if (_upgradeItemsV3.size() > 0) {
+        Array.map<(Nat, OldItemV3), (Nat, ItemTypes.Item)>(
+            _upgradeItemsV3,
+            func((k, v) : (Nat, OldItemV3)) : (Nat, ItemTypes.Item) {
+                (k, {
+                    id = v.id;
+                    name = v.name;
+                    description = v.description;
+                    image = v.image;
+                    tags = [];
+                    itype = v.itype;
+                    price = v.price;
+                    currency = v.currency;
+                    status = v.status;
+                    owner = v.owner;
+                    listime = v.listime;
+                    location = v.location
+                })
+            }
+        )
+    } else { _upgradeItemsV4 };
     transient let items = Items.Items(_upgradeItemId, _migratedItems);
     transient let services = Services.Services(_upgradeServiceId, _upgradeServices);
     transient var freeItemClaims = TrieMap.TrieMap<Nat, FreeItemClaim>(Nat.equal, natHash);
@@ -2013,7 +2056,8 @@ persistent actor class EscrowService() = this {
     system func preupgrade() {
         upgradeOrders := Iter.toArray(orders.entries());
         _upgradeItemId := items.toStableId();
-        _upgradeItemsV3 := items.toStable();
+        _upgradeItemsV4 := items.toStable();
+        _upgradeItemsV3 := []; // clear old migration source
         _upgradeItemsV2 := []; // clear old migration source
         _upgradeItems := []; // clear old migration source
         _upgradeServiceId := services.toStableId();
@@ -2041,6 +2085,7 @@ persistent actor class EscrowService() = this {
         _upgradeItems := [];
         _upgradeItemsV2 := [];
         _upgradeItemsV3 := [];
+        _upgradeItemsV4 := [];
         upgradeFreeItemClaimsV3 := []; // ensure old migration source stays cleared
         upgradeFreeItemClaimsV2 := [];
     };

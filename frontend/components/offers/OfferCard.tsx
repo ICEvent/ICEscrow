@@ -42,6 +42,15 @@ export default (props) => {
             <div className="space-y-3 p-4">
                 <div>
                     <p className="line-clamp-1 text-base font-bold text-slate-900">{props.offer.name}</p>
+                    {(props.offer.tags ?? []).length > 0 && (
+                        <div className="mt-2 flex flex-wrap gap-1">
+                            {props.offer.tags.slice(0, 3).map((tag) => (
+                                <span key={tag} className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-600">
+                                    #{tag}
+                                </span>
+                            ))}
+                        </div>
+                    )}
                 </div>
 
                 <div className="flex items-end justify-between gap-2">

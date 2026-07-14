@@ -15,6 +15,7 @@ export interface Item {
   name: string;
   description: string;
   image: string;
+  tags: string[];
   itype: ItemType;
   price: bigint;
   currency: Currency;

@@ -61,7 +61,7 @@ const ItemList: React.FC<ItemListProps> = ({ items, onItemClick, defaultFilter, 
 
             if (!normalizedSearch) return true;
 
-            const haystack = `${item.name ?? ''} ${item.description ?? ''} ${type}`.toLowerCase();
+            const haystack = `${item.name ?? ''} ${item.description ?? ''} ${(item.tags ?? []).join(' ')} ${type}`.toLowerCase();
             return haystack.includes(normalizedSearch);
         });
 

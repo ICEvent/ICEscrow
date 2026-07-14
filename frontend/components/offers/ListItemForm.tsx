@@ -54,6 +54,7 @@ export default function ListItemForm(props) {
         name: "",
         description: "",
         image: "",
+        tags: "",
         itype: props.itype,
         price: 0,
         currency: CURRENCY_ICP,
@@ -137,6 +138,7 @@ export default function ListItemForm(props) {
             name: values.name,
             description: values.description,
             image: values.image,
+            tags: commaList(values.tags),
             itype: listype,
             price: itemPrice,
             currency: currency,
@@ -212,6 +214,17 @@ export default function ListItemForm(props) {
                         name="image"
                         value={values.image}
                         onChange={handleChange}
+                        className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-cyan-500"
+                    />
+                </div>
+
+                <div className="sm:col-span-12">
+                    <label className="mb-1 block text-sm font-medium text-slate-700">Tags</label>
+                    <input
+                        name="tags"
+                        value={values.tags}
+                        onChange={handleChange}
+                        placeholder="Comma-separated tags, e.g. vintage, local, handmade"
                         className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-cyan-500"
                     />
                 </div>
