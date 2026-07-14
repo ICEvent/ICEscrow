@@ -7,6 +7,7 @@ import ItemList from "../items/ItemList";
 
 import { NewOrder, NewSellOrder } from "../../api/escrow/service.did"
 import { Item } from "../../api/escrow/service.did"
+import { ServiceInfo } from "../../api/escrow/serviceModels"
 import {
   LIST_ITEM_NFT,
 } from "../../lib/constants"
@@ -28,6 +29,7 @@ export default ({ freeOnly = false }: OfferListProps) => {
 
   const [itemType] = React.useState(LIST_ITEM_NFT)
   const [offers, setOffers] = React.useState<Item[]>([])
+  const [servicesById, setServicesById] = React.useState<Record<string, ServiceInfo>>({})
   const [page, setPage] = React.useState(1);
 
   React.useEffect(() => {
@@ -56,8 +58,13 @@ export default ({ freeOnly = false }: OfferListProps) => {
   const loadOffers = async ({ showError = true }: { showError?: boolean } = {}) => {
     setLoading(true)
     try {
-      const res = await escrow.getItems(BigInt(page))
-      setOffers(res)
+      const res = await escrow.getItemsWithAssociations(BigInt(page))
+      setOffers(res.map((entry) => entry.item))
+      setServicesById(Object.fromEntries(
+        res.flatMap((entry) => entry.service[0]
+          ? [[entry.service[0].id.toString(), entry.service[0]]]
+          : []),
+      ))
     } catch (err) {
       if (showError) {
         toast.error(err?.toString() ?? "Unable to load offers")
@@ -137,7 +144,7 @@ export default ({ freeOnly = false }: OfferListProps) => {
         </div>
       </section>
 
-      <ItemList items={freeOnly ? offers.filter(o => o.price === BigInt(0)) : offers} defaultFilter='all' freeOnly={freeOnly} />
+      <ItemList items={freeOnly ? offers.filter(o => o.price === BigInt(0)) : offers} servicesById={servicesById} defaultFilter='all' freeOnly={freeOnly} />
 
       <div className="reveal-up reveal-delay-1 mt-4 flex items-center justify-center gap-3 p-2">
         <button

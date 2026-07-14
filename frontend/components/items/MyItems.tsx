@@ -11,7 +11,7 @@ import {
 import { currencyBase, currencySymbol } from '../../lib/currencyUtils';
 import { getItemImageSrc } from '../../lib/itemImage';
 import EditItemForm from '../offers/EditItemForm';
-import { getCanisterErrorMessage, isCanisterOkResult } from '../../lib/canisterResult';
+import { getCanisterErrorMessage, getThrownErrorMessage, isCanisterOkResult } from '../../lib/canisterResult';
 
 const STATUS_LABELS: Record<string, { label: string; className: string }> = {
     list:    { label: 'Listed',   className: 'bg-emerald-100 text-emerald-700' },
@@ -171,8 +171,8 @@ const MyItems: React.FC = () => {
             } else {
                 toast.error(getCanisterErrorMessage(res, 'Failed to update item'));
             }
-        } catch {
-            toast.error('Failed to update item');
+        } catch (error) {
+            toast.error(getThrownErrorMessage(error, 'Failed to update item'));
         }
     };
 

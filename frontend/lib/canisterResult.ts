@@ -15,3 +15,9 @@ export function getCanisterErrorMessage(result: unknown, fallback = 'Request fai
   }
   return fallback;
 }
+
+export function getThrownErrorMessage(error: unknown, fallback = 'Request failed'): string {
+  if (error instanceof Error && error.message.trim()) return error.message;
+  if (typeof error === 'string' && error.trim()) return error;
+  return fallback;
+}

@@ -4,6 +4,7 @@ import { Item } from '../../api/escrow/service.did';
 import OfferCard from '../offers/OfferCard';
 import { currencyBase } from '../../lib/currencyUtils';
 import { getServiceId } from '../../api/escrow/serviceModels';
+import { ServiceInfo } from '../../api/escrow/serviceModels';
 
 
 interface ItemListProps {
@@ -11,9 +12,10 @@ interface ItemListProps {
     onItemClick?: (item: Item) => void;
     defaultFilter?: string; // Optional default filter
     freeOnly?: boolean;
+    servicesById?: Record<string, ServiceInfo>;
 }
 
-const ItemList: React.FC<ItemListProps> = ({ items, onItemClick, defaultFilter, freeOnly = false }) => {
+const ItemList: React.FC<ItemListProps> = ({ items, onItemClick, defaultFilter, freeOnly = false, servicesById = {} }) => {
     const navigate = useNavigate();
     const initialFilter = defaultFilter || 'all';
     const [activeFilter, setActiveFilter] = React.useState(initialFilter);
@@ -61,7 +63,10 @@ const ItemList: React.FC<ItemListProps> = ({ items, onItemClick, defaultFilter, 
 
             if (!normalizedSearch) return true;
 
-            const haystack = `${item.name ?? ''} ${item.description ?? ''} ${(item.tags ?? []).join(' ')} ${type}`.toLowerCase();
+            const serviceId = getServiceId(item.itype as any);
+            const service = serviceId === null ? undefined : servicesById[serviceId.toString()];
+            const provider = service?.provider;
+            const haystack = `${item.name ?? ''} ${item.description ?? ''} ${(item.tags ?? []).join(' ')} ${type} ${provider?.name ?? ''} ${provider?.email?.[0] ?? ''} ${provider?.phone?.[0] ?? ''} ${provider?.website?.[0] ?? ''} ${(service?.serviceTypes ?? []).join(' ')} ${(service?.keywords ?? []).join(' ')}`.toLowerCase();
             return haystack.includes(normalizedSearch);
         });
 
@@ -70,7 +75,7 @@ const ItemList: React.FC<ItemListProps> = ({ items, onItemClick, defaultFilter, 
             if (sortBy === 'price-high') return toPriceNumber(b) - toPriceNumber(a);
             return toListTime(b) - toListTime(a);
         });
-    }, [availableItems, activeFilter, searchTerm, sortBy, getItemType, toPriceNumber, toListTime]);
+    }, [availableItems, activeFilter, searchTerm, sortBy, getItemType, toPriceNumber, toListTime, servicesById]);
 
     React.useEffect(() => {
         setActiveFilter(initialFilter);
@@ -139,16 +144,19 @@ const ItemList: React.FC<ItemListProps> = ({ items, onItemClick, defaultFilter, 
             </div>
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {visibleItems.map((item) => (
-                    <OfferCard
-                        key={item.id}
+                {visibleItems.map((item) => {
+                    const serviceId = getServiceId(item.itype as any);
+                    const service = serviceId === null ? undefined : servicesById[serviceId.toString()];
+                    return <OfferCard
+                        key={item.id.toString()}
                         offer={item}
+                        service={service}
                         onOpen={(clickedItem) => {
                             onItemClick?.(clickedItem);
                             navigate(`/item/${clickedItem.id}`);
                         }}
-                    />
-                ))}
+                    />;
+                })}
             </div>
 
             {visibleItems.length === 0 && (

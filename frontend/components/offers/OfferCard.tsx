@@ -13,6 +13,7 @@ export default (props) => {
     const isFree = price === 0;
     const openDetails = () => props.onOpen?.(props.offer);
     const imageSrc = getItemImageSrc(props.offer);
+    const provider = props.service?.provider;
 
     return (
         <div className="soft-hover-card group overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
@@ -42,6 +43,16 @@ export default (props) => {
             <div className="space-y-3 p-4">
                 <div>
                     <p className="line-clamp-1 text-base font-bold text-slate-900">{props.offer.name}</p>
+                    {provider && (
+                        <div className="mt-1 space-y-0.5 text-xs text-slate-600">
+                            <p className="font-semibold text-teal-700">Provided by {provider.name}</p>
+                            {provider.email?.[0] && <p>{provider.email[0]}</p>}
+                            {provider.phone?.[0] && <p>{provider.phone[0]}</p>}
+                            {props.service.serviceTypes?.length > 0 && (
+                                <p className="line-clamp-1">{props.service.serviceTypes.join(' · ')}</p>
+                            )}
+                        </div>
+                    )}
                     {(props.offer.tags ?? []).length > 0 && (
                         <div className="mt-2 flex flex-wrap gap-1">
                             {props.offer.tags.slice(0, 3).map((tag) => (

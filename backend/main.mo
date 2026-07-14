@@ -82,6 +82,11 @@ persistent actor class EscrowService() = this {
         canceledAt : ?Int
     };
 
+    type ItemWithAssociations = {
+        item : ItemTypes.Item;
+        service : ?ServiceTypes.ServiceInfo;
+    };
+
     // transfer fee ICP
     transient let FEE : Nat64 = 10_000;
 
@@ -202,6 +207,9 @@ persistent actor class EscrowService() = this {
     var _upgradeItemsV4 : [(Nat, ItemTypes.Item)] = [];
     var _upgradeServiceId : Nat = 1;
     var _upgradeServices : [(ServiceTypes.ServiceId, ServiceTypes.ServiceInfo)] = [];
+    // Compatibility tombstone. The explicit migration consumes the previous V2
+    // store into `_upgradeServices` and keeps this field empty.
+    var _upgradeServicesV2 : [(ServiceTypes.ServiceId, ServiceTypes.ServiceInfo)] = [];
     var nextFreeItemClaimId : Nat = 1;
     // upgradeFreeItemClaims (old name, deployed without `comments`) is intentionally dropped.
     // Dropping a stable var is a WARNING (data loss) not an ERROR — and the live canister
@@ -1572,6 +1580,46 @@ persistent actor class EscrowService() = this {
         ) != null
     };
 
+    private func associatedService(item : ItemTypes.Item) : ?ServiceTypes.ServiceInfo {
+        switch (item.itype) {
+            case (#service(serviceId)) { services.retrieve(serviceId) };
+            case (_) { null };
+        }
+    };
+
+    private func serviceContainsKeyword(service : ServiceTypes.ServiceInfo, keyword : Text) : Bool {
+        let normalizedKeyword = Text.toLowercase(keyword);
+        if (normalizedKeyword == "") {
+            false
+        } else if (Text.contains(Text.toLowercase(service.provider.name), #text normalizedKeyword)) {
+            true
+        } else if (switch (service.provider.phone) { case (?value) Text.contains(Text.toLowercase(value), #text normalizedKeyword); case null false }) {
+            true
+        } else if (switch (service.provider.email) { case (?value) Text.contains(Text.toLowercase(value), #text normalizedKeyword); case null false }) {
+            true
+        } else if (switch (service.provider.website) { case (?value) Text.contains(Text.toLowercase(value), #text normalizedKeyword); case null false }) {
+            true
+        } else if (Array.find<Text>(service.serviceTypes, func(value) { Text.contains(Text.toLowercase(value), #text normalizedKeyword) }) != null) {
+            true
+        } else {
+            Array.find<Text>(service.keywords, func(value) { Text.contains(Text.toLowercase(value), #text normalizedKeyword) }) != null
+        }
+    };
+
+    private func itemWithAssociations(item : ItemTypes.Item) : ItemWithAssociations {
+        { item; service = associatedService(item) }
+    };
+
+    private func itemMatchesAssociatedKeywords(item : ItemTypes.Item, keywords : [Text]) : Bool {
+        if (itemMatchesKeywords(item, keywords)) return true;
+        switch (associatedService(item)) {
+            case (?service) {
+                Array.find<Text>(keywords, func(keyword) { serviceContainsKeyword(service, keyword) }) != null
+            };
+            case null { false };
+        }
+    };
+
     public query func searchItemsByKeywords(keywords : [Text], page : Nat) : async [ItemTypes.Item] {
         let titems = items.getItems();
         let matchedItems = Array.filter<ItemTypes.Item>(
@@ -1594,6 +1642,34 @@ persistent actor class EscrowService() = this {
             func(a, b) { Int.compare(Int.abs(b.listime), Int.abs(a.listime)) },
         );
         Page.getArrayPage(sortedItems, page, default_page_size)
+    };
+
+    public query func getItemsWithAssociations(page : Nat) : async [ItemWithAssociations] {
+        let sortedItems = Array.sort<ItemTypes.Item>(
+            items.getItems(),
+            func(a, b) { Int.compare(Int.abs(b.listime), Int.abs(a.listime)) },
+        );
+        Array.map<ItemTypes.Item, ItemWithAssociations>(
+            Page.getArrayPage(sortedItems, page, default_page_size),
+            itemWithAssociations,
+        )
+    };
+
+    public query func searchItemsWithAssociations(keywords : [Text], page : Nat) : async [ItemWithAssociations] {
+        let matchedItems = Array.filter<ItemTypes.Item>(
+            items.getItems(),
+            func(item) {
+                item.status == #list and itemMatchesAssociatedKeywords(item, keywords)
+            },
+        );
+        let sortedItems = Array.sort<ItemTypes.Item>(
+            matchedItems,
+            func(a, b) { Int.compare(Int.abs(b.listime), Int.abs(a.listime)) },
+        );
+        Array.map<ItemTypes.Item, ItemWithAssociations>(
+            Page.getArrayPage(sortedItems, page, default_page_size),
+            itemWithAssociations,
+        )
     };
 
     public query ({ caller }) func getMyItems(page : Nat) : async [ItemTypes.Item] {

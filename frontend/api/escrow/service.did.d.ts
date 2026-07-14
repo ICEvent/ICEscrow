@@ -27,6 +27,7 @@ export interface Item {
 
 export interface NewItem extends Omit<Item, 'id' | 'owner' | 'listime'> {}
 export interface UpdateItem extends Omit<NewItem, 'status'> {}
+export interface ItemWithAssociations { item: Item; service: [] | [ServiceInfo] }
 
 export interface NewOrder { [key: string]: any }
 export interface NewSellOrder { [key: string]: any }
@@ -51,9 +52,11 @@ export interface _SERVICE {
   deleteItem: ActorMethod<[bigint], Result<bigint>>;
   getItem: ActorMethod<[bigint], [] | [Item]>;
   getItems: ActorMethod<[bigint], Item[]>;
+  getItemsWithAssociations: ActorMethod<[bigint], ItemWithAssociations[]>;
   getMyItems: ActorMethod<[bigint], Item[]>;
   searchItems: ActorMethod<[ItemType, bigint], Item[]>;
   searchItemsByKeywords: ActorMethod<[string[], bigint], Item[]>;
+  searchItemsWithAssociations: ActorMethod<[string[], bigint], ItemWithAssociations[]>;
   createService: ActorMethod<[NewServiceInfo], Result<ServiceId>>;
   updateService: ActorMethod<[ServiceId, UpdateServiceInfo], Result<ServiceId>>;
   deleteService: ActorMethod<[ServiceId], Result<ServiceId>>;
