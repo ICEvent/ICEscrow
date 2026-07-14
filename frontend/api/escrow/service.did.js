@@ -84,6 +84,7 @@ export const idlFactory = ({ IDL }) => {
     getItems: IDL.Func([IDL.Nat], [IDL.Vec(Item)], ['query']),
     getMyItems: IDL.Func([IDL.Nat], [IDL.Vec(Item)], ['query']),
     searchItems: IDL.Func([ItemType, IDL.Nat], [IDL.Vec(Item)], ['query']),
+    searchItemsByKeywords: IDL.Func([IDL.Vec(IDL.Text), IDL.Nat], [IDL.Vec(Item)], ['query']),
     createService: IDL.Func([NewServiceInfo], [Result(IDL.Nat)], []),
     updateService: IDL.Func([IDL.Nat, NewServiceInfo], [Result(IDL.Nat)], []),
     deleteService: IDL.Func([IDL.Nat], [Result(IDL.Nat)], []),

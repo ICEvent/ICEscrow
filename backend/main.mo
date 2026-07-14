@@ -1545,6 +1545,48 @@ persistent actor class EscrowService() = this {
         Page.getArrayPage(titems, page, default_page_size)
     };
 
+    private func itemContainsKeyword(item : ItemTypes.Item, keyword : Text) : Bool {
+        let normalizedKeyword = Text.toLowercase(keyword);
+        if (normalizedKeyword == "") {
+            false
+        } else if (Text.contains(Text.toLowercase(item.name), #text normalizedKeyword)) {
+            true
+        } else if (Text.contains(Text.toLowercase(item.description), #text normalizedKeyword)) {
+            true
+        } else {
+            Array.find<Text>(
+                item.tags,
+                func(tag) {
+                    Text.contains(Text.toLowercase(tag), #text normalizedKeyword)
+                },
+            ) != null
+        }
+    };
+
+    private func itemMatchesKeywords(item : ItemTypes.Item, keywords : [Text]) : Bool {
+        Array.find<Text>(
+            keywords,
+            func(keyword) {
+                itemContainsKeyword(item, keyword)
+            },
+        ) != null
+    };
+
+    public query func searchItemsByKeywords(keywords : [Text], page : Nat) : async [ItemTypes.Item] {
+        let titems = items.getItems();
+        let matchedItems = Array.filter<ItemTypes.Item>(
+            titems,
+            func(item) {
+                item.status == #list and itemMatchesKeywords(item, keywords)
+            },
+        );
+        let sortedItems = Array.sort<ItemTypes.Item>(
+            matchedItems,
+            func(a, b) { Int.compare(Int.abs(b.listime), Int.abs(a.listime)) },
+        );
+        Page.getArrayPage(sortedItems, page, default_page_size)
+    };
+
     public query func getItems(page : Nat) : async [ItemTypes.Item] {
         let titems = items.getItems();
         let sortedItems = Array.sort<ItemTypes.Item>(
