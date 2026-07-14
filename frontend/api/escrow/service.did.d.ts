@@ -53,6 +53,7 @@ export interface _SERVICE {
   getItems: ActorMethod<[bigint], Item[]>;
   getMyItems: ActorMethod<[bigint], Item[]>;
   searchItems: ActorMethod<[ItemType, bigint], Item[]>;
+  searchItemsByKeywords: ActorMethod<[string[], bigint], Item[]>;
   createService: ActorMethod<[NewServiceInfo], Result<ServiceId>>;
   updateService: ActorMethod<[ServiceId, UpdateServiceInfo], Result<ServiceId>>;
   deleteService: ActorMethod<[ServiceId], Result<ServiceId>>;
