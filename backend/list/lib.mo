@@ -48,6 +48,7 @@ module{
                  name = newData.name;
                  description = newData.description;
                 image = newData.image;
+                tags = newData.tags;
                 itype = newData.itype;
                 price  = newData.price;
                 currency  = newData.currency;
@@ -72,6 +73,7 @@ module{
                         name = fitem.name;
                         description = fitem.description;
                         image = fitem.image;
+                        tags = fitem.tags;
                         itype = fitem.itype;
                         price  = fitem.price;
                         currency  = fitem.currency;
@@ -135,6 +137,7 @@ module{
                         name = data.name;
                         description = data.description;
                         image = data.image;
+                        tags = data.tags;
                         itype = data.itype;
                         price = data.price;
                         currency = data.currency;
@@ -165,6 +168,7 @@ module{
                         name = fitem.name;
                         description = fitem.description;
                         image = fitem.image;
+                        tags = fitem.tags;
                         itype = fitem.itype;
                         price  = fitem.price;
                         currency  = fitem.currency;

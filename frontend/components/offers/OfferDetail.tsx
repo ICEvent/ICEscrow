@@ -274,6 +274,16 @@ export default (props) => {
                         <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-500">Description</p>
                         <p className="mt-2 mb-4 text-sm leading-7 text-slate-700">{props.offer.description || 'No description provided by seller.'}</p>
 
+                        {(props.offer.tags ?? []).length > 0 && (
+                            <div className="mb-4 flex flex-wrap gap-2">
+                                {props.offer.tags.map((tag) => (
+                                    <span key={tag} className="rounded-full border border-cyan-200 bg-cyan-50 px-2.5 py-1 text-xs font-semibold text-cyan-700">
+                                        #{tag}
+                                    </span>
+                                ))}
+                            </div>
+                        )}
+
                         <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-500">Price</p>
                         {isFree ? (
                             <p className="mt-2 text-3xl font-extrabold tracking-tight text-emerald-600">FREE</p>
