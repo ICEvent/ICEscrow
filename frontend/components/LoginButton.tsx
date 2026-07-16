@@ -63,7 +63,7 @@ const DropdownMenu: React.FC = () => {
     const identity = authClient.getIdentity()
 
     setAgent({
-      agent: new HttpAgent({
+      agent: await HttpAgent.create({
         identity,
         host: HOST,
       }),

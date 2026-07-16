@@ -91,7 +91,7 @@ const Header: FC = () => {
     const identity: Identity = authClient.getIdentity();
 
     setAgent({
-      agent: new HttpAgent({
+      agent: await HttpAgent.create({
         identity,
         host: HOST,
       }),

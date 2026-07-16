@@ -146,6 +146,7 @@ export const idlFactory = ({ IDL }) => {
   return IDL.Service({
     listItem: IDL.Func([NewItem], [Result(IDL.Nat)], []),
     updateItem: IDL.Func([IDL.Nat, UpdateItem], [Result(IDL.Nat)], []),
+    changeItemStatus: IDL.Func([IDL.Nat, ItemStatus], [Result(IDL.Nat)], []),
     deleteItem: IDL.Func([IDL.Nat], [Result(IDL.Nat)], []),
     getItem: IDL.Func([IDL.Nat], [IDL.Opt(Item)], ['query']),
     getItems: IDL.Func([IDL.Nat], [IDL.Vec(Item)], ['query']),

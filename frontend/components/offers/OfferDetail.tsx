@@ -7,7 +7,7 @@ import { currencyBase, currencySymbol } from '../../lib/currencyUtils';
 import { getItemImageSrc } from '../../lib/itemImage';
 import { Link } from 'react-router-dom';
 import PrincipalName from '../PrincipalName';
-import { getCanisterErrorMessage, isCanisterOkResult } from '../../lib/canisterResult';
+import { getCanisterErrorMessage, getThrownErrorMessage, isCanisterOkResult } from '../../lib/canisterResult';
 
 
 
@@ -170,10 +170,10 @@ export default (props) => {
                     toast.success("Item relisted");
                     setItemStatus('list');
                 } else {
-                    toast.warn("The relist action may have been applied. Please refresh to verify it.");
+                    toast.error(getThrownErrorMessage(e, "Failed to relist item"));
                 }
             } catch {
-                toast.warn("The relist action may have been applied. Please refresh to verify it.");
+                toast.warn(`${getThrownErrorMessage(e, "The relist action could not be confirmed")}. Please refresh to verify the item status.`);
             }
         } finally {
             setLoading(false);
@@ -199,10 +199,10 @@ export default (props) => {
                     toast.success("Item unlisted");
                     setItemStatus('unlist');
                 } else {
-                    toast.warn("The unlist action may have been applied. Please refresh to verify it.");
+                    toast.error(getThrownErrorMessage(e, "Failed to unlist item"));
                 }
             } catch {
-                toast.warn("The unlist action may have been applied. Please refresh to verify it.");
+                toast.warn(`${getThrownErrorMessage(e, "The unlist action could not be confirmed")}. Please refresh to verify the item status.`);
             }
         } finally {
             setLoading(false);

@@ -22,6 +22,24 @@ const STATUS_LABELS: Record<string, { label: string; className: string }> = {
 
 const PAGE_SIZE = 20;
 
+const normalizeCanisterValue = (value: any): any => {
+    if (typeof value === 'bigint') return value.toString();
+    if (value && typeof value.toText === 'function') return value.toText();
+    if (Array.isArray(value)) return value.map(normalizeCanisterValue);
+    if (value && typeof value === 'object') {
+        return Object.keys(value).sort().reduce<Record<string, any>>((normalized, key) => {
+            normalized[key] = normalizeCanisterValue(value[key]);
+            return normalized;
+        }, {});
+    }
+    return value;
+};
+
+const itemMatchesUpdate = (item: any, update: any): boolean =>
+    ['name', 'description', 'image', 'tags', 'itype', 'price', 'currency', 'location'].every(
+        (field) => JSON.stringify(normalizeCanisterValue(item?.[field])) === JSON.stringify(normalizeCanisterValue(update[field])),
+    );
+
 interface ConfirmDeleteModalProps {
     itemName: string;
     onConfirm: () => void;
@@ -113,7 +131,7 @@ const MyItems: React.FC = () => {
             } else {
                 toast.error(getCanisterErrorMessage(res, 'Failed to update status'));
             }
-        } catch {
+        } catch (error) {
             try {
                 const refreshed = await escrow.getItem(itemId);
                 const updatedItem = refreshed?.[0];
@@ -126,10 +144,12 @@ const MyItems: React.FC = () => {
                     );
                     await loadItems();
                 } else {
-                    toast.warn('The status change may have been applied. Please refresh to verify it.');
+                    toast.error(getThrownErrorMessage(error, 'Failed to update item status'));
                 }
             } catch {
-                toast.warn('The status change may have been applied. Please refresh to verify it.');
+                toast.warn(
+                    `${getThrownErrorMessage(error, 'The status update could not be confirmed')}. Please refresh to verify the item status.`,
+                );
             }
         } finally {
             setChangingId(null);
@@ -156,23 +176,39 @@ const MyItems: React.FC = () => {
 
     const saveEdit = async (payload: any) => {
         if (!editTarget) return;
+        const editedItemId = editTarget.id;
+
+        const applySuccessfulEdit = (savedItem: any = payload) => {
+            toast.success('Item updated');
+            setItems((prev) =>
+                prev.map((item) =>
+                    item.id === editedItemId ? { ...item, ...savedItem } : item,
+                ),
+            );
+            setEditTarget(null);
+        };
+
         try {
-            const res = await escrow.updateItem(editTarget.id, payload);
+            const res = await escrow.updateItem(editedItemId, payload);
             if (isCanisterOkResult(res)) {
-                toast.success('Item updated');
-                setItems((prev) =>
-                    prev.map((item) =>
-                        item.id === editTarget.id
-                            ? { ...item, ...payload, price: payload.price, currency: payload.currency, itype: payload.itype, location: payload.location }
-                            : item
-                    )
-                );
-                setEditTarget(null);
+                applySuccessfulEdit();
             } else {
                 toast.error(getCanisterErrorMessage(res, 'Failed to update item'));
             }
         } catch (error) {
-            toast.error(getThrownErrorMessage(error, 'Failed to update item'));
+            try {
+                const refreshed = await escrow.getItem(editedItemId);
+                const savedItem = refreshed?.[0];
+                if (savedItem && itemMatchesUpdate(savedItem, payload)) {
+                    applySuccessfulEdit(savedItem);
+                } else {
+                    toast.error(getThrownErrorMessage(error, 'Failed to update item'));
+                }
+            } catch {
+                toast.warn(
+                    `${getThrownErrorMessage(error, 'The item update could not be confirmed')}. Please refresh to verify the item.`,
+                );
+            }
         }
     };
 
