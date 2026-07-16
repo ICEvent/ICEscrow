@@ -193,10 +193,10 @@ module{
             });
         };
        
-       public func getTypeItems(itype: Itype): [Item]{
+       public func getTypeItems(itype: Itype, status: Status): [Item]{
             let msgArr =   Iter.toArray(items.vals());
             Array.filter(msgArr, func(l: Item):Bool{
-                l.itype == itype and l.status == #list
+                l.itype == itype and l.status == status
             });
        };
 

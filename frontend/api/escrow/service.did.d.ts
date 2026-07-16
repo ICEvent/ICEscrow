@@ -54,9 +54,9 @@ export interface _SERVICE {
   getItems: ActorMethod<[bigint], Item[]>;
   getItemsWithAssociations: ActorMethod<[bigint], ItemWithAssociations[]>;
   getMyItems: ActorMethod<[bigint], Item[]>;
-  searchItems: ActorMethod<[ItemType, bigint], Item[]>;
-  searchItemsByKeywords: ActorMethod<[string[], bigint], Item[]>;
-  searchItemsWithAssociations: ActorMethod<[string[], bigint], ItemWithAssociations[]>;
+  searchItems: ActorMethod<[[] | [ItemType], [] | [ItemStatus], bigint], Item[]>;
+  searchItemsByKeywords: ActorMethod<[string[], [] | [ItemType], [] | [ItemStatus], bigint], Item[]>;
+  searchItemsWithAssociations: ActorMethod<[string[], [] | [ItemType], [] | [ItemStatus], bigint], ItemWithAssociations[]>;
   createService: ActorMethod<[NewServiceInfo], Result<ServiceId>>;
   updateService: ActorMethod<[ServiceId, UpdateServiceInfo], Result<ServiceId>>;
   deleteService: ActorMethod<[ServiceId], Result<ServiceId>>;

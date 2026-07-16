@@ -1548,9 +1548,28 @@ persistent actor class EscrowService() = this {
         }
     };
 
-    public query func searchItems(itype : ItemTypes.Itype, page : Nat) : async [ItemTypes.Item] {
-        let titems = items.getTypeItems(itype);
-        Page.getArrayPage(titems, page, default_page_size)
+    private func itemMatchesFilters(item : ItemTypes.Item, itype : ?ItemTypes.Itype, status : ?ItemTypes.ItemStatus) : Bool {
+        let matchesType = switch (itype) {
+            case (?value) { item.itype == value };
+            case null { true };
+        };
+        let matchesStatus = switch (status) {
+            case (?value) { item.status == value };
+            case null { true };
+        };
+        matchesType and matchesStatus
+    };
+
+    public query func searchItems(itype : ?ItemTypes.Itype, status : ?ItemTypes.ItemStatus, page : Nat) : async [ItemTypes.Item] {
+        let matchedItems = Array.filter<ItemTypes.Item>(
+            items.getItems(),
+            func(item) { itemMatchesFilters(item, itype, status) },
+        );
+        let sortedItems = Array.sort<ItemTypes.Item>(
+            matchedItems,
+            func(a, b) { Int.compare(Int.abs(b.listime), Int.abs(a.listime)) },
+        );
+        Page.getArrayPage(sortedItems, page, default_page_size)
     };
 
     private func itemContainsKeyword(item : ItemTypes.Item, keyword : Text) : Bool {
@@ -1620,12 +1639,12 @@ persistent actor class EscrowService() = this {
         }
     };
 
-    public query func searchItemsByKeywords(keywords : [Text], page : Nat) : async [ItemTypes.Item] {
+    public query func searchItemsByKeywords(keywords : [Text], itype : ?ItemTypes.Itype, status : ?ItemTypes.ItemStatus, page : Nat) : async [ItemTypes.Item] {
         let titems = items.getItems();
         let matchedItems = Array.filter<ItemTypes.Item>(
             titems,
             func(item) {
-                item.status == #list and itemMatchesKeywords(item, keywords)
+                itemMatchesFilters(item, itype, status) and itemMatchesKeywords(item, keywords)
             },
         );
         let sortedItems = Array.sort<ItemTypes.Item>(
@@ -1655,11 +1674,11 @@ persistent actor class EscrowService() = this {
         )
     };
 
-    public query func searchItemsWithAssociations(keywords : [Text], page : Nat) : async [ItemWithAssociations] {
+    public query func searchItemsWithAssociations(keywords : [Text], itype : ?ItemTypes.Itype, status : ?ItemTypes.ItemStatus, page : Nat) : async [ItemWithAssociations] {
         let matchedItems = Array.filter<ItemTypes.Item>(
             items.getItems(),
             func(item) {
-                item.status == #list and itemMatchesAssociatedKeywords(item, keywords)
+                itemMatchesFilters(item, itype, status) and itemMatchesAssociatedKeywords(item, keywords)
             },
         );
         let sortedItems = Array.sort<ItemTypes.Item>(
