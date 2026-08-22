@@ -33,6 +33,31 @@ module {
         #closed;
         #canceled
     };
+
+    // Business provenance is deliberately stored separately from Order so the
+    // financial order record can remain stable and migration-friendly.
+    public type OrderSource = {
+        #icevent : {
+            canister : Principal;
+            calendarId : Nat;
+            requirementId : Nat;
+            offerId : Nat;
+            reservationId : Nat
+        };
+        #external : {
+            canister : Principal;
+            namespace : Text;
+            id : Text
+        }
+    };
+
+    public type OrderContext = {
+        orderId : Nat;
+        source : OrderSource;
+        createdBy : Principal;
+        createdAt : Int
+    };
+
     public type Order = {
         id : Nat;
         buyer : Principal;
@@ -66,6 +91,19 @@ module {
         currency : Currency;
         expiration : Int
     };
+
+    // Used by trusted orchestration canisters (for example ICEvent) to create
+    // an order for the real buyer/seller rather than making caller a party.
+    public type CreateOrderForRequest = {
+        buyer : Principal;
+        seller : Principal;
+        memo : Text;
+        amount : Nat64;
+        currency : Currency;
+        expiration : Int;
+        source : OrderSource
+    };
+
     public type Comment = {
         user : Principal;
         comment : Text;
@@ -121,41 +159,20 @@ module {
 
     // Arguments for the `transfer` call.
     public type TransferArgs = {
-        // Transaction memo.
-        // See comments for the `Memo` type.
+        // The caller can set it in a `transfer` call as a correlation identifier.
         memo : Memo;
-        // The amount that the caller wants to transfer to the destination address.
         amount : ICP;
-        // The amount that the caller pays for the transaction.
-        // Must be 10000 e8s.
         fee : ICP;
-        // The subaccount from which the caller wants to transfer funds.
-        // If null, the ledger uses the default (all zeros) subaccount to compute the source address.
-        // See comments for the `SubAccount` type.
         from_subaccount : ?SubaccountBlob;
-        // The destination account.
-        // If the transfer is successful, the balance of this account increases by `amount`.
         to : AccountIdentifier;
-        // The point in time when the caller created this request.
-        // If null, the ledger uses current IC time as the timestamp.
         created_at_time : ?Timestamp
     };
 
     public type TransferError = {
-        // The fee that the caller specified in the transfer request was not the one that the ledger expects.
-        // The caller can change the transfer fee to the `expected_fee` and retry the request.
         #BadFee : { expected_fee : ICP };
-        // The account specified by the caller doesn't have enough funds.
         #InsufficientFunds : { balance : ICP };
-        // The request is too old.
-        // The ledger only accepts requests created within a 24 hours window.
-        // This is a non-recoverable error.
         #TxTooOld : { allowed_window_nanos : Nat64 };
-        // The caller specified `created_at_time` that is too far in future.
-        // The caller can retry the request later.
         #TxCreatedInFuture : Null;
-        // The ledger has already executed the request.
-        // `duplicate_of` field is equal to the index of the block containing the original transaction.
         #TxDuplicate : { duplicate_of : BlockIndex }
     };
 
@@ -164,23 +181,11 @@ module {
         #Err : TransferError
     };
 
-    // Arguments for the `account_balance` call.
     public type AccountBalanceArgs = {
         account : AccountIdentifier
     };
 
-    // service : {
-    // Transfers tokens from a subaccount of the caller to the destination address.
-    // The source address is computed from the principal of the caller and the specified subaccount.
-    // When successful, returns the index of the block containing the transaction.
-    // transfer : (TransferArgs) -> (TransferResult);
-
-    // Returns the amount of ICP on the specified account.
-    // account_balance : (AccountBalanceArgs) -> (ICP) query;
-    // }
-
     public type CanisterId = Principal;
-
     public type BlockHeight = Nat64;
 
     public type TransactionNotification = {
@@ -194,17 +199,11 @@ module {
     };
 
     public type Ledger = actor {
-        // Transfers tokens from a subaccount of the caller to the destination address.
-        // The source address is computed from the principal of the caller and the specified subaccount.
-        // When successful, returns the index of the block containing the transaction.
         transfer : shared (TransferArgs) -> async TransferResult;
-
-        // Returns the amount of ICP on the specified account.
         account_balance : shared query AccountBalanceArgs -> async ICP
     };
 
     // Reputation
-
     public type Review = {
         id : Nat;
         orderId : Nat;
@@ -225,7 +224,6 @@ module {
     };
 
     // Notification service (icevent_service RAM canister)
-
     public type TypeNotification = {
         #calendar : Nat;
         #contact : Nat;
