@@ -75,12 +75,13 @@ export const idlFactory = ({ IDL }) => {
     coverage: IDL.Opt(Coverage),
     capacity: IDL.Opt(IDL.Nat),
   });
-  const StablecoinInfo = IDL.Record({ canisterId: IDL.Text, symbol: IDL.Text, decimals: IDL.Nat8, fee: IDL.Nat64, enabled: IDL.Bool });
-  const OrderCurrency = IDL.Variant({
-    ICP: IDL.Null,
-    ICET: IDL.Null,
-    ICRC1: IDL.Record({ canisterId: IDL.Principal, symbol: IDL.Text, decimals: IDL.Nat8 }),
+  const StablecoinInfo = IDL.Record({
+    canisterId: IDL.Principal,
+    symbol: IDL.Text,
+    decimals: IDL.Nat8,
+    fee: IDL.Nat,
   });
+  const OrderCurrency = Currency;
   const Balance = IDL.Variant({ e6s: IDL.Nat64, e8s: IDL.Nat64 });
   const OrderStatus = IDL.Variant({
     new: IDL.Null,
@@ -131,6 +132,35 @@ export const idlFactory = ({ IDL }) => {
     expiration: IDL.Int,
     memo: IDL.Text,
   });
+  const OrderSource = IDL.Variant({
+    icevent: IDL.Record({
+      canister: IDL.Principal,
+      calendarId: IDL.Nat,
+      requirementId: IDL.Nat,
+      offerId: IDL.Nat,
+      reservationId: IDL.Nat,
+    }),
+    external: IDL.Record({
+      canister: IDL.Principal,
+      namespace: IDL.Text,
+      id: IDL.Text,
+    }),
+  });
+  const OrderContext = IDL.Record({
+    orderId: IDL.Nat,
+    source: OrderSource,
+    createdBy: IDL.Principal,
+    createdAt: IDL.Int,
+  });
+  const CreateOrderForRequest = IDL.Record({
+    buyer: IDL.Principal,
+    seller: IDL.Principal,
+    memo: IDL.Text,
+    amount: IDL.Nat64,
+    currency: OrderCurrency,
+    expiration: IDL.Int,
+    source: OrderSource,
+  });
   const FreeItemClaim = IDL.Record({
     buyer: IDL.Principal,
     canceledAt: IDL.Opt(IDL.Int),
@@ -163,6 +193,9 @@ export const idlFactory = ({ IDL }) => {
     getSupportedStablecoins: IDL.Func([], [IDL.Vec(StablecoinInfo)], ['query']),
     accountBalance: IDL.Func([IDL.Text, OrderCurrency], [Balance], []),
     buy: IDL.Func([NewOrder], [Result(IDL.Nat)], []),
+    sell: IDL.Func([NewSellOrder], [Result(IDL.Nat)], []),
+    create: IDL.Func([NewOrder], [Result(IDL.Nat)], []),
+    createOrderFor: IDL.Func([CreateOrderForRequest], [Result(IDL.Nat)], []),
     cancel: IDL.Func([IDL.Nat], [Result(IDL.Nat)], []),
     cancelClaim: IDL.Func([IDL.Nat], [Result(IDL.Nat)], []),
     close: IDL.Func([IDL.Nat], [Result(IDL.Nat)], []),
@@ -175,11 +208,15 @@ export const idlFactory = ({ IDL }) => {
     getMyBuyerFreeItemClaims: IDL.Func([], [IDL.Vec(FreeItemClaim)], ['query']),
     getMyFreeItemClaims: IDL.Func([], [IDL.Vec(FreeItemClaim)], ['query']),
     getOrder: IDL.Func([IDL.Nat], [IDL.Opt(Order)], ['query']),
+    getOrderContext: IDL.Func([IDL.Nat], [IDL.Opt(OrderContext)], ['query']),
+    getOrderBySource: IDL.Func([OrderSource], [IDL.Opt(Order)], ['query']),
     getOrderBalance: IDL.Func([IDL.Nat], [Balance], []),
     getOrders: IDL.Func([], [IDL.Vec(Order)], ['query']),
     receive: IDL.Func([IDL.Nat], [Result(IDL.Nat)], []),
     release: IDL.Func([IDL.Nat], [Result(IDL.Nat)], []),
-    sell: IDL.Func([NewSellOrder], [Result(IDL.Nat)], []),
+    addOrderCreator: IDL.Func([IDL.Principal], [Result(IDL.Null)], []),
+    removeOrderCreator: IDL.Func([IDL.Principal], [Result(IDL.Null)], []),
+    listOrderCreators: IDL.Func([], [IDL.Vec(IDL.Principal)], ['query']),
   });
 };
 export const init = ({ IDL }) => [];
