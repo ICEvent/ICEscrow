@@ -43,6 +43,9 @@ persistent actor class EscrowService() = this {
     type Order = Types.Order;
     type NewOrder = Types.NewOrder;
     type NewSellOrder = Types.NewSellOrder;
+    type OrderSource = Types.OrderSource;
+    type OrderContext = Types.OrderContext;
+    type CreateOrderForRequest = Types.CreateOrderForRequest;
     type Log = Types.Log;
     type Comment = Types.Comment;
     type Review = Types.Review;
@@ -122,6 +125,10 @@ persistent actor class EscrowService() = this {
     var nextSubAccount : Nat = 1;
     var nextOrderId : Nat = 1;
     var upgradeOrders : [(Nat, Order)] = [];
+    // Order provenance is kept separately so the deployed Order stable type does not change.
+    var upgradeOrderContexts : [(Nat, OrderContext)] = [];
+    // Principals allowed to create orders on behalf of real buyers/sellers.
+    var upgradeOrderCreators : [Text] = [];
 
     // Old deployed Item type — no `location` field. Kept to deserialise stable memory on this upgrade only.
     type OldItype = {
@@ -237,14 +244,48 @@ persistent actor class EscrowService() = this {
     // Stablecoin registry: canister-id (Text) → StablecoinInfo
     var upgradeStablecoins : [(Text, StablecoinInterface.StablecoinInfo)] = [];
 
-    // Admin principals (allowed to manage the stablecoin registry).
+    // Admin principals (allowed to manage the stablecoin registry and trusted order creators).
     // Empty on first deployment; use setAdmin to bootstrap.
     var upgradeAdmins : [Text] = [];
 
     private func natHash(n : Nat) : Hash.Hash { Text.hash(Nat.toText(n)) };
 
+    private func sourceOwner(source : OrderSource) : Principal {
+        switch (source) {
+            case (#icevent(value)) { value.canister };
+            case (#external(value)) { value.canister };
+        }
+    };
+
+    // Canonical source key used for idempotency. Length-prefix free-form external
+    // fields so delimiters inside namespace/id cannot produce collisions.
+    private func sourceKey(source : OrderSource) : Text {
+        switch (source) {
+            case (#icevent(value)) {
+                "icevent|" # Principal.toText(value.canister) # "|" # Nat.toText(value.calendarId) # "|" # Nat.toText(value.requirementId) # "|" # Nat.toText(value.offerId) # "|" # Nat.toText(value.reservationId)
+            };
+            case (#external(value)) {
+                "external|" # Principal.toText(value.canister) # "|" # Nat.toText(Text.size(value.namespace)) # ":" # value.namespace # "|" # Nat.toText(Text.size(value.id)) # ":" # value.id
+            };
+        }
+    };
+
     transient var orders = TrieMap.TrieMap<Nat, Order>(Nat.equal, natHash);
     orders := TrieMap.fromEntries<Nat, Order>(Iter.fromArray(upgradeOrders), Nat.equal, natHash);
+
+    transient var orderContexts = TrieMap.TrieMap<Nat, OrderContext>(Nat.equal, natHash);
+    orderContexts := TrieMap.fromEntries<Nat, OrderContext>(Iter.fromArray(upgradeOrderContexts), Nat.equal, natHash);
+
+    // Derived index: source key → order id. Rebuilt from stable contexts on every upgrade.
+    transient var orderBySource = TrieMap.TrieMap<Text, Nat>(Text.equal, Text.hash);
+    for ((orderId, context) in orderContexts.entries()) {
+        orderBySource.put(sourceKey(context.source), orderId);
+    };
+
+    transient var orderCreatorSet = TrieMap.TrieMap<Text, Bool>(Text.equal, Text.hash);
+    for (creator in upgradeOrderCreators.vals()) {
+        orderCreatorSet.put(creator, true);
+    };
 
     // One-time migration: add location = #online to items that don't have it yet.
     transient let _migratedItems : [(Nat, ItemTypes.Item)] = if (_upgradeItems.size() > 0) {
@@ -401,133 +442,188 @@ persistent actor class EscrowService() = this {
         adminSet.get(Principal.toText(p)) == ?true
     };
 
+    func isOrderCreator(p : Principal) : Bool {
+        orderCreatorSet.get(Principal.toText(p)) == ?true
+    };
+
+    private func createOrderInternal(
+        buyer : Principal,
+        seller : Principal,
+        memo : Text,
+        amount : Nat64,
+        currency : Currency,
+        expiration : Int,
+        lockedby : Principal,
+        logText : Text,
+        logger : { #buyer; #seller; #escrow },
+    ) : Nat {
+        let orderid = nextOrderId;
+        let now = Time.now();
+        orders.put(
+            orderid,
+            {
+                id = orderid;
+                buyer;
+                seller;
+                memo;
+                amount;
+                currency;
+                account = getNewAccountId();
+                blockin = 0;
+                blockout = 0;
+                status = #new;
+                expiration;
+                createtime = now;
+                updatetime = now;
+                lockedby;
+                comments = [];
+                logs = [{
+                    ltime = now;
+                    log = logText;
+                    logger
+                }]
+            },
+        );
+        nextOrderId += 1;
+        orderid
+    };
+
     public shared ({ caller }) func buy(newOrder : NewOrder) : async Result.Result<Nat, Text> {
-
         if (Principal.isAnonymous(caller)) {
-
             #err("no authenticated")
         } else if (newOrder.memo == "") {
             #err("memo is required")
         } else {
-            let orderid = nextOrderId;
-
-            orders.put(
-                orderid,
-                {
-                    id = orderid;
-                    buyer = caller;
-                    seller = newOrder.seller;
-                    memo = newOrder.memo;
-                    amount = newOrder.amount;
-                    currency = newOrder.currency;
-                    account = getNewAccountId();
-                    blockin = 0;
-                    blockout = 0;
-                    status = #new;
-                    expiration = newOrder.expiration;
-                    createtime = Time.now();
-                    updatetime = Time.now();
-                    lockedby = caller;
-                    comments = [];
-                    logs = [{
-                        ltime = Time.now();
-                        log = "create buying order";
-                        logger = #buyer
-                    }]
-                },
+            let orderid = createOrderInternal(
+                caller,
+                newOrder.seller,
+                newOrder.memo,
+                newOrder.amount,
+                newOrder.currency,
+                newOrder.expiration,
+                caller,
+                "create buying order",
+                #buyer,
             );
-
-            nextOrderId := nextOrderId + 1;
             ignore sendNotification(newOrder.seller, "New escrow order #" # Nat.toText(orderid) # " has been created", caller);
             #ok(orderid)
-        };
-
+        }
     };
+
     public shared ({ caller }) func sell(newOrder : NewSellOrder) : async Result.Result<Nat, Text> {
-
         if (Principal.isAnonymous(caller)) {
-
             #err("no authenticated")
         } else if (newOrder.memo == "") {
             #err("memo is required")
         } else {
-            let orderid = nextOrderId;
-
-            orders.put(
-                orderid,
-                {
-                    id = orderid;
-                    buyer = newOrder.buyer;
-                    seller = caller;
-                    memo = newOrder.memo;
-                    amount = newOrder.amount;
-                    currency = newOrder.currency;
-                    account = getNewAccountId();
-                    blockin = 0;
-                    blockout = 0;
-                    status = #new;
-                    expiration = newOrder.expiration;
-                    createtime = Time.now();
-                    updatetime = Time.now();
-                    lockedby = caller;
-                    comments = [];
-                    logs = [{
-                        ltime = Time.now();
-                        log = "create selling order";
-                        logger = #buyer
-                    }]
-                },
+            let orderid = createOrderInternal(
+                newOrder.buyer,
+                caller,
+                newOrder.memo,
+                newOrder.amount,
+                newOrder.currency,
+                newOrder.expiration,
+                caller,
+                "create selling order",
+                #seller,
             );
-
-            nextOrderId := nextOrderId + 1;
             ignore sendNotification(newOrder.buyer, "New escrow order #" # Nat.toText(orderid) # " has been created for you", caller);
             #ok(orderid)
-        };
-
+        }
     };
-    //buyer create a new order
+
+    //buyer create a new order (legacy alias kept for compatibility)
     public shared ({ caller }) func create(newOrder : NewOrder) : async Result.Result<Nat, Text> {
-
         if (Principal.isAnonymous(caller)) {
-
             #err("no authenticated")
         } else if (newOrder.memo == "") {
             #err("memo is required")
         } else {
-            let orderid = nextOrderId;
-
-            orders.put(
-                orderid,
-                {
-                    id = orderid;
-                    buyer = caller;
-                    seller = newOrder.seller;
-                    memo = newOrder.memo;
-                    amount = newOrder.amount;
-                    currency = newOrder.currency;
-                    account = getNewAccountId();
-                    blockin = 0;
-                    blockout = 0;
-                    status = #new;
-                    expiration = newOrder.expiration;
-                    createtime = Time.now();
-                    updatetime = Time.now();
-                    lockedby = caller;
-                    comments = [];
-                    logs = [{
-                        ltime = Time.now();
-                        log = "create order";
-                        logger = #buyer
-                    }]
-                },
+            let orderid = createOrderInternal(
+                caller,
+                newOrder.seller,
+                newOrder.memo,
+                newOrder.amount,
+                newOrder.currency,
+                newOrder.expiration,
+                caller,
+                "create order",
+                #buyer,
             );
-
-            nextOrderId := nextOrderId + 1;
             ignore sendNotification(newOrder.seller, "New escrow order #" # Nat.toText(orderid) # " has been created", caller);
             #ok(orderid)
+        }
+    };
+
+    // Trusted orchestration canisters create an order for the actual buyer/seller.
+    // Calls are idempotent by OrderSource: a retry returns the existing order id.
+    public shared ({ caller }) func createOrderFor(request : CreateOrderForRequest) : async Result.Result<Nat, Text> {
+        if (Principal.isAnonymous(caller)) {
+            return #err("no authenticated")
+        };
+        if (not isOrderCreator(caller)) {
+            return #err("unauthorized order creator")
+        };
+        if (Principal.isAnonymous(request.buyer) or Principal.isAnonymous(request.seller)) {
+            return #err("buyer and seller must be authenticated principals")
+        };
+        if (request.memo == "") {
+            return #err("memo is required")
+        };
+        if (sourceOwner(request.source) != caller) {
+            return #err("order source canister must match caller")
         };
 
+        let key = sourceKey(request.source);
+        switch (orderBySource.get(key)) {
+            case (?existingId) {
+                switch (orders.get(existingId)) {
+                    case (?existing) {
+                        if (
+                            existing.buyer == request.buyer and
+                            existing.seller == request.seller and
+                            existing.memo == request.memo and
+                            existing.amount == request.amount and
+                            existing.currency == request.currency and
+                            existing.expiration == request.expiration
+                        ) {
+                            #ok(existingId)
+                        } else {
+                            #err("order source already exists with different order data")
+                        }
+                    };
+                    case null {
+                        #err("order source index points to a missing order")
+                    };
+                }
+            };
+            case null {
+                let orderid = createOrderInternal(
+                    request.buyer,
+                    request.seller,
+                    request.memo,
+                    request.amount,
+                    request.currency,
+                    request.expiration,
+                    request.buyer,
+                    "create orchestrated order",
+                    #escrow,
+                );
+                let context : OrderContext = {
+                    orderId = orderid;
+                    source = request.source;
+                    createdBy = caller;
+                    createdAt = Time.now()
+                };
+                orderContexts.put(orderid, context);
+                orderBySource.put(key, orderid);
+                ignore sendNotification(request.buyer, "Escrow order #" # Nat.toText(orderid) # " has been created from an external reservation", caller);
+                ignore sendNotification(request.seller, "Escrow order #" # Nat.toText(orderid) # " has been created from an external reservation", caller);
+                #ok(orderid)
+            };
+        }
     };
+
     //buyer deposit fund in escrow, and change status to #deposited
     public shared ({ caller }) func deposit(orderid : Nat) : async Result.Result<Nat, Text> {
 
@@ -1115,7 +1211,7 @@ persistent actor class EscrowService() = this {
             case (_) {
                 #err("no order found")
             }
-        }
+        };
 
     };
 
@@ -1190,6 +1286,36 @@ persistent actor class EscrowService() = this {
                 (o.id == orderid) and (o.buyer == caller or o.seller == caller)
             },
         )
+    };
+
+    // Return source metadata to an order participant, the originating canister, or an admin.
+    public query ({ caller }) func getOrderContext(orderid : Nat) : async ?OrderContext {
+        switch (orderContexts.get(orderid)) {
+            case null { null };
+            case (?context) {
+                switch (orders.get(orderid)) {
+                    case (?order) {
+                        if (order.buyer == caller or order.seller == caller or context.createdBy == caller or isAdmin(caller)) {
+                            ?context
+                        } else {
+                            null
+                        }
+                    };
+                    case null { null };
+                }
+            };
+        }
+    };
+
+    // Trusted source owner (or an admin) can recover the order after an uncertain/retried call.
+    public query ({ caller }) func getOrderBySource(source : OrderSource) : async ?Order {
+        if (sourceOwner(source) != caller and not isAdmin(caller)) {
+            return null
+        };
+        switch (orderBySource.get(sourceKey(source))) {
+            case (?orderid) { orders.get(orderid) };
+            case null { null };
+        }
     };
 
     public query ({ caller }) func getAllOrders(page : Nat) : async [Order] {
@@ -1440,6 +1566,32 @@ persistent actor class EscrowService() = this {
         };
         adminSet.delete(Principal.toText(target));
         #ok(())
+    };
+
+    /// Allow a canister to create orders on behalf of actual buyers/sellers.
+    public shared ({ caller }) func addOrderCreator(target : Principal) : async Result.Result<(), Text> {
+        if (not isAdmin(caller)) {
+            return #err("Unauthorized: caller is not an admin")
+        };
+        if (Principal.isAnonymous(target)) {
+            return #err("Anonymous principal cannot be an order creator")
+        };
+        orderCreatorSet.put(Principal.toText(target), true);
+        #ok(())
+    };
+
+    /// Revoke orchestration order-creation permission.
+    public shared ({ caller }) func removeOrderCreator(target : Principal) : async Result.Result<(), Text> {
+        if (not isAdmin(caller)) {
+            return #err("Unauthorized: caller is not an admin")
+        };
+        orderCreatorSet.delete(Principal.toText(target));
+        #ok(())
+    };
+
+    /// Public for transparency: list canisters trusted to originate external orders.
+    public query func listOrderCreators() : async [Principal] {
+        Array.map<Text, Principal>(Iter.toArray(orderCreatorSet.keys()), Principal.fromText)
     };
 
     /// Register or update a stablecoin (admin only).
@@ -2192,6 +2344,8 @@ persistent actor class EscrowService() = this {
     **/
     system func preupgrade() {
         upgradeOrders := Iter.toArray(orders.entries());
+        upgradeOrderContexts := Iter.toArray(orderContexts.entries());
+        upgradeOrderCreators := Iter.toArray(orderCreatorSet.keys());
         _upgradeItemId := items.toStableId();
         _upgradeItemsV4 := items.toStable();
         _upgradeItemsV3 := []; // clear old migration source
