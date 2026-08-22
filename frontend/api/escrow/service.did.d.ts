@@ -176,6 +176,8 @@ export interface _SERVICE {
   refund: ActorMethod<[bigint], Result<bigint>>;
   comment: ActorMethod<[bigint, string], Result<bigint>>;
 
+  setAdmin: ActorMethod<[Principal], UnitResult>;
+  removeAdmin: ActorMethod<[Principal], UnitResult>;
   addOrderCreator: ActorMethod<[Principal], UnitResult>;
   removeOrderCreator: ActorMethod<[Principal], UnitResult>;
   listOrderCreators: ActorMethod<[], Principal[]>;
