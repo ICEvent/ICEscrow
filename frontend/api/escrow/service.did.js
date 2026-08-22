@@ -214,6 +214,8 @@ export const idlFactory = ({ IDL }) => {
     getOrders: IDL.Func([], [IDL.Vec(Order)], ['query']),
     receive: IDL.Func([IDL.Nat], [Result(IDL.Nat)], []),
     release: IDL.Func([IDL.Nat], [Result(IDL.Nat)], []),
+    setAdmin: IDL.Func([IDL.Principal], [Result(IDL.Null)], []),
+    removeAdmin: IDL.Func([IDL.Principal], [Result(IDL.Null)], []),
     addOrderCreator: IDL.Func([IDL.Principal], [Result(IDL.Null)], []),
     removeOrderCreator: IDL.Func([IDL.Principal], [Result(IDL.Null)], []),
     listOrderCreators: IDL.Func([], [IDL.Vec(IDL.Principal)], ['query']),
