@@ -1,0 +1,83 @@
+name: Patch ICRC1 escrow balance path
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/patch-icrc1-balance.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Patch ICRC-1 subaccount balance handling
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path('backend/main.mo')
+          text = path.read_text()
+
+          old_deposit = 'let bb = await accountBalance(order.account.id, order.currency);'
+          new_deposit = 'let bb = await getBalanceBySub(order.account.index, order.currency);'
+          if text.count(old_deposit) != 1:
+              raise SystemExit(f'expected exactly one legacy deposit balance call, found {text.count(old_deposit)}')
+          text = text.replace(old_deposit, new_deposit)
+
+          old_helper = '''    public shared func getBalanceBySub(sub : Nat, currency : Currency) : async Balance {
+        let sublob = Utils.subToSubBlob(sub);
+        await accountBalance(Utils.accountIdToHex(Account.accountIdentifier(getPrincipal(), sublob)), currency)
+
+    };
+'''
+          new_helper = '''    public shared func getBalanceBySub(sub : Nat, currency : Currency) : async Balance {
+        let sublob = Utils.subToSubBlob(sub);
+        switch (currency) {
+            case (#ICRC1(info)) {
+                let ledger : StablecoinInterface.Ledger = actor (Principal.toText(info.canisterId));
+                let bal = await ledger.icrc1_balance_of({
+                    owner = getPrincipal();
+                    subaccount = ?sublob
+                });
+                if (info.decimals == 8) {
+                    #e8s(Nat64.fromNat(bal))
+                } else {
+                    #e6s(Nat64.fromNat(bal))
+                }
+            };
+            case (_) {
+                await accountBalance(Utils.accountIdToHex(Account.accountIdentifier(getPrincipal(), sublob)), currency)
+            };
+        }
+    };
+'''
+          if old_helper not in text:
+              raise SystemExit('legacy getBalanceBySub implementation not found')
+          text = text.replace(old_helper, new_helper)
+
+          path.write_text(text)
+          PY
+
+      - name: Install dfx
+        uses: dfinity/setup-dfx@main
+
+      - name: Motoko build check
+        run: dfx build --check escrow
+
+      - name: Commit patch
+        shell: bash
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add backend/main.mo
+          git diff --cached --check
+          git commit -m "fix ICRC-1 escrow subaccount balance handling"
+          git push
