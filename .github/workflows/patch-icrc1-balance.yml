@@ -1,24 +1,25 @@
 name: Patch ICRC1 escrow balance path
 
 on:
-  workflow_dispatch:
-  push:
+  pull_request:
     branches: [main]
-    paths:
-      - .github/workflows/patch-icrc1-balance.yml
+    types: [opened, synchronize, reopened]
 
 permissions:
   contents: write
 
 jobs:
   patch:
+    if: github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
+          ref: ${{ github.event.pull_request.head.ref }}
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Patch ICRC-1 subaccount balance handling
+        id: patch
         shell: bash
         run: |
           python3 - <<'PY'
@@ -26,12 +27,17 @@ jobs:
 
           path = Path('backend/main.mo')
           text = path.read_text()
+          changed = False
 
           old_deposit = 'let bb = await accountBalance(order.account.id, order.currency);'
           new_deposit = 'let bb = await getBalanceBySub(order.account.index, order.currency);'
-          if text.count(old_deposit) != 1:
-              raise SystemExit(f'expected exactly one legacy deposit balance call, found {text.count(old_deposit)}')
-          text = text.replace(old_deposit, new_deposit)
+          if old_deposit in text:
+              if text.count(old_deposit) != 1:
+                  raise SystemExit(f'expected exactly one legacy deposit balance call, found {text.count(old_deposit)}')
+              text = text.replace(old_deposit, new_deposit)
+              changed = True
+          elif new_deposit not in text:
+              raise SystemExit('neither legacy nor patched deposit balance call found')
 
           old_helper = '''    public shared func getBalanceBySub(sub : Nat, currency : Currency) : async Balance {
         let sublob = Utils.subToSubBlob(sub);
@@ -60,12 +66,16 @@ jobs:
         }
     };
 '''
-          if old_helper not in text:
-              raise SystemExit('legacy getBalanceBySub implementation not found')
-          text = text.replace(old_helper, new_helper)
+          if old_helper in text:
+              text = text.replace(old_helper, new_helper)
+              changed = True
+          elif new_helper not in text:
+              raise SystemExit('neither legacy nor patched getBalanceBySub implementation found')
 
           path.write_text(text)
+          Path('/tmp/patch_changed').write_text('1' if changed else '0')
           PY
+          echo "changed=$(cat /tmp/patch_changed)" >> "$GITHUB_OUTPUT"
 
       - name: Install dfx
         uses: dfinity/setup-dfx@main
@@ -73,7 +83,8 @@ jobs:
       - name: Motoko build check
         run: dfx build --check escrow
 
-      - name: Commit patch
+      - name: Commit patch to PR branch
+        if: steps.patch.outputs.changed == '1'
         shell: bash
         run: |
           git config user.name github-actions[bot]
@@ -81,4 +92,4 @@ jobs:
           git add backend/main.mo
           git diff --cached --check
           git commit -m "fix ICRC-1 escrow subaccount balance handling"
-          git push
+          git push origin HEAD:${{ github.event.pull_request.head.ref }}
