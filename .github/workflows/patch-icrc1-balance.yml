@@ -1,6 +1,7 @@
 name: Patch ICRC1 escrow balance path
 
 on:
+  workflow_dispatch:
   push:
     branches: [main]
     paths:
