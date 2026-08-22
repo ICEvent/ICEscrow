@@ -1,5 +1,4 @@
 import * as React from 'react';
-import { Principal } from '@dfinity/principal';
 import { StablecoinInfo } from '../../api/escrow/service.did';
 
 export interface ICRC1TokenInfo {
@@ -27,7 +26,7 @@ export function useStablecoins(escrow: any): { stablecoins: StablecoinMap; loadi
             const map: StablecoinMap = {};
             for (const sc of list) {
                 map[sc.symbol] = {
-                    canisterId: Principal.from(sc.canisterId).toText(),
+                    canisterId: sc.canisterId.toText(),
                     symbol: sc.symbol,
                     decimals: sc.decimals,
                 };
