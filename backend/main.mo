@@ -675,7 +675,9 @@ persistent actor class EscrowService() = this {
                     //check account balance
 
                     var balance : Nat64 = 0;
-                    let bb = await accountBalance(order.account.id, order.currency);
+                    // ICRC-1 accounts are identified by owner + subaccount, not by
+                    // the legacy ICP AccountIdentifier stored in `account.id`.
+                    let bb = await getBalanceBySub(order.account.index, order.currency);
                     switch (bb) {
                         case (#e8s(a)) {
                             balance := a
@@ -901,9 +903,9 @@ persistent actor class EscrowService() = this {
                             }
                         };
 
-                        if (order.currency == #ICP) {
-                            //NO CHARGE FOR ICET
-                            amount := amount - ESCROW_FEE
+                        switch (payoutAmount(amount, order.currency)) {
+                            case (#ok(value)) { amount := value };
+                            case (#err(message)) { return #err(message) }
                         };
 
                         let trans = await transfer({
@@ -1057,9 +1059,9 @@ persistent actor class EscrowService() = this {
                     var err = "";
                     if (balance > 0) {
                         //refund
-                        if (order.currency == #ICP) {
-                            //NO CHARGE FOR ICET
-                            balance := balance - ESCROW_FEE
+                        switch (payoutAmount(balance, order.currency)) {
+                            case (#ok(value)) { balance := value };
+                            case (#err(message)) { return #err(message) }
                         };
 
                         let r = await transfer({
@@ -1164,9 +1166,9 @@ persistent actor class EscrowService() = this {
 
                     };
 
-                    if (order.currency == #ICP) {
-                        //NO CHARGE FOR ICET
-                        balance := balance - FEE - ESCROW_FEE
+                    switch (payoutAmount(balance, order.currency)) {
+                        case (#ok(value)) { balance := value };
+                        case (#err(message)) { return #err(message) }
                     };
 
                     let r = await transfer({
@@ -1359,8 +1361,51 @@ persistent actor class EscrowService() = this {
 
     public shared func getBalanceBySub(sub : Nat, currency : Currency) : async Balance {
         let sublob = Utils.subToSubBlob(sub);
-        await accountBalance(Utils.accountIdToHex(Account.accountIdentifier(getPrincipal(), sublob)), currency)
+        switch (currency) {
+            case (#ICRC1(info)) {
+                let ledger : StablecoinInterface.Ledger = actor (Principal.toText(info.canisterId));
+                let balance = await ledger.icrc1_balance_of({
+                    owner = getPrincipal();
+                    subaccount = ?sublob
+                });
+                if (info.decimals == 8) {
+                    #e8s(Nat64.fromNat(balance))
+                } else {
+                    #e6s(Nat64.fromNat(balance))
+                }
+            };
+            case (_) {
+                await accountBalance(
+                    Utils.accountIdToHex(Account.accountIdentifier(getPrincipal(), sublob)),
+                    currency,
+                )
+            }
+        }
+    };
 
+    // Return the amount that can leave an escrow subaccount after the ledger
+    // transfer fee (and the ICP-only escrow fee) has been reserved.
+    func payoutAmount(balance : Nat64, currency : Currency) : Result.Result<Nat64, Text> {
+        let fees : Nat64 = switch (currency) {
+            case (#ICP) { FEE + ESCROW_FEE };
+            case (#ICET) { 0 };
+            case (#ICRC1(info)) {
+                switch (stablecoins.get(Principal.toText(info.canisterId))) {
+                    case (?stablecoin) { Nat64.fromNat(stablecoin.fee) };
+                    case null {
+                        return #err("ICRC-1 token is not registered; cannot determine transfer fee")
+                    }
+                }
+            }
+        };
+        if (balance <= fees) {
+            #err(
+                "escrow balance (" # Nat64.toText(balance) #
+                ") does not cover transfer fees (" # Nat64.toText(fees) # ")"
+            )
+        } else {
+            #ok(balance - fees)
+        }
     };
 
     // LEDGER WRAPPERS
