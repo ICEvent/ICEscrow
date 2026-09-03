@@ -15,14 +15,6 @@ export function getOrderStatus(statusVariant: Record<string, unknown> | null | u
     return statusVariant ? Object.keys(statusVariant)[0] ?? '' : '';
 }
 
-export function isFinalOrderStatus(status: string): boolean {
-    return status === ORDER_STATUS_CLOSED || status === ORDER_STATUS_REFUNDED;
-}
-
-export function isCanceledOrderStatus(status: string): boolean {
-    return status === ORDER_STATUS_CANCELED;
-}
-
 export function canCancelOrder(status: string, isBuyer: boolean, isSeller: boolean): boolean {
     return (status === ORDER_STATUS_NEW && isBuyer)
         || (status === ORDER_STATUS_DEPOSITED && isSeller);
@@ -43,8 +35,8 @@ export function refundModeForOrder(status: string, isBuyer: boolean, isSeller: b
     return null;
 }
 
-export function canCloseOrder(status: string, isSeller: boolean): boolean {
-    return isSeller
+export function canCloseOrder(status: string, isBuyer: boolean, isSeller: boolean): boolean {
+    return (isBuyer || isSeller)
         && status !== ORDER_STATUS_CLOSED
         && status !== ORDER_STATUS_CANCELED
         && status !== ORDER_STATUS_REFUNDED;
