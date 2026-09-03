@@ -75,6 +75,12 @@ export const CANISTER_ESCROW = "oslfo-7iaaa-aaaag-qakra-cai";
 export const CANISTER_TREASURY = "gncpj-jyaaa-aaaan-qagta-cai";
 
 export const CANISTER_ATTENDNFT = "vjod3-4iaaa-aaaan-qaoeq-cai";
+export const CANISTER_ONEBLOCK = "nzxho-uqaaa-aaaak-adwxq-cai";
+export const CANISTER_ONEBLOCK_ASSET = "32pz7-5qaaa-aaaag-qacra-cai";
+export const CANISTER_ICM = "rzdlh-haaaa-aaaal-aab3q-cai";
+export const CANISTER_BACKUP = "ixuio-siaaa-aaaam-qacxq-cai";
+export const CANISTER_ICEVENT_STAGING = "owctf-4qaaa-aaaak-qaahq-cai";
+
 export const CANISTER_INFIDENZA = 'h7ecw-giaaa-aaaal-ab75a-cai';
 export const CANISTER_ICPLEDGER = "ryjl3-tyaaa-aaaaa-aaaba-cai";
 
@@ -87,11 +93,7 @@ export const CANISTER_INBOX_DEFAULT = "r6cnt-kyaaa-aaaal-aab3a-cai";
 
 export const CANISTER_CKETH_INDEXER = "bqzgt-iiaaa-aaaai-qpdoa-cai";
 
-export const CANISTER_ONEBLOCK = "nzxho-uqaaa-aaaak-adwxq-cai";
-export const CANISTER_ONEBLOCK_ASSET = "32pz7-5qaaa-aaaag-qacra-cai";
-export const CANISTER_ICM = "rzdlh-haaaa-aaaal-aab3q-cai";
-export const CANISTER_BACKUP = "ixuio-siaaa-aaaam-qacxq-cai";
-export const CANISTER_ICEVENT_STAGING = "owctf-4qaaa-aaaak-qaahq-cai";
+
 
 export const WHITELIST = [
   CANISTER_ICEVENT,
