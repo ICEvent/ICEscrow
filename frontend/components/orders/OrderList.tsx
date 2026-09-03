@@ -22,10 +22,10 @@ const PAGE_SIZE = 20;
 export default () => {
     const escrow = useEscrow();
     const { state: { principal } } = useGlobalContext();
-    const [orders, setOrders] = React.useState<any[]>([])
-    const [loading, setLoading] = React.useState(false)
-    const [page, setPage] = React.useState(1)
-    const [hasOlderOrders, setHasOlderOrders] = React.useState(true)
+    const [orders, setOrders] = React.useState<any[]>([]);
+    const [loading, setLoading] = React.useState(false);
+    const [page, setPage] = React.useState(1);
+    const [hasOlderOrders, setHasOlderOrders] = React.useState(true);
 
     const [buyerClaims, setBuyerClaims] = React.useState<any[]>([]);
     const [sellerClaims, setSellerClaims] = React.useState<any[]>([]);
@@ -56,6 +56,10 @@ export default () => {
             || status === ORDER_STATUS_REFUNDED;
     }, [getStatus]);
 
+    const isCompletedOrder = React.useCallback((order: any) => {
+        return getStatus(order) === ORDER_STATUS_RELEASED || isTerminalOrder(order);
+    }, [getStatus, isTerminalOrder]);
+
     const needsUserAction = React.useCallback((order: any) => {
         if (!principal || order.amount === BigInt(0)) return false;
         const status = getStatus(order);
@@ -65,9 +69,17 @@ export default () => {
         return (status === ORDER_STATUS_NEW && isBuyer)
             || (status === ORDER_STATUS_DEPOSITED && isSeller)
             || (status === ORDER_STATUS_DELIVERED && isBuyer)
-            || (status === ORDER_STATUS_RECEIVED && isSeller)
-            || (status === ORDER_STATUS_RELEASED && isSeller);
+            || (status === ORDER_STATUS_RECEIVED && isSeller);
     }, [getStatus, principal]);
+
+    const isWaitingOrder = React.useCallback((order: any) => {
+        if (isCompletedOrder(order) || needsUserAction(order)) return false;
+        const status = getStatus(order);
+        return status === ORDER_STATUS_NEW
+            || status === ORDER_STATUS_DEPOSITED
+            || status === ORDER_STATUS_DELIVERED
+            || status === ORDER_STATUS_RECEIVED;
+    }, [getStatus, isCompletedOrder, needsUserAction]);
 
     const isClaimResolved = React.useCallback((claim: any): boolean => {
         const isOptSet = (v: any) => v !== null && v !== undefined && (!Array.isArray(v) || v.length > 0);
@@ -76,28 +88,28 @@ export default () => {
 
     React.useEffect(() => {
         if (!principal) return;
-        setPage(1);
-        setHasOlderOrders(true);
         loadProcessingOrders();
         loadClaims();
     }, [principal]);
 
     async function loadProcessingOrders() {
         if (!principal) return;
-        setLoading(true)
+        setLoading(true);
         try {
             const os = await escrow.getOrders();
-            setOrders(os)
+            setOrders(os);
+            setPage(1);
+            setHasOlderOrders(true);
         } catch (err) {
             toast.error(err?.toString() ?? 'Failed to load orders');
         } finally {
-            setLoading(false)
+            setLoading(false);
         }
-    };
+    }
 
     async function loadAllOrders() {
         if (!principal) return;
-        setLoading(true)
+        setLoading(true);
         try {
             const os = await escrow.getAllOrders(BigInt(page));
             setOrders((previous) => {
@@ -105,14 +117,14 @@ export default () => {
                 os.forEach((order: any) => byId.set(order.id.toString(), order));
                 return Array.from(byId.values());
             });
-            setPage((current) => current + 1)
-            setHasOlderOrders(os.length === PAGE_SIZE)
+            setPage((current) => current + 1);
+            setHasOlderOrders(os.length === PAGE_SIZE);
         } catch (err) {
             toast.error(err?.toString() ?? 'Failed to load older orders');
         } finally {
-            setLoading(false)
+            setLoading(false);
         }
-    };
+    }
 
     function loadClaims() {
         if (!principal) return;
@@ -143,43 +155,51 @@ export default () => {
         setSellerClaims((prev) => prev.map((c) => (c.id === updated.id ? updated : c)));
     };
 
+    const updateOrderStatus = React.useCallback((orderId: bigint, nextStatus: string) => {
+        setOrders((previous) => previous.map((order) =>
+            order.id === orderId
+                ? { ...order, status: { [nextStatus]: null } }
+                : order,
+        ));
+    }, []);
+
     async function buy(newOrder: NewOrder) {
-        setLoading(true)
+        setLoading(true);
         try {
             const res = await escrow.buy(newOrder);
-            if (res["ok"] !== undefined) {
-                toast.success("Order created. Next action is shown below.")
-                setOpenOrderForm(false)
-                setStatusFilter('action')
-                await loadProcessingOrders()
+            if (res['ok'] !== undefined) {
+                toast.success('Order created. Next action is shown below.');
+                setOpenOrderForm(false);
+                setStatusFilter('action');
+                await loadProcessingOrders();
             } else {
-                toast.error(res["err"]?.toString() ?? 'Failed to create order');
+                toast.error(res['err']?.toString() ?? 'Failed to create order');
             }
         } catch (err) {
-            toast.error(err?.toString() ?? 'Failed to create order')
+            toast.error(err?.toString() ?? 'Failed to create order');
         } finally {
-            setLoading(false)
+            setLoading(false);
         }
-    };
+    }
 
     async function sell(newOrder: NewSellOrder) {
-        setLoading(true)
+        setLoading(true);
         try {
             const res = await escrow.sell(newOrder);
-            if (res["ok"] !== undefined) {
-                toast.success("Order created. Next action is shown below.")
-                setOpenOrderForm(false)
-                setStatusFilter('action')
-                await loadProcessingOrders()
+            if (res['ok'] !== undefined) {
+                toast.success('Order created. Next action is shown below.');
+                setOpenOrderForm(false);
+                setStatusFilter('action');
+                await loadProcessingOrders();
             } else {
-                toast.error(res["err"]?.toString() ?? 'Failed to create order');
+                toast.error(res['err']?.toString() ?? 'Failed to create order');
             }
         } catch (err) {
-            toast.error(err?.toString() ?? 'Failed to create order')
+            toast.error(err?.toString() ?? 'Failed to create order');
         } finally {
-            setLoading(false)
+            setLoading(false);
         }
-    };
+    }
 
     if (!principal) {
         return (
@@ -192,17 +212,18 @@ export default () => {
     }
 
     const needsActionCount = orders.filter(needsUserAction).length;
-    const openOrderCount = orders.filter((order) => !isTerminalOrder(order)).length;
-    const waitingOrderCount = Math.max(0, openOrderCount - needsActionCount);
-    const completeOrderCount = orders.filter(isTerminalOrder).length;
+    const waitingOrderCount = orders.filter(isWaitingOrder).length;
+    const completeOrderCount = orders.filter(isCompletedOrder).length;
 
     const filteredOrders = statusFilter === 'action'
         ? orders.filter(needsUserAction)
-        : statusFilter === 'complete'
-            ? orders.filter(isTerminalOrder)
-            : statusFilter === 'all'
-                ? orders
-                : orders.filter((o: any) => getStatus(o) === statusFilter);
+        : statusFilter === 'waiting'
+            ? orders.filter(isWaitingOrder)
+            : statusFilter === 'complete'
+                ? orders.filter(isCompletedOrder)
+                : statusFilter === 'all'
+                    ? orders
+                    : orders.filter((order: any) => getStatus(order) === statusFilter);
 
     const sortedOrders = [...filteredOrders].sort((a: any, b: any) => {
         const actionDelta = Number(needsUserAction(b)) - Number(needsUserAction(a));
@@ -225,61 +246,61 @@ export default () => {
     }) => {
         const [showClosed, setShowClosed] = React.useState(false);
         const closedCount = claims.filter(isClaimResolved).length;
-        const visibleClaims = showClosed ? claims : claims.filter((c) => !isClaimResolved(c));
+        const visibleClaims = showClosed ? claims : claims.filter((claim) => !isClaimResolved(claim));
 
         return (
-        <div className="mt-6 rounded-2xl border border-white/50 bg-white/75 p-4 shadow-sm backdrop-blur">
-            <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                    <p className={`text-xs font-bold uppercase tracking-[0.18em] ${accentClass}`}>{title}</p>
-                    <p className="mt-1 text-xs text-slate-500">Open requests stay visible until they are resolved.</p>
-                </div>
-                <div className="flex flex-wrap items-center gap-2">
-                    {claims.length > 0 && (
-                        <span className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-slate-600">
-                            {claims.length}
-                        </span>
-                    )}
-                    {closedCount > 0 && (
+            <div className="mt-6 rounded-2xl border border-white/50 bg-white/75 p-4 shadow-sm backdrop-blur">
+                <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                        <p className={`text-xs font-bold uppercase tracking-[0.18em] ${accentClass}`}>{title}</p>
+                        <p className="mt-1 text-xs text-slate-500">Open requests stay visible until they are resolved.</p>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2">
+                        {claims.length > 0 && (
+                            <span className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-slate-600">
+                                {claims.length}
+                            </span>
+                        )}
+                        {closedCount > 0 && (
+                            <button
+                                type="button"
+                                onClick={() => setShowClosed((value) => !value)}
+                                className="rounded-lg border border-slate-300 bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-600 transition hover:border-orange-400 hover:text-orange-700"
+                            >
+                                {showClosed ? 'Hide closed' : `Show closed (${closedCount})`}
+                            </button>
+                        )}
                         <button
                             type="button"
-                            onClick={() => setShowClosed((v) => !v)}
-                            className="rounded-lg border border-slate-300 bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-600 transition hover:border-orange-400 hover:text-orange-700"
+                            onClick={loadClaims}
+                            disabled={claimsLoading}
+                            className="rounded-lg border border-slate-300 bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-600 transition hover:border-orange-400 hover:text-orange-700 disabled:opacity-40"
                         >
-                            {showClosed ? 'Hide closed' : `Show closed (${closedCount})`}
+                            Refresh
                         </button>
-                    )}
-                    <button
-                        type="button"
-                        onClick={loadClaims}
-                        disabled={claimsLoading}
-                        className="rounded-lg border border-slate-300 bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-600 transition hover:border-orange-400 hover:text-orange-700 disabled:opacity-40"
-                    >
-                        Refresh
-                    </button>
+                    </div>
                 </div>
+                {claimsLoading && (
+                    <div className="h-8 animate-pulse rounded bg-slate-200" />
+                )}
+                {!claimsLoading && visibleClaims.length === 0 && (
+                    <p className="text-sm text-slate-500">
+                        {claims.length === 0 ? 'No claims here yet.' : 'No open claims. Use "Show closed" to view resolved claims.'}
+                    </p>
+                )}
+                {!claimsLoading && visibleClaims.length > 0 && (
+                    <div className="space-y-2">
+                        {visibleClaims.map((claim) => (
+                            <ClaimCard
+                                key={String(claim.id)}
+                                claim={claim}
+                                role={role}
+                                onUpdated={onUpdated}
+                            />
+                        ))}
+                    </div>
+                )}
             </div>
-            {claimsLoading && (
-                <div className="h-8 animate-pulse rounded bg-slate-200" />
-            )}
-            {!claimsLoading && visibleClaims.length === 0 && (
-                <p className="text-sm text-slate-500">
-                    {claims.length === 0 ? 'No claims here yet.' : 'No open claims. Use "Show closed" to view resolved claims.'}
-                </p>
-            )}
-            {!claimsLoading && visibleClaims.length > 0 && (
-                <div className="space-y-2">
-                    {visibleClaims.map((claim) => (
-                        <ClaimCard
-                            key={String(claim.id)}
-                            claim={claim}
-                            role={role}
-                            onUpdated={onUpdated}
-                        />
-                    ))}
-                </div>
-            )}
-        </div>
         );
     };
 
@@ -323,8 +344,8 @@ export default () => {
                     </button>
                     <button
                         type="button"
-                        onClick={() => setStatusFilter('all')}
-                        className="rounded-2xl border border-slate-200 bg-white p-3 text-left transition hover:border-teal-300"
+                        onClick={() => setStatusFilter('waiting')}
+                        className={`rounded-2xl border p-3 text-left transition ${statusFilter === 'waiting' ? 'border-teal-400 bg-teal-50' : 'border-slate-200 bg-white hover:border-teal-300'}`}
                     >
                         <p className="text-xs font-semibold uppercase tracking-wide text-teal-700">Waiting</p>
                         <p className="mt-1 text-2xl font-extrabold text-slate-900">{waitingOrderCount}</p>
@@ -337,23 +358,23 @@ export default () => {
                     >
                         <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Complete</p>
                         <p className="mt-1 text-2xl font-extrabold text-slate-900">{completeOrderCount}</p>
-                        <p className="mt-1 text-xs text-slate-500">Loaded closed, canceled, or refunded orders</p>
+                        <p className="mt-1 text-xs text-slate-500">Released, closed, canceled, or refunded orders</p>
                     </button>
                 </div>
 
                 <div className="mt-4 flex flex-wrap gap-1.5">
-                    {STATUS_FILTERS.map((f) => (
+                    {STATUS_FILTERS.map((filter) => (
                         <button
-                            key={f.value}
+                            key={filter.value}
                             type="button"
-                            onClick={() => setStatusFilter(f.value)}
+                            onClick={() => setStatusFilter(filter.value)}
                             className={`rounded-full px-3 py-1.5 text-[11px] font-semibold transition ${
-                                statusFilter === f.value
+                                statusFilter === filter.value
                                     ? 'bg-orange-500 text-white'
                                     : 'border border-slate-300 bg-white text-slate-600 hover:border-orange-400 hover:text-orange-700'
                             }`}
                         >
-                            {f.label}
+                            {filter.label}
                         </button>
                     ))}
                 </div>
@@ -362,7 +383,11 @@ export default () => {
             {!loading && sortedOrders.length > 0 && (
                 <div className="space-y-3">
                     {sortedOrders.map((order) => (
-                        <OrderListItem key={order.id.toString()} order={order} />
+                        <OrderListItem
+                            key={order.id.toString()}
+                            order={order}
+                            onStatusChange={updateOrderStatus}
+                        />
                     ))}
                 </div>
             )}
@@ -370,10 +395,16 @@ export default () => {
             {!loading && sortedOrders.length === 0 && (
                 <div className="rounded-2xl border border-slate-200 bg-white/80 p-6 text-center shadow-sm">
                     <p className="text-sm font-semibold text-slate-700">
-                        {statusFilter === 'action' ? 'Nothing needs your action right now.' : 'No orders match this filter.'}
+                        {statusFilter === 'action'
+                            ? 'Nothing needs your action right now.'
+                            : statusFilter === 'waiting'
+                                ? 'No orders are waiting on the other party.'
+                                : 'No orders match this filter.'}
                     </p>
                     <p className="mt-1 text-xs text-slate-500">
-                        {statusFilter === 'action' ? 'You’re caught up. Waiting orders and claims are still available below.' : 'Try another status or load older orders.'}
+                        {statusFilter === 'action'
+                            ? 'You’re caught up. Waiting and completed orders are available from the summary above.'
+                            : 'Try another status or load older orders.'}
                     </p>
                 </div>
             )}
@@ -416,7 +447,7 @@ export default () => {
 
             {openOrderForm && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setOpenOrderForm(false)}>
-                    <div className="relative max-h-[90vh] w-full max-w-3xl overflow-auto rounded-2xl border border-white/40 bg-white/95 p-4 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+                    <div className="relative max-h-[90vh] w-full max-w-3xl overflow-auto rounded-2xl border border-white/40 bg-white/95 p-4 shadow-2xl" onClick={(event) => event.stopPropagation()}>
                         <button
                             type="button"
                             onClick={() => setOpenOrderForm(false)}
@@ -432,5 +463,5 @@ export default () => {
                 </div>
             )}
         </>
-    )
+    );
 }
