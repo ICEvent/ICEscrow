@@ -1,5 +1,5 @@
 import React, { FC, useState } from 'react'
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import vansdayLogo from '../assets/vansday.png'
 import DarkModeToggle from './DarkModeToggle'
 
@@ -8,9 +8,8 @@ import { useEffect } from "react"
 import { HttpAgent, Identity } from "@dfinity/agent";
 import { AuthClient } from "@dfinity/auth-client";
 import { HOST } from "../lib/canisters";
-import { MENU_ORDERS, MENU_PROFILE, MENU_HOME, MENU_FREE, MENU_MY_ITEMS } from "../lib/constants";
 
-import { useSetAgent, useGlobalContext, useLoading, useMenu } from "../components/Store";
+import { useSetAgent, useGlobalContext, useLoading } from "../components/Store";
 
 import LoginButton from "../components/LoginButton";
 import NotificationBell from "../components/NotificationBell";
@@ -18,76 +17,50 @@ import PrincipalName from "../components/PrincipalName";
 
 const Header: FC = () => {
   const setAgent = useSetAgent();
-
   const navigate = useNavigate();
-  const { menu, setMenu } = useMenu()
+  const location = useLocation();
   const { state: { isAuthed, principal } } = useGlobalContext();
-
   const { loading } = useLoading();
 
   const [authClient, setAuthClient] = useState<AuthClient>(null);
-
   const [openMenu, setOpenMenu] = React.useState(false);
+
   const handleClick = () => {
     setOpenMenu((prev) => !prev);
   };
+
   const handleClose = () => {
     setOpenMenu(false);
   };
 
-  const openOrders = () => {
+  const go = (path: string) => {
     handleClose();
-    setMenu(MENU_ORDERS)
-    navigate("/", { replace: true });
-  }
+    navigate(path);
+  };
 
-  const openProfile = () => {
-    handleClose();
-    setMenu(MENU_PROFILE)
-    navigate("/", { replace: true });
-  }
+  const openOrders = () => go('/orders');
+  const openProfile = () => go('/profile');
+  const openShop = () => go('/market');
+  const openFreeItems = () => go('/free');
+  const openMyItems = () => go('/items');
 
-  const openShop = () => {
-    setMenu(MENU_HOME);
-    navigate("/", { replace: true });
-  }
-
-  const openFreeItems = () => {
-    setMenu(MENU_FREE);
-    navigate("/", { replace: true });
-  }
-
-  const openMyItems = () => {
-    handleClose();
-    setMenu(MENU_MY_ITEMS);
-    navigate("/", { replace: true });
-  }
   useEffect(() => {
-    if (!menu) setMenu(MENU_HOME);
-
     (async () => {
-      const authClient = await AuthClient.create(
-        {
-          idleOptions: {
-            disableIdle: true,
-            disableDefaultIdleCallback: true
-          }
+      const authClient = await AuthClient.create({
+        idleOptions: {
+          disableIdle: true,
+          disableDefaultIdleCallback: true
         }
-      );
+      });
       setAuthClient(authClient);
 
       if (await authClient.isAuthenticated()) {
         handleAuthenticated(authClient);
-
       }
-
-
     })();
-
   }, []);
 
   const handleAuthenticated = async (authClient: AuthClient) => {
-
     const identity: Identity = authClient.getIdentity();
 
     setAgent({
@@ -96,19 +69,36 @@ const Header: FC = () => {
         host: HOST,
       }),
       isAuthed: true,
-
     });
-
   };
 
- 
   const logout = async () => {
     handleClose();
-    await authClient.logout();
+    await authClient?.logout();
     setAgent({ agent: null });
-    navigate("/", { replace: true });
+    navigate("/market", { replace: true });
   };
 
+  const isActive = (path: string) => {
+    if (path === '/market') {
+      return location.pathname === '/market' || location.pathname.startsWith('/item/');
+    }
+    return location.pathname === path;
+  };
+
+  const desktopTabClass = (path: string) =>
+    `rounded-lg px-3 py-1.5 text-xs font-bold uppercase tracking-wide transition ${
+      isActive(path)
+        ? 'bg-white text-slate-900 shadow-sm'
+        : 'text-slate-600 hover:text-slate-900'
+    }`;
+
+  const mobileTabClass = (path: string) =>
+    `flex min-w-0 flex-1 flex-col items-center justify-center rounded-xl px-1 py-2 text-[10px] font-bold uppercase tracking-wide transition ${
+      isActive(path)
+        ? 'bg-slate-900 text-white shadow-sm'
+        : 'text-slate-600'
+    }`;
 
   return (
     <>
@@ -126,42 +116,22 @@ const Header: FC = () => {
             </span>
           </button>
 
-          <nav className="hidden items-center gap-1 rounded-xl bg-slate-100/80 p-1 md:flex">
-            <button
-              type="button"
-              onClick={openShop}
-              className={`rounded-lg px-3 py-1.5 text-xs font-bold uppercase tracking-wide transition ${menu == MENU_HOME ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}
-            >
+          <nav className="hidden items-center gap-1 rounded-xl bg-slate-100/80 p-1 md:flex" aria-label="Primary navigation">
+            <button type="button" onClick={openShop} className={desktopTabClass('/market')}>
               Market
             </button>
-            <button
-              type="button"
-              onClick={openFreeItems}
-              className={`rounded-lg px-3 py-1.5 text-xs font-bold uppercase tracking-wide transition ${menu == MENU_FREE ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}
-            >
-              Free 
+            <button type="button" onClick={openFreeItems} className={desktopTabClass('/free')}>
+              Free
             </button>
             {isAuthed && (
               <>
-                <button
-                  type="button"
-                  onClick={openOrders}
-                  className={`rounded-lg px-3 py-1.5 text-xs font-bold uppercase tracking-wide transition ${menu == MENU_ORDERS ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}
-                >
+                <button type="button" onClick={openOrders} className={desktopTabClass('/orders')}>
                   Orders
                 </button>
-                <button
-                  type="button"
-                  onClick={openMyItems}
-                  className={`rounded-lg px-3 py-1.5 text-xs font-bold uppercase tracking-wide transition ${menu == MENU_MY_ITEMS ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}
-                >
+                <button type="button" onClick={openMyItems} className={desktopTabClass('/items')}>
                   My Items
                 </button>
-                <button
-                  type="button"
-                  onClick={openProfile}
-                  className={`rounded-lg px-3 py-1.5 text-xs font-bold uppercase tracking-wide transition ${menu == MENU_PROFILE ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}
-                >
+                <button type="button" onClick={openProfile} className={desktopTabClass('/profile')}>
                   Profile
                 </button>
               </>
@@ -176,7 +146,9 @@ const Header: FC = () => {
               <button
                 type="button"
                 onClick={handleClick}
-                className="btn-modern-secondary rounded-full border border-slate-300/80 bg-white px-4 py-1.5 text-sm font-semibold text-slate-700 shadow-sm"
+                className="btn-modern-secondary rounded-full border border-slate-300/80 bg-white px-3 py-1.5 text-sm font-semibold text-slate-700 shadow-sm sm:px-4"
+                aria-expanded={openMenu}
+                aria-label="Open account menu"
               >
                 {principal ? <PrincipalName principal={principal} /> : 'Account'}
               </button>
@@ -218,6 +190,37 @@ const Header: FC = () => {
           )}
         </div>
       </header>
+
+      <nav
+        className="fixed bottom-3 left-3 right-3 z-40 mx-auto flex max-w-lg items-center gap-1 rounded-2xl border border-white/70 bg-white/95 p-1.5 shadow-2xl backdrop-blur md:hidden"
+        aria-label="Mobile navigation"
+      >
+        <button type="button" onClick={openShop} className={mobileTabClass('/market')}>
+          <span className="mb-1 text-sm" aria-hidden="true">⌂</span>
+          Market
+        </button>
+        <button type="button" onClick={openFreeItems} className={mobileTabClass('/free')}>
+          <span className="mb-1 text-sm" aria-hidden="true">♡</span>
+          Free
+        </button>
+        {isAuthed && (
+          <>
+            <button type="button" onClick={openOrders} className={mobileTabClass('/orders')}>
+              <span className="mb-1 text-sm" aria-hidden="true">↔</span>
+              Orders
+            </button>
+            <button type="button" onClick={openMyItems} className={mobileTabClass('/items')}>
+              <span className="mb-1 text-sm" aria-hidden="true">□</span>
+              Items
+            </button>
+            <button type="button" onClick={openProfile} className={mobileTabClass('/profile')}>
+              <span className="mb-1 text-sm" aria-hidden="true">●</span>
+              Me
+            </button>
+          </>
+        )}
+      </nav>
+
       {loading && (
         <div className="fixed inset-0 z-[100000] flex items-center justify-center bg-black/40" onClick={handleClose}>
           <div className="h-10 w-10 animate-spin rounded-full border-4 border-white/40 border-t-white" />
