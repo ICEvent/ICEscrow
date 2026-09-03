@@ -180,6 +180,7 @@ export default function OrderForm(props) {
 
                 <div className="sm:col-span-12">
                     <CounterpartyPicker
+                        key={counterpartyRole}
                         label={`Choose the ${counterpartyRole}`}
                         value={counterpartyValue}
                         onChange={setCounterparty}
