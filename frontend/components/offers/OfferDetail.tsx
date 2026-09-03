@@ -1,24 +1,18 @@
 import * as React from 'react';
-import { useGlobalContext, useEscrow, useMenu } from '../Store';
+import { useGlobalContext, useEscrow } from '../Store';
 import { toast } from 'react-toastify';
 import moment from 'moment';
-import { MENU_ORDERS, ORDER_DEFAULT_EXPIRED_DAYS } from '../../lib/constants';
+import { ORDER_DEFAULT_EXPIRED_DAYS } from '../../lib/constants';
 import { currencyBase, currencySymbol } from '../../lib/currencyUtils';
 import { getItemImageSrc } from '../../lib/itemImage';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import PrincipalName from '../PrincipalName';
 import { getCanisterErrorMessage, getThrownErrorMessage, isCanisterOkResult } from '../../lib/canisterResult';
 
-
-
 export default (props) => {
-
-    const { state: {
-        isAuthed,
-        principal
-    } } = useGlobalContext();
+    const { state: { isAuthed, principal } } = useGlobalContext();
     const escrow = useEscrow();
-    const { setMenu } = useMenu();
+    const navigate = useNavigate();
 
     const [loading, setLoading] = React.useState(false);
     const [claimModalOpen, setClaimModalOpen] = React.useState(false);
@@ -32,7 +26,7 @@ export default (props) => {
 
     const buyit = async () => {
         if (!isAuthed) {
-            toast.warn("Plseae login first");
+            toast.warn("Please login first");
             return;
         }
         setLoading(true);
@@ -45,11 +39,12 @@ export default (props) => {
                 expiration: BigInt(moment().add(ORDER_DEFAULT_EXPIRED_DAYS, "days").unix())
             });
             if (res["ok"] !== undefined) {
-                toast.success("Your order has been created, check your order list!");
+                toast.success("Order created. Continue in Orders to fund escrow.");
+                props.close?.();
+                navigate('/orders');
             } else {
-                toast.error(res["err"] ? res["err"] : "check console log for error message");
+                toast.error(res["err"] ? res["err"] : "Unable to create order");
             }
-            props.close ? props.close() : null;
         } catch (e) {
             console.error("create order error", e);
             toast.error("Failed to create order: " + (e instanceof Error ? e.message : String(e)));
@@ -71,12 +66,11 @@ export default (props) => {
                 if (claimMessage.trim()) {
                     try { await escrow.commentOnClaim(claimId, claimMessage.trim()); } catch (_) {}
                 }
-                toast.success("Claim sent! Redirecting to your claims list…");
-                props.close ? props.close() : null;
-                setMenu(MENU_ORDERS);
+                toast.success("Claim sent. Track the seller response in Orders.");
+                props.close?.();
+                navigate('/orders');
             } else {
                 toast.error(res["err"] ? res["err"] : "Failed to claim item");
-                props.close ? props.close() : null;
             }
         } finally {
             setLoading(false);
@@ -89,7 +83,7 @@ export default (props) => {
         setLoading(true);
         try {
             const res = await escrow.changeItemStatus(props.offer.id, { "pending": null });
-            if (res["ok"]) {
+            if (res["ok"] !== undefined) {
                 toast.success("Item set to hold");
                 setItemStatus("pending");
             } else {
@@ -130,12 +124,12 @@ export default (props) => {
         setLoading(true)
         try {
             const res = await escrow.changeItemStatus(props.offer.id, { "sold": null });
-            if (res["ok"]) {
+            if (res["ok"] !== undefined) {
                 setItemStatus("sold")
 
                 if (isFree) {
                     const closeResult = await closeMatchingFreeOrder();
-                    if (closeResult["ok"]) {
+                    if (closeResult["ok"] !== undefined && closeResult["ok"] !== false) {
                         toast.success("Item marked as sold and order closed")
                     } else {
                         toast.warn(closeResult["err"] ? `Item marked as sold, but order close failed: ${closeResult["err"]}` : "Item marked as sold, but order was not closed")
@@ -185,7 +179,7 @@ export default (props) => {
         try {
             const res = await escrow.changeItemStatus(props.offer.id, { "unlist": null });
             if (isCanisterOkResult(res)) {
-                toast.success("unlist this item");
+                toast.success("Item removed from marketplace");
                 setItemStatus("unlist");
             } else {
                 toast.error(getCanisterErrorMessage(res, "Failed to unlist item"));
@@ -196,7 +190,7 @@ export default (props) => {
                 const refreshed = await escrow.getItem(props.offer.id);
                 const updatedOffer = refreshed?.[0];
                 if (updatedOffer && Object.getOwnPropertyNames(updatedOffer.status)[0] === 'unlist') {
-                    toast.success("Item unlisted");
+                    toast.success("Item removed from marketplace");
                     setItemStatus('unlist');
                 } else {
                     toast.error(getThrownErrorMessage(e, "Failed to unlist item"));
@@ -266,7 +260,6 @@ export default (props) => {
                             alt={props.offer.name}
                         />
                     </div>
-
                 </div>
 
                 <div className="lg:col-span-5">

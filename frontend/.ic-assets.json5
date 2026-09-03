@@ -18,5 +18,9 @@
       "Content-Type": "application/json"
     },
     "ignore": false
+  },
+  {
+    "match": "**/*",
+    "enable_aliasing": true
   }
 ]

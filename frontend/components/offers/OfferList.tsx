@@ -1,5 +1,5 @@
 import * as React from "react"
-
+import { useNavigate } from "react-router-dom"
 import ListItemForm from "./ListItemForm"
 import { toast } from "react-toastify"
 import { useEscrow, useLoading, useGlobalContext } from "../Store"
@@ -8,9 +8,7 @@ import ItemList from "../items/ItemList";
 import { NewOrder, NewSellOrder } from "../../api/escrow/service.did"
 import { Item } from "../../api/escrow/service.did"
 import { ServiceInfo } from "../../api/escrow/serviceModels"
-import {
-  LIST_ITEM_NFT,
-} from "../../lib/constants"
+import { LIST_ITEM_MERCHANDISE } from "../../lib/constants"
 import OrderForm from "../orders/OrderForm"
 import { getCanisterErrorMessage, isCanisterOkResult } from "../../lib/canisterResult"
 
@@ -18,24 +16,89 @@ type OfferListProps = {
   freeOnly?: boolean;
 }
 
+type LoadOptions = {
+  showError?: boolean;
+  query?: string;
+}
+
+const PAGE_SIZE = 20;
+
 export default ({ freeOnly = false }: OfferListProps) => {
   const {
     state: { isAuthed },
   } = useGlobalContext()
   const escrow = useEscrow()
+  const navigate = useNavigate()
   const { setLoading } = useLoading()
   const [openListForm, setOpenListForm] = React.useState(false)
   const [openOrderForm, setOpenOrderForm] = React.useState(false)
 
-  const [itemType] = React.useState(LIST_ITEM_NFT)
   const [offers, setOffers] = React.useState<Item[]>([])
   const [servicesById, setServicesById] = React.useState<Record<string, ServiceInfo>>({})
-  const [page, setPage] = React.useState(1);
+  const [page, setPage] = React.useState(1)
+  const [hasMore, setHasMore] = React.useState(true)
+  const [searchTerm, setSearchTerm] = React.useState('')
+  const [searching, setSearching] = React.useState(false)
+  const requestRef = React.useRef(0)
+
+  async function loadOffers(
+    targetPage: number,
+    replace = false,
+    { showError = true, query = searchTerm }: LoadOptions = {},
+  ) {
+    const requestId = ++requestRef.current
+    const normalizedQuery = query.trim()
+    setSearching(true)
+
+    try {
+      const keywords = normalizedQuery.split(/[\s,]+/).filter(Boolean)
+      const res = keywords.length > 0
+        ? await escrow.searchItemsWithAssociations(keywords, [], [{ list: null }] as any, BigInt(targetPage))
+        : await escrow.getItemsWithAssociations(BigInt(targetPage))
+
+      if (requestId !== requestRef.current) return 0
+
+      const incomingItems = res.map((entry) => entry.item)
+      const incomingServices = Object.fromEntries(
+        res.flatMap((entry) => entry.service[0]
+          ? [[entry.service[0].id.toString(), entry.service[0]]]
+          : []),
+      )
+
+      setOffers((previous) => {
+        if (replace) return incomingItems
+        const byId = new Map(previous.map((item) => [item.id.toString(), item]))
+        incomingItems.forEach((item) => byId.set(item.id.toString(), item))
+        return Array.from(byId.values())
+      })
+      setServicesById((previous) => replace
+        ? incomingServices
+        : { ...previous, ...incomingServices })
+      setHasMore(res.length === PAGE_SIZE)
+      return res.length
+    } catch (err) {
+      if (requestId === requestRef.current && showError) {
+        toast.error(err?.toString() ?? "Unable to load offers")
+      }
+      console.error("Unable to load offers", err)
+      return 0
+    } finally {
+      if (requestId === requestRef.current) setSearching(false)
+    }
+  }
 
   React.useEffect(() => {
-    loadOffers({ showError: false })
-  }, [page])
+    const hasQuery = searchTerm.trim().length > 0
+    const timer = window.setTimeout(() => {
+      setPage(1)
+      loadOffers(1, true, {
+        showError: hasQuery,
+        query: searchTerm,
+      })
+    }, hasQuery ? 300 : 0)
 
+    return () => window.clearTimeout(timer)
+  }, [freeOnly, searchTerm])
 
   const saveList = async (data) => {
     setOpenListForm(false)
@@ -43,8 +106,10 @@ export default ({ freeOnly = false }: OfferListProps) => {
     try {
       const res = await escrow.listItem(data)
       if (isCanisterOkResult(res)) {
-        toast.success("Item has been listed")
-        await loadOffers({ showError: false })
+        toast.success("Listing published")
+        setSearchTerm('')
+        setPage(1)
+        await loadOffers(1, true, { showError: false, query: '' })
       } else {
         toast.error(getCanisterErrorMessage(res, "Failed to list item"))
       }
@@ -55,24 +120,10 @@ export default ({ freeOnly = false }: OfferListProps) => {
     }
   }
 
-  const loadOffers = async ({ showError = true }: { showError?: boolean } = {}) => {
-    setLoading(true)
-    try {
-      const res = await escrow.getItemsWithAssociations(BigInt(page))
-      setOffers(res.map((entry) => entry.item))
-      setServicesById(Object.fromEntries(
-        res.flatMap((entry) => entry.service[0]
-          ? [[entry.service[0].id.toString(), entry.service[0]]]
-          : []),
-      ))
-    } catch (err) {
-      if (showError) {
-        toast.error(err?.toString() ?? "Unable to load offers")
-      }
-      console.error("Unable to load offers", err)
-    } finally {
-      setLoading(false)
-    }
+  const loadMore = async () => {
+    const nextPage = page + 1
+    const loaded = await loadOffers(nextPage, false, { query: searchTerm })
+    if (loaded > 0) setPage(nextPage)
   }
 
   function buy(newOrder: NewOrder) {
@@ -80,7 +131,8 @@ export default ({ freeOnly = false }: OfferListProps) => {
     escrow.buy(newOrder)
       .then((res) => {
         if (isCanisterOkResult(res)) {
-          toast.success("your order has created!")
+          toast.success("Order created. Continue in Orders.")
+          navigate('/orders')
         } else {
           toast.error(getCanisterErrorMessage(res, "Failed to create order"))
         }
@@ -99,7 +151,8 @@ export default ({ freeOnly = false }: OfferListProps) => {
     escrow.sell(newOrder)
       .then((res) => {
         if (isCanisterOkResult(res)) {
-          toast.success("your order has created!")
+          toast.success("Order created. Continue in Orders.")
+          navigate('/orders')
         } else {
           toast.error(getCanisterErrorMessage(res, "Failed to create order"))
         }
@@ -113,14 +166,16 @@ export default ({ freeOnly = false }: OfferListProps) => {
     setOpenOrderForm(false)
   }
 
+  const visibleOffers = freeOnly ? offers.filter((offer) => offer.price === BigInt(0)) : offers
+
   return (
     <React.Fragment>
       <section className="reveal-up glass-panel rounded-3xl p-4 sm:p-5">
         <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>
-            <p className="text-xs font-bold uppercase tracking-[0.18em] text-orange-700">{freeOnly ? 'Free Item Menu' : 'Featured Catalog'}</p>
-            <h2 className="mt-1 text-2xl font-extrabold tracking-tight text-slate-900">{freeOnly ? 'Claim Free Items' : 'Explore Live Listings'}</h2>
-            <p className="mt-1 text-sm text-slate-600">{freeOnly ? 'Only zero-price listings. Claim in one click and complete delivery confirmation later.' : 'Handpicked offers with escrow-first checkout protection.'}</p>
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-orange-700">{freeOnly ? 'Free Marketplace' : 'Marketplace'}</p>
+            <h2 className="mt-1 text-2xl font-extrabold tracking-tight text-slate-900">{freeOnly ? 'Claim Free Items' : 'Find an item or service'}</h2>
+            <p className="mt-1 text-sm text-slate-600">{freeOnly ? 'Browse zero-price listings and send a claim directly to the owner.' : 'Search the full marketplace, then let escrow guide the transaction.'}</p>
           </div>
 
           {isAuthed && (
@@ -129,14 +184,14 @@ export default ({ freeOnly = false }: OfferListProps) => {
                 onClick={() => setOpenListForm(true)}
                 className="btn-modern-primary commerce-gradient min-w-[170px] rounded-xl px-4 py-2.5 text-sm font-semibold text-white shadow-md"
               >
-                {freeOnly ? 'Give Away Item' : 'List Item'}
+                {freeOnly ? 'Give Something Away' : 'Create Listing'}
               </button>
               {!freeOnly && (
                 <button
                   onClick={() => setOpenOrderForm(true)}
                   className="btn-modern-secondary min-w-[170px] rounded-xl border border-teal-600/60 bg-white px-4 py-2.5 text-sm font-semibold text-teal-700 shadow-sm"
                 >
-                  Start Escrow Order
+                  Custom Escrow
                 </button>
               )}
             </div>
@@ -144,26 +199,32 @@ export default ({ freeOnly = false }: OfferListProps) => {
         </div>
       </section>
 
-      <ItemList items={freeOnly ? offers.filter(o => o.price === BigInt(0)) : offers} servicesById={servicesById} defaultFilter='all' freeOnly={freeOnly} />
+      <ItemList
+        items={visibleOffers}
+        servicesById={servicesById}
+        defaultFilter='all'
+        freeOnly={freeOnly}
+        searchTerm={searchTerm}
+        onSearchTermChange={setSearchTerm}
+        searching={searching}
+        remoteSearch
+      />
 
-      <div className="reveal-up reveal-delay-1 mt-4 flex items-center justify-center gap-3 p-2">
-        <button
-          onClick={() => setPage(p => p - 1)}
-          disabled={page === 1}
-          className="btn-modern-secondary rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-orange-500 hover:text-orange-700 disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          Previous
-        </button>
-        <p className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold uppercase tracking-wide text-slate-700">
-          Page {page}
-        </p>
-        <button
-          onClick={() => setPage(p => p + 1)}
-          className="btn-modern-secondary rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-orange-500 hover:text-orange-700"
-        >
-          Next
-        </button>
-      </div>
+      {hasMore && (
+        <div className="reveal-up reveal-delay-1 mt-4 flex items-center justify-center p-2">
+          <button
+            onClick={loadMore}
+            disabled={searching}
+            className="btn-modern-secondary rounded-xl border border-slate-300 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-orange-500 hover:text-orange-700 disabled:opacity-50"
+          >
+            {searchTerm.trim() ? 'Load More Results' : 'Load More Listings'}
+          </button>
+        </div>
+      )}
+
+      {!hasMore && visibleOffers.length > 0 && (
+        <p className="mt-4 text-center text-xs font-medium text-slate-500">{searchTerm.trim() ? 'You’ve reached the end of these search results.' : 'You’ve reached the end of the current listings.'}</p>
+      )}
 
       {openListForm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/55 p-4 backdrop-blur-sm" onClick={() => setOpenListForm(false)}>
@@ -172,11 +233,13 @@ export default ({ freeOnly = false }: OfferListProps) => {
               type="button"
               onClick={() => setOpenListForm(false)}
               className="absolute right-3 top-3 h-8 w-8 rounded-full text-slate-500 transition hover:bg-slate-100"
+              aria-label="Close listing form"
             >
-              x
+              ×
             </button>
-            <h3 className="mb-4 text-lg font-bold text-slate-900">Input Item Information</h3>
-            <ListItemForm submit={saveList} itype={itemType} freeOnly={freeOnly} />
+            <h3 className="mb-1 pr-10 text-lg font-bold text-slate-900">{freeOnly ? 'Give Something Away' : 'Create a Listing'}</h3>
+            <p className="mb-4 text-sm text-slate-500">Three short steps: describe it, set the terms, then review before publishing.</p>
+            <ListItemForm submit={saveList} itype={LIST_ITEM_MERCHANDISE} freeOnly={freeOnly} />
           </div>
         </div>
       )}
@@ -188,10 +251,12 @@ export default ({ freeOnly = false }: OfferListProps) => {
               type="button"
               onClick={() => setOpenOrderForm(false)}
               className="absolute right-3 top-3 h-8 w-8 rounded-full text-slate-500 transition hover:bg-slate-100"
+              aria-label="Close escrow form"
             >
-              x
+              ×
             </button>
-            <h3 className="mb-4 text-lg font-bold text-slate-900">New Escrow Contract</h3>
+            <h3 className="mb-1 pr-10 text-lg font-bold text-slate-900">New Escrow Contract</h3>
+            <p className="mb-4 text-sm text-slate-500">Choose the other party by profile instead of copying a Principal.</p>
             <OrderForm buy={buy} sell={sell} />
           </div>
         </div>
