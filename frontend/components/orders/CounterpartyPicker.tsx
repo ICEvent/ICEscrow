@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Profile } from '../../api/profile/profile.did';
+import type { Profile } from '../../api/profile/profile.did';
 import { useOneblock } from '../Store';
 
 type CounterpartyPickerProps = {
@@ -17,24 +17,31 @@ export default function CounterpartyPicker({ label, value, onChange, excludePrin
     const [results, setResults] = React.useState<Profile[]>([]);
     const [selected, setSelected] = React.useState<Profile | null>(null);
     const [searching, setSearching] = React.useState(false);
+    const [hasSearched, setHasSearched] = React.useState(false);
 
     React.useEffect(() => {
         const normalized = query.trim();
         if (!oneblock || normalized.length < 2 || selected?.name === normalized) {
             setResults([]);
+            setHasSearched(false);
             return;
         }
 
         let cancelled = false;
         const timer = window.setTimeout(async () => {
             setSearching(true);
+            setHasSearched(false);
             try {
                 const profiles = await oneblock.searchProfilesByName(normalized);
                 if (!cancelled) {
                     setResults(profiles.filter((profile) => profile.owner.toString() !== excludePrincipal).slice(0, 8));
+                    setHasSearched(true);
                 }
             } catch (err) {
-                if (!cancelled) setResults([]);
+                if (!cancelled) {
+                    setResults([]);
+                    setHasSearched(true);
+                }
                 console.error('Unable to search profiles', err);
             } finally {
                 if (!cancelled) setSearching(false);
@@ -51,6 +58,7 @@ export default function CounterpartyPicker({ label, value, onChange, excludePrin
         setSelected(profile);
         setQuery(profile.name);
         setResults([]);
+        setHasSearched(false);
         onChange(profile.owner.toString());
     };
 
@@ -58,6 +66,7 @@ export default function CounterpartyPicker({ label, value, onChange, excludePrin
         setSelected(null);
         setQuery('');
         setResults([]);
+        setHasSearched(false);
         onChange('');
     };
 
@@ -87,6 +96,8 @@ export default function CounterpartyPicker({ label, value, onChange, excludePrin
                         onChange={(event) => {
                             setSelected(null);
                             setQuery(event.target.value);
+                            setHasSearched(false);
+                            if (value) onChange('');
                         }}
                         placeholder="Search a person or business by name"
                         autoComplete="off"
@@ -121,8 +132,8 @@ export default function CounterpartyPicker({ label, value, onChange, excludePrin
                         </div>
                     )}
 
-                    {!searching && query.trim().length >= 2 && results.length === 0 && (
-                        <p className="mt-1 text-xs text-slate-500">No profile selected yet. Try another name, or use the advanced Principal option below.</p>
+                    {!searching && hasSearched && results.length === 0 && (
+                        <p className="mt-1 text-xs text-slate-500">No matching profile. Try another name, or use the advanced Principal option below.</p>
                     )}
                 </div>
             )}
