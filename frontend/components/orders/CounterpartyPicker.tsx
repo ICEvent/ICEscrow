@@ -20,6 +20,15 @@ export default function CounterpartyPicker({ label, value, onChange, excludePrin
     const [hasSearched, setHasSearched] = React.useState(false);
 
     React.useEffect(() => {
+        if (value) return;
+        setSelected(null);
+        setQuery('');
+        setResults([]);
+        setSearching(false);
+        setHasSearched(false);
+    }, [value]);
+
+    React.useEffect(() => {
         const normalized = query.trim();
         if (!oneblock || normalized.length < 2 || selected?.name === normalized) {
             setResults([]);
