@@ -6,26 +6,45 @@ import { currencyBase } from '../../lib/currencyUtils';
 import { getServiceId } from '../../api/escrow/serviceModels';
 import { ServiceInfo } from '../../api/escrow/serviceModels';
 
-
 interface ItemListProps {
     items: Item[];
     onItemClick?: (item: Item) => void;
-    defaultFilter?: string; // Optional default filter
+    defaultFilter?: string;
     freeOnly?: boolean;
     servicesById?: Record<string, ServiceInfo>;
+    searchTerm?: string;
+    onSearchTermChange?: (value: string) => void;
+    searching?: boolean;
+    remoteSearch?: boolean;
 }
 
-const ItemList: React.FC<ItemListProps> = ({ items, onItemClick, defaultFilter, freeOnly = false, servicesById = {} }) => {
+const ItemList: React.FC<ItemListProps> = ({
+    items,
+    onItemClick,
+    defaultFilter,
+    freeOnly = false,
+    servicesById = {},
+    searchTerm: controlledSearchTerm,
+    onSearchTermChange,
+    searching = false,
+    remoteSearch = false,
+}) => {
     const navigate = useNavigate();
     const initialFilter = defaultFilter || 'all';
     const [activeFilter, setActiveFilter] = React.useState(initialFilter);
-    const [searchTerm, setSearchTerm] = React.useState('');
+    const [localSearchTerm, setLocalSearchTerm] = React.useState('');
     const [sortBy, setSortBy] = React.useState('newest');
     const filters = ['all', 'free', 'nft', 'coin', 'service', 'merchandise', 'other'];
+    const searchTerm = controlledSearchTerm ?? localSearchTerm;
 
-    const availableItems = React.useMemo(() => {
-        return items.filter((item) => Object.getOwnPropertyNames(item.status)[0] === 'list');
-    }, [items]);
+    const setSearchTerm = (value: string) => {
+        if (onSearchTermChange) onSearchTermChange(value);
+        else setLocalSearchTerm(value);
+    };
+
+    const availableItems = React.useMemo(() =>
+        items.filter((item) => Object.getOwnPropertyNames(item.status)[0] === 'list'),
+    [items]);
 
     const getItemType = React.useCallback((item: Item) => {
         const serviceId = getServiceId(item.itype as any);
@@ -49,19 +68,17 @@ const ItemList: React.FC<ItemListProps> = ({ items, onItemClick, defaultFilter, 
             }
         }
         return counts;
-    }, [availableItems, filters, getItemType, toPriceNumber]);
+    }, [availableItems, getItemType, toPriceNumber]);
 
     const visibleItems = React.useMemo(() => {
         const normalizedSearch = searchTerm.trim().toLowerCase();
-
         const filtered = availableItems.filter((item) => {
             const type = getItemType(item);
             const matchesType = activeFilter === 'all'
                 || (activeFilter === 'free' && toPriceNumber(item) === 0)
                 || type === activeFilter;
             if (!matchesType) return false;
-
-            if (!normalizedSearch) return true;
+            if (!normalizedSearch || remoteSearch) return true;
 
             const serviceId = getServiceId(item.itype as any);
             const service = serviceId === null ? undefined : servicesById[serviceId.toString()];
@@ -75,7 +92,7 @@ const ItemList: React.FC<ItemListProps> = ({ items, onItemClick, defaultFilter, 
             if (sortBy === 'price-high') return toPriceNumber(b) - toPriceNumber(a);
             return toListTime(b) - toListTime(a);
         });
-    }, [availableItems, activeFilter, searchTerm, sortBy, getItemType, toPriceNumber, toListTime, servicesById]);
+    }, [availableItems, activeFilter, searchTerm, sortBy, getItemType, toPriceNumber, toListTime, servicesById, remoteSearch]);
 
     React.useEffect(() => {
         setActiveFilter(initialFilter);
@@ -84,21 +101,27 @@ const ItemList: React.FC<ItemListProps> = ({ items, onItemClick, defaultFilter, 
     return (
         <section className="reveal-up mt-4 rounded-3xl border border-white/60 bg-white/75 p-4 shadow-lg backdrop-blur sm:p-5">
             <div className="mb-4 flex items-center justify-between gap-2">
-                <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-500">Browse by Category</p>
+                <div>
+                    <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-500">Browse Marketplace</p>
+                    {searchTerm.trim() && remoteSearch && <p className="mt-1 text-xs text-slate-500">Searching across all listings and service provider metadata.</p>}
+                </div>
                 <p className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-slate-600">
-                    {visibleItems.length} items
+                    {visibleItems.length} loaded
                 </p>
             </div>
 
-            <div className="sticky top-[5.1rem] z-20 -mx-4 mb-4 space-y-3 border-y border-slate-200/80 bg-white/90 px-4 py-3 backdrop-blur sm:static sm:mx-0 sm:space-y-0 sm:border-0 sm:bg-transparent sm:p-0">
+            <div className="sticky top-[5.1rem] z-20 -mx-4 mb-4 space-y-3 border-y border-slate-200/80 bg-white/90 px-4 py-3 backdrop-blur sm:static sm:mx-0 sm:space-y-3 sm:border-0 sm:bg-transparent sm:p-0">
                 <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-                    <input
-                        type="text"
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        placeholder="Search products..."
-                        className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-orange-400"
-                    />
+                    <div className="relative">
+                        <input
+                            type="search"
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            placeholder="Search items, services, providers..."
+                            className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 pr-10 text-sm text-slate-700 outline-none transition focus:border-orange-400 focus:ring-2 focus:ring-orange-100"
+                        />
+                        {searching && <span className="absolute right-3 top-2.5 h-4 w-4 animate-spin rounded-full border-2 border-slate-300 border-t-orange-500" aria-label="Searching marketplace" />}
+                    </div>
 
                     <select
                         value={sortBy}
@@ -124,22 +147,18 @@ const ItemList: React.FC<ItemListProps> = ({ items, onItemClick, defaultFilter, 
                 </div>
 
                 {!freeOnly && (
-                <div className="flex flex-wrap gap-2 reveal-delay-1">
-                {filters.map((filter) => (
-                    <button
-                        key={filter}
-                        type="button"
-                        onClick={() => setActiveFilter(filter)}
-                        className={`btn-modern-secondary rounded-full px-3 py-1.5 text-xs font-semibold uppercase tracking-wide transition ${
-                            activeFilter === filter
-                                ? 'commerce-gradient text-white shadow-md'
-                                : 'border border-slate-300 bg-white text-slate-700 hover:border-orange-400 hover:text-orange-700'
-                        }`}
-                    >
-                        {(filter === 'all' ? 'All' : filter.charAt(0).toUpperCase() + filter.slice(1)) + ` (${filterCounts[filter] ?? 0})`}
-                    </button>
-                ))}
-                </div>
+                    <div className="flex flex-wrap gap-2 reveal-delay-1">
+                        {filters.map((filter) => (
+                            <button
+                                key={filter}
+                                type="button"
+                                onClick={() => setActiveFilter(filter)}
+                                className={`btn-modern-secondary rounded-full px-3 py-1.5 text-xs font-semibold uppercase tracking-wide transition ${activeFilter === filter ? 'commerce-gradient text-white shadow-md' : 'border border-slate-300 bg-white text-slate-700 hover:border-orange-400 hover:text-orange-700'}`}
+                            >
+                                {(filter === 'all' ? 'All' : filter.charAt(0).toUpperCase() + filter.slice(1)) + ` (${filterCounts[filter] ?? 0})`}
+                            </button>
+                        ))}
+                    </div>
                 )}
             </div>
 
@@ -159,13 +178,14 @@ const ItemList: React.FC<ItemListProps> = ({ items, onItemClick, defaultFilter, 
                 })}
             </div>
 
-            {visibleItems.length === 0 && (
+            {!searching && visibleItems.length === 0 && (
                 <div className="mt-4 rounded-2xl border border-slate-200 bg-white p-6 text-center">
-                    <p className="text-sm font-semibold text-slate-700">No matching items found.</p>
-                    <p className="mt-1 text-xs text-slate-500">Try another keyword, category, or sort option.</p>
+                    <p className="text-sm font-semibold text-slate-700">No matching listings found.</p>
+                    <p className="mt-1 text-xs text-slate-500">Try another keyword or category.</p>
                 </div>
             )}
         </section>
     );
 };
+
 export default ItemList;
