@@ -52,12 +52,31 @@ export default (props) => {
         (status === ORDER_STATUS_DEPOSITED && isSeller) ||
         (status === ORDER_STATUS_DELIVERED && isBuyer);
 
+    const needsAction = !isFreeOrder && (
+        needsConfirm ||
+        (status === ORDER_STATUS_RECEIVED && isSeller) ||
+        (status === ORDER_STATUS_RELEASED && isSeller)
+    );
+
+    const confirmationText = (() => {
+        if (status === ORDER_STATUS_NEW && isBuyer) {
+            return `I’m ready to deposit ${amount} ${currency} into escrow.`;
+        }
+        if (status === ORDER_STATUS_DEPOSITED && isSeller) {
+            return `I have delivered “${props.order.memo}” to the buyer.`;
+        }
+        if (status === ORDER_STATUS_DELIVERED && isBuyer) {
+            return `I received “${props.order.memo}” and understand this confirmation allows the seller to request payout.`;
+        }
+        return '';
+    })();
+
     async function act(fn: () => Promise<any>, nextStatus: string) {
         setBusy(true);
         try {
             const res = await fn();
             if (res['ok'] !== undefined) {
-                toast.success('Status updated');
+                toast.success('Order updated');
                 setStatus(nextStatus);
                 setConfirmed(false);
             } else {
@@ -95,11 +114,10 @@ export default (props) => {
 
     return (
         <>
-            <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-                {/* Header */}
+            <div className={`rounded-xl border bg-white p-4 shadow-sm ${needsAction ? 'border-orange-300 ring-1 ring-orange-100' : 'border-slate-200'}`}>
                 <div className="mb-3 flex items-start justify-between gap-3">
                     <div className="min-w-0">
-                        <div className="flex items-center gap-2">
+                        <div className="flex flex-wrap items-center gap-2">
                             <button
                                 type="button"
                                 onClick={() => setOpenOrder(true)}
@@ -110,80 +128,84 @@ export default (props) => {
                             <span className={`rounded-full border px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide ${statusColor}`}>
                                 {status}
                             </span>
+                            {needsAction && (
+                                <span className="rounded-full bg-orange-500 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">
+                                    Action required
+                                </span>
+                            )}
                         </div>
-                        <p className="mt-1 text-base font-semibold text-slate-900 truncate">{props.order.memo}</p>
+                        <p className="mt-1 truncate text-base font-semibold text-slate-900">{props.order.memo}</p>
                     </div>
                     <span className="flex-shrink-0 rounded-full border border-teal-600/50 bg-teal-50 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-teal-700">
                         {isFreeOrder ? 'FREE' : `${amount} ${currency}`}
                     </span>
                 </div>
 
-                {/* Meta */}
                 <p className="mb-3 text-xs text-slate-500">
-                    {isBuyer ? 'You are buyer' : 'You are seller'} · {moment.unix(parseInt(props.order.createtime) / 1_000_000_000).format('YYYY-MM-DD HH:mm')}
+                    {isBuyer ? 'You are buyer' : isSeller ? 'You are seller' : 'Participant'} · {moment.unix(parseInt(props.order.createtime) / 1_000_000_000).format('YYYY-MM-DD HH:mm')}
                 </p>
 
-                {/* Hint */}
                 {!isFreeOrder && !isTerminal && (() => {
-                    if (status === ORDER_STATUS_NEW && isBuyer) return <p className="mb-2 rounded-md border border-sky-200 bg-sky-50 px-3 py-2 text-xs text-sky-800">Deposit {amount} {currency} to escrow account to proceed.</p>;
-                    if (status === ORDER_STATUS_NEW && isSeller) return <p className="mb-2 rounded-md border border-sky-200 bg-sky-50 px-3 py-2 text-xs text-sky-800">Waiting for buyer to deposit funds.</p>;
-                    if (status === ORDER_STATUS_DEPOSITED && isSeller) return <p className="mb-2 rounded-md border border-sky-200 bg-sky-50 px-3 py-2 text-xs text-sky-800">Confirm delivery of "{props.order.memo}" to buyer.</p>;
-                    if (status === ORDER_STATUS_DEPOSITED && isBuyer) return <p className="mb-2 rounded-md border border-sky-200 bg-sky-50 px-3 py-2 text-xs text-sky-800">Waiting for seller to deliver.</p>;
-                    if (status === ORDER_STATUS_DELIVERED && isBuyer) return <p className="mb-2 rounded-md border border-sky-200 bg-sky-50 px-3 py-2 text-xs text-sky-800">Confirm receipt — this releases funds to the seller.</p>;
-                    if (status === ORDER_STATUS_RECEIVED && isSeller) return <p className="mb-2 rounded-md border border-sky-200 bg-sky-50 px-3 py-2 text-xs text-sky-800">Request fund release (transaction fee applies).</p>;
+                    if (status === ORDER_STATUS_NEW && isBuyer) return <p className="mb-2 rounded-md border border-sky-200 bg-sky-50 px-3 py-2 text-xs text-sky-800">Next: deposit {amount} {currency} into escrow to fund this order.</p>;
+                    if (status === ORDER_STATUS_NEW && isSeller) return <p className="mb-2 rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-700">Waiting for the buyer to fund escrow.</p>;
+                    if (status === ORDER_STATUS_DEPOSITED && isSeller) return <p className="mb-2 rounded-md border border-sky-200 bg-sky-50 px-3 py-2 text-xs text-sky-800">Next: deliver “{props.order.memo}”, then confirm delivery here.</p>;
+                    if (status === ORDER_STATUS_DEPOSITED && isBuyer) return <p className="mb-2 rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-700">Escrow is funded. Waiting for the seller to deliver.</p>;
+                    if (status === ORDER_STATUS_DELIVERED && isBuyer) return <p className="mb-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">Next: confirm receipt only after you have received the item or service.</p>;
+                    if (status === ORDER_STATUS_DELIVERED && isSeller) return <p className="mb-2 rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-700">Waiting for the buyer to confirm receipt.</p>;
+                    if (status === ORDER_STATUS_RECEIVED && isSeller) return <p className="mb-2 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-800">Buyer confirmed receipt. You can now request release of the escrowed funds.</p>;
+                    if (status === ORDER_STATUS_RECEIVED && isBuyer) return <p className="mb-2 rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-700">Receipt confirmed. Waiting for the seller to request payout.</p>;
+                    if (status === ORDER_STATUS_RELEASED && isSeller) return <p className="mb-2 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-800">Funds were released. Close the order when everything is complete.</p>;
                     return null;
                 })()}
 
-                {/* Confirm checkbox */}
                 {needsConfirm && !isFreeOrder && (
-                    <label className="mb-2 inline-flex items-center gap-2 text-sm text-slate-700 select-none">
-                        <input type="checkbox" checked={confirmed} onChange={e => setConfirmed(e.target.checked)} />
-                        YES, I confirmed
+                    <label className="mb-3 flex items-start gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700 select-none">
+                        <input className="mt-0.5" type="checkbox" checked={confirmed} onChange={e => setConfirmed(e.target.checked)} />
+                        <span>{confirmationText}</span>
                     </label>
                 )}
 
-                {/* Actions */}
                 {!isTerminal && (
                     <div className="flex flex-wrap gap-2">
                         {!isFreeOrder && status === ORDER_STATUS_NEW && isBuyer && (
                             <button disabled={!confirmed || busy} onClick={() => act(() => escrow.deposit(props.order.id), ORDER_STATUS_DEPOSITED)}
                                 className="rounded-md bg-cyan-600 px-3 py-1.5 text-sm font-semibold text-white transition hover:bg-cyan-700 disabled:cursor-not-allowed disabled:bg-slate-300">
-                                Deposit
+                                Deposit to Escrow
                             </button>
                         )}
                         {!isFreeOrder && status === ORDER_STATUS_DEPOSITED && isSeller && (
                             <button disabled={!confirmed || busy} onClick={() => act(() => escrow.deliver(props.order.id), ORDER_STATUS_DELIVERED)}
                                 className="rounded-md bg-cyan-600 px-3 py-1.5 text-sm font-semibold text-white transition hover:bg-cyan-700 disabled:cursor-not-allowed disabled:bg-slate-300">
-                                Deliver
+                                Confirm Delivery
                             </button>
                         )}
                         {!isFreeOrder && status === ORDER_STATUS_DELIVERED && isBuyer && (
                             <button disabled={!confirmed || busy} onClick={() => act(() => escrow.receive(props.order.id), ORDER_STATUS_RECEIVED)}
                                 className="rounded-md bg-cyan-600 px-3 py-1.5 text-sm font-semibold text-white transition hover:bg-cyan-700 disabled:cursor-not-allowed disabled:bg-slate-300">
-                                Receive
+                                Confirm Receipt
                             </button>
                         )}
                         {!isFreeOrder && status === ORDER_STATUS_RECEIVED && isSeller && (
                             <button disabled={busy} onClick={() => act(() => escrow.release(props.order.id), ORDER_STATUS_RELEASED)}
                                 className="rounded-md bg-cyan-600 px-3 py-1.5 text-sm font-semibold text-white transition hover:bg-cyan-700 disabled:cursor-not-allowed disabled:bg-slate-300">
-                                Release Fund
+                                Release Funds
                             </button>
                         )}
                         {!isFreeOrder && status === ORDER_STATUS_NEW && (
                             <button disabled={busy} onClick={() => act(() => escrow.cancel(props.order.id), ORDER_STATUS_CANCELED)}
                                 className="rounded-md border border-rose-400 px-3 py-1.5 text-sm font-semibold text-rose-600 transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-50">
-                                Cancel
+                                Cancel Order
                             </button>
                         )}
-                        {isSeller && (
+                        {isSeller && (isFreeOrder || status === ORDER_STATUS_RELEASED) && (
                             <button disabled={busy} onClick={() => act(() => escrow.close(props.order.id), ORDER_STATUS_CLOSED)}
                                 className="rounded-md border border-slate-400 px-3 py-1.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50">
-                                Close
+                                Close Order
                             </button>
                         )}
                         <button type="button" onClick={() => setShowComment(v => !v)}
                             className="rounded-md border border-slate-300 px-3 py-1.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-50">
-                            {showComment ? 'Cancel' : 'Comment'}
+                            {showComment ? 'Cancel Comment' : 'Comment'}
                         </button>
                     </div>
                 )}
@@ -196,7 +218,7 @@ export default (props) => {
                         </button>
                         <button type="button" onClick={() => setShowComment(v => !v)}
                             className="rounded-md border border-slate-300 px-3 py-1.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-50">
-                            {showComment ? 'Cancel' : 'Comment'}
+                            {showComment ? 'Cancel Comment' : 'Comment'}
                         </button>
                     </div>
                 )}
@@ -230,12 +252,13 @@ export default (props) => {
 
             {openOrder && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setOpenOrder(false)}>
-                    <div className="relative max-h-[90vh] w-full max-w-3xl overflow-auto rounded-lg bg-white p-4" onClick={(e) => e.stopPropagation()}>
+                    <div className="relative max-h-[90vh] w-full max-w-3xl overflow-auto rounded-2xl bg-white p-4 shadow-2xl" onClick={(e) => e.stopPropagation()}>
                         <button type="button" onClick={() => setOpenOrder(false)}
-                            className="absolute right-3 top-3 h-8 w-8 rounded-full text-slate-500 transition hover:bg-slate-100">
+                            className="absolute right-3 top-3 h-8 w-8 rounded-full text-slate-500 transition hover:bg-slate-100"
+                            aria-label="Close order details">
                             ✕
                         </button>
-                        <h3 className="mb-4 text-lg font-semibold text-slate-900">Order: {props.order.memo}</h3>
+                        <h3 className="mb-4 pr-10 text-lg font-semibold text-slate-900">Order: {props.order.memo}</h3>
                         <OrderDetail order={props.order} />
                     </div>
                 </div>
