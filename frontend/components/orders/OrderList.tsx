@@ -195,14 +195,14 @@ export default () => {
     const openOrderCount = orders.filter((order) => !isTerminalOrder(order)).length;
     const waitingOrderCount = Math.max(0, openOrderCount - needsActionCount);
     const completeOrderCount = orders.filter(isTerminalOrder).length;
-    const openIncomingClaims = sellerClaims.filter((claim) => !isClaimResolved(claim)).length;
-    const openBuyerClaims = buyerClaims.filter((claim) => !isClaimResolved(claim)).length;
 
     const filteredOrders = statusFilter === 'action'
         ? orders.filter(needsUserAction)
-        : statusFilter === 'all'
-            ? orders
-            : orders.filter((o: any) => getStatus(o) === statusFilter);
+        : statusFilter === 'complete'
+            ? orders.filter(isTerminalOrder)
+            : statusFilter === 'all'
+                ? orders
+                : orders.filter((o: any) => getStatus(o) === statusFilter);
 
     const sortedOrders = [...filteredOrders].sort((a: any, b: any) => {
         const actionDelta = Number(needsUserAction(b)) - Number(needsUserAction(a));
@@ -318,8 +318,8 @@ export default () => {
                         className={`rounded-2xl border p-3 text-left transition ${statusFilter === 'action' ? 'border-orange-400 bg-orange-50' : 'border-slate-200 bg-white hover:border-orange-300'}`}
                     >
                         <p className="text-xs font-semibold uppercase tracking-wide text-orange-700">Needs you</p>
-                        <p className="mt-1 text-2xl font-extrabold text-slate-900">{needsActionCount + openIncomingClaims}</p>
-                        <p className="mt-1 text-xs text-slate-500">Orders and incoming claims requiring action</p>
+                        <p className="mt-1 text-2xl font-extrabold text-slate-900">{needsActionCount}</p>
+                        <p className="mt-1 text-xs text-slate-500">Orders requiring your next action</p>
                     </button>
                     <button
                         type="button"
@@ -327,13 +327,13 @@ export default () => {
                         className="rounded-2xl border border-slate-200 bg-white p-3 text-left transition hover:border-teal-300"
                     >
                         <p className="text-xs font-semibold uppercase tracking-wide text-teal-700">Waiting</p>
-                        <p className="mt-1 text-2xl font-extrabold text-slate-900">{waitingOrderCount + openBuyerClaims}</p>
-                        <p className="mt-1 text-xs text-slate-500">Waiting on the other party</p>
+                        <p className="mt-1 text-2xl font-extrabold text-slate-900">{waitingOrderCount}</p>
+                        <p className="mt-1 text-xs text-slate-500">Open orders waiting on the other party</p>
                     </button>
                     <button
                         type="button"
-                        onClick={() => setStatusFilter(ORDER_STATUS_CLOSED)}
-                        className="rounded-2xl border border-slate-200 bg-white p-3 text-left transition hover:border-slate-400"
+                        onClick={() => setStatusFilter('complete')}
+                        className={`rounded-2xl border p-3 text-left transition ${statusFilter === 'complete' ? 'border-slate-400 bg-slate-100' : 'border-slate-200 bg-white hover:border-slate-400'}`}
                     >
                         <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Complete</p>
                         <p className="mt-1 text-2xl font-extrabold text-slate-900">{completeOrderCount}</p>
