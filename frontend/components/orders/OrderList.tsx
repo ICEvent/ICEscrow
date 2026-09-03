@@ -75,11 +75,15 @@ export default () => {
     }, []);
 
     React.useEffect(() => {
+        if (!principal) return;
+        setPage(1);
+        setHasOlderOrders(true);
         loadProcessingOrders();
         loadClaims();
-    }, []);
+    }, [principal]);
 
     async function loadProcessingOrders() {
+        if (!principal) return;
         setLoading(true)
         try {
             const os = await escrow.getOrders();
@@ -92,6 +96,7 @@ export default () => {
     };
 
     async function loadAllOrders() {
+        if (!principal) return;
         setLoading(true)
         try {
             const os = await escrow.getAllOrders(BigInt(page));
@@ -110,6 +115,7 @@ export default () => {
     };
 
     function loadClaims() {
+        if (!principal) return;
         setClaimsLoading(true);
         Promise.allSettled([
             escrow.getMyBuyerFreeItemClaims(),
@@ -174,6 +180,16 @@ export default () => {
             setLoading(false)
         }
     };
+
+    if (!principal) {
+        return (
+            <section className="mx-auto mt-8 max-w-2xl rounded-3xl border border-white/60 bg-white/85 p-6 text-center shadow-lg backdrop-blur">
+                <p className="text-xs font-bold uppercase tracking-[0.18em] text-orange-700">Order Action Center</p>
+                <h1 className="mt-2 text-2xl font-extrabold tracking-tight text-slate-900">Sign in to manage your escrow activity</h1>
+                <p className="mt-2 text-sm leading-6 text-slate-600">Your active orders, required actions, and free-item claims will appear here after your identity session is restored.</p>
+            </section>
+        );
+    }
 
     const needsActionCount = orders.filter(needsUserAction).length;
     const openOrderCount = orders.filter((order) => !isTerminalOrder(order)).length;
