@@ -12,8 +12,8 @@ import {
 } from '../../lib/constants';
 import { useGlobalContext } from '../Store';
 import { useStablecoins, StablecoinMap } from '../../lib/hooks/useStablecoins';
+import CounterpartyPicker from './CounterpartyPicker';
 
-/** Build the Candid Currency variant object expected by the backend. */
 function buildCurrencyVariant(currencyKey: string, icrc1Tokens: StablecoinMap): Record<string, any> {
     if (currencyKey === CURRENCY_ICP) return { ICP: null };
     if (currencyKey === CURRENCY_ICET) return { ICET: null };
@@ -30,7 +30,6 @@ function buildCurrencyVariant(currencyKey: string, icrc1Tokens: StablecoinMap): 
     return { ICP: null };
 }
 
-/** Return the ledger base (smallest units per whole token) for a given key. */
 function ledgerBase(currencyKey: string, icrc1Tokens: StablecoinMap): number {
     if (currencyKey === CURRENCY_ICET) return LEDGER_E6S;
     const info = icrc1Tokens[currencyKey];
@@ -42,27 +41,32 @@ export default function OrderForm(props) {
     const {
         state: { principal, escrow },
     } = useGlobalContext();
-
     const { stablecoins } = useStablecoins(escrow);
+    const principalText = principal?.toString() ?? '';
 
     const [state, setState] = React.useState({
         item: '',
         yourside: 'buyer',
-        buyer: principal.toText(),
+        buyer: principalText,
         seller: '',
         amount: 0,
         currency: CURRENCY_ICP,
     });
 
+    React.useEffect(() => {
+        if (!principalText) return;
+        setState((current) => current.yourside === 'buyer'
+            ? { ...current, buyer: principalText }
+            : { ...current, seller: principalText });
+    }, [principalText]);
+
     function handleChange(e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) {
         const { name, value } = e.target;
 
         if (name === 'yourside') {
-            if (value === 'buyer') {
-                setState({ ...state, yourside: value, buyer: principal.toText(), seller: '' });
-            } else {
-                setState({ ...state, yourside: value, seller: principal.toText(), buyer: '' });
-            }
+            setState((current) => value === 'buyer'
+                ? { ...current, yourside: value, buyer: principalText, seller: '' }
+                : { ...current, yourside: value, seller: principalText, buyer: '' });
             return;
         }
 
@@ -75,13 +79,31 @@ export default function OrderForm(props) {
         setState({ ...state, [name]: value });
     }
 
+    const setCounterparty = (value: string) => {
+        if (state.yourside === 'buyer') {
+            setState((current) => ({ ...current, seller: value }));
+        } else {
+            setState((current) => ({ ...current, buyer: value }));
+        }
+    };
+
     function createOrder() {
+        if (!principalText) {
+            toast.warn('Sign in before creating an escrow order');
+            return;
+        }
         if (!state.item.trim()) {
-            toast.warn('order item is required');
+            toast.warn('Describe what this escrow order is for');
             return;
         }
         if (state.amount <= 0) {
-            toast.warn('amount must be greater than 0');
+            toast.warn('Amount must be greater than 0');
+            return;
+        }
+
+        const counterparty = state.yourside === 'buyer' ? state.seller.trim() : state.buyer.trim();
+        if (!counterparty) {
+            toast.warn(`Choose the ${state.yourside === 'buyer' ? 'seller' : 'buyer'}`);
             return;
         }
 
@@ -92,110 +114,99 @@ export default function OrderForm(props) {
 
         try {
             if (state.yourside === 'buyer') {
-                const seller = Principal.fromText(state.seller.trim());
                 props.buy({
-                    seller,
-                    memo: state.item,
+                    seller: Principal.fromText(counterparty),
+                    memo: state.item.trim(),
                     amount,
                     currency,
                     expiration,
                 });
             } else {
-                const buyer = Principal.fromText(state.buyer.trim());
                 props.sell({
-                    buyer,
-                    memo: state.item,
+                    buyer: Principal.fromText(counterparty),
+                    memo: state.item.trim(),
                     amount,
                     currency,
                     expiration,
                 });
             }
         } catch {
-            toast.error('invalid principal');
+            toast.error('The selected account has an invalid Principal');
         }
     }
 
+    const counterpartyValue = state.yourside === 'buyer' ? state.seller : state.buyer;
+    const counterpartyRole = state.yourside === 'buyer' ? 'seller' : 'buyer';
+
     return (
-        <div className="space-y-4">
-            <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900">
-                <p className="mb-3">
-                    Create a custom order to guard your fund with your buyer/seller in escrow smart contract. (e.g. house rental deposit, sale deposit...)
-                </p>
-                <div className="grid gap-2 text-xs sm:grid-cols-4">
-                    <div className="rounded-md bg-white px-3 py-2 text-center font-medium text-slate-700">Deposit Fund in Escrow</div>
-                    <div className="rounded-md bg-white px-3 py-2 text-center font-medium text-slate-700">Seller Deliver Item</div>
-                    <div className="rounded-md bg-white px-3 py-2 text-center font-medium text-slate-700">Buyer Receive Item</div>
-                    <div className="rounded-md bg-white px-3 py-2 text-center font-medium text-slate-700">Release Fund to Seller</div>
+        <div className="space-y-5">
+            <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900">
+                <p className="font-semibold">Escrow keeps funds protected while both sides complete the agreement.</p>
+                <div className="mt-3 grid gap-2 text-xs sm:grid-cols-4">
+                    <div className="rounded-lg bg-white px-3 py-2 text-center font-medium text-slate-700">1. Buyer funds escrow</div>
+                    <div className="rounded-lg bg-white px-3 py-2 text-center font-medium text-slate-700">2. Seller delivers</div>
+                    <div className="rounded-lg bg-white px-3 py-2 text-center font-medium text-slate-700">3. Buyer confirms</div>
+                    <div className="rounded-lg bg-white px-3 py-2 text-center font-medium text-slate-700">4. Seller receives funds</div>
                 </div>
             </div>
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-12">
                 <div className="sm:col-span-12">
-                    <label className="mb-1 block text-sm font-medium text-slate-700">Describe your ordering item</label>
+                    <label className="mb-1 block text-sm font-medium text-slate-700">What is this agreement for?</label>
                     <input
                         name="item"
                         value={state.item}
                         onChange={handleChange}
-                        className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-cyan-500"
+                        placeholder="e.g. Website redesign deposit, used kayak, landscaping service"
+                        className="w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm text-slate-900 outline-none transition focus:border-cyan-500 focus:ring-2 focus:ring-cyan-100"
                     />
                 </div>
 
-                <div className="sm:col-span-4">
-                    <p className="mb-1 text-sm font-medium text-slate-700">Are you?</p>
-                    <div className="flex gap-4 text-sm">
-                        <label className="inline-flex items-center gap-2">
-                            <input type="radio" name="yourside" value="buyer" checked={state.yourside === 'buyer'} onChange={handleChange} />
-                            Buyer
-                        </label>
-                        <label className="inline-flex items-center gap-2">
-                            <input type="radio" name="yourside" value="seller" checked={state.yourside === 'seller'} onChange={handleChange} />
-                            Seller
-                        </label>
+                <div className="sm:col-span-12">
+                    <p className="mb-2 text-sm font-medium text-slate-700">Your role</p>
+                    <div className="grid grid-cols-2 gap-2">
+                        {['buyer', 'seller'].map((role) => (
+                            <label
+                                key={role}
+                                className={`cursor-pointer rounded-xl border px-4 py-3 text-sm transition ${state.yourside === role ? 'border-cyan-500 bg-cyan-50 text-cyan-900' : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300'}`}
+                            >
+                                <input className="sr-only" type="radio" name="yourside" value={role} checked={state.yourside === role} onChange={handleChange} />
+                                <span className="block font-semibold">I’m the {role}</span>
+                                <span className="mt-0.5 block text-xs text-slate-500">{role === 'buyer' ? 'I will fund escrow' : 'I will deliver and receive funds'}</span>
+                            </label>
+                        ))}
                     </div>
                 </div>
 
-                {state.yourside === 'seller' && (
-                    <div className="sm:col-span-8">
-                        <label className="mb-1 block text-sm font-medium text-slate-700">the principal of buyer</label>
-                        <input
-                            name="buyer"
-                            value={state.buyer}
-                            onChange={handleChange}
-                            className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-cyan-500"
-                        />
-                    </div>
-                )}
+                <div className="sm:col-span-12">
+                    <CounterpartyPicker
+                        label={`Choose the ${counterpartyRole}`}
+                        value={counterpartyValue}
+                        onChange={setCounterparty}
+                        excludePrincipal={principalText}
+                    />
+                </div>
 
-                {state.yourside === 'buyer' && (
-                    <div className="sm:col-span-8">
-                        <label className="mb-1 block text-sm font-medium text-slate-700">the principal of seller</label>
-                        <input
-                            name="seller"
-                            value={state.seller}
-                            onChange={handleChange}
-                            className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-cyan-500"
-                        />
-                    </div>
-                )}
-
-                <div className="sm:col-span-6">
-                    <label className="mb-1 block text-sm font-medium text-slate-700">the amount of order</label>
+                <div className="sm:col-span-7">
+                    <label className="mb-1 block text-sm font-medium text-slate-700">Escrow amount</label>
                     <input
                         name="amount"
                         type="number"
+                        min="0"
+                        step="any"
                         value={state.amount}
                         onChange={handleChange}
-                        className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-cyan-500"
+                        className="w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm text-slate-900 outline-none transition focus:border-cyan-500 focus:ring-2 focus:ring-cyan-100"
                     />
                 </div>
 
-                <div className="sm:col-span-6">
+                <div className="sm:col-span-5">
                     <label className="mb-1 block text-sm font-medium text-slate-700">Currency</label>
                     <select
                         name="currency"
                         value={state.currency}
                         onChange={handleChange}
-                        className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-cyan-500"
+                        className="w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm text-slate-900 outline-none transition focus:border-cyan-500 focus:ring-2 focus:ring-cyan-100"
                     >
                         <option value={CURRENCY_ICP}>{CURRENCY_ICP}</option>
                         <option value={CURRENCY_ICET}>{CURRENCY_ICET}</option>
@@ -205,13 +216,19 @@ export default function OrderForm(props) {
                     </select>
                 </div>
 
+                <div className="sm:col-span-12 rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs text-slate-600">
+                    <span className="font-semibold text-slate-800">You are the {state.yourside}.</span>{' '}
+                    Vansday will create the order now and guide both participants through each required action in Orders.
+                </div>
+
                 <div className="sm:col-span-12">
                     <button
                         type="button"
                         onClick={createOrder}
-                        className="rounded-md bg-cyan-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-cyan-700"
+                        disabled={!state.item.trim() || !counterpartyValue || state.amount <= 0}
+                        className="btn-modern-primary commerce-gradient w-full rounded-xl px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:shadow-none sm:w-auto"
                     >
-                        Create
+                        Create Escrow Order
                     </button>
                 </div>
             </div>
