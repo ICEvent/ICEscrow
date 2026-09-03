@@ -39,6 +39,10 @@ export default (props) => {
     const [commentText, setCommentText] = React.useState('');
     const [comments, setComments] = React.useState<any[]>(props.order.comments ?? []);
 
+    React.useEffect(() => {
+        setStatus(Object.getOwnPropertyNames(props.order.status)[0]);
+    }, [props.order.status]);
+
     const currency = currencySymbol(props.order.currency);
     const es = currencyBase(props.order.currency);
     const amount = parseInt(props.order.amount) / es;
@@ -54,8 +58,7 @@ export default (props) => {
 
     const needsAction = !isFreeOrder && (
         needsConfirm ||
-        (status === ORDER_STATUS_RECEIVED && isSeller) ||
-        (status === ORDER_STATUS_RELEASED && isSeller)
+        (status === ORDER_STATUS_RECEIVED && isSeller)
     );
 
     const confirmationText = (() => {
@@ -79,6 +82,7 @@ export default (props) => {
                 toast.success('Order updated');
                 setStatus(nextStatus);
                 setConfirmed(false);
+                props.onStatusChange?.(props.order.id, nextStatus);
             } else {
                 toast.error(res['err'] ?? 'Action failed');
             }
@@ -154,7 +158,7 @@ export default (props) => {
                     if (status === ORDER_STATUS_DELIVERED && isSeller) return <p className="mb-2 rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-700">Waiting for the buyer to confirm receipt.</p>;
                     if (status === ORDER_STATUS_RECEIVED && isSeller) return <p className="mb-2 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-800">Buyer confirmed receipt. You can now request release of the escrowed funds.</p>;
                     if (status === ORDER_STATUS_RECEIVED && isBuyer) return <p className="mb-2 rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-700">Receipt confirmed. Waiting for the seller to request payout.</p>;
-                    if (status === ORDER_STATUS_RELEASED && isSeller) return <p className="mb-2 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-800">Funds were released. Close the order when everything is complete.</p>;
+                    if (status === ORDER_STATUS_RELEASED) return <p className="mb-2 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-800">Funds released. The financial flow is complete; closing this order is optional archival cleanup.</p>;
                     return null;
                 })()}
 
@@ -259,7 +263,7 @@ export default (props) => {
                             ✕
                         </button>
                         <h3 className="mb-4 pr-10 text-lg font-semibold text-slate-900">Order: {props.order.memo}</h3>
-                        <OrderDetail order={props.order} />
+                        <OrderDetail order={{ ...props.order, status: { [status]: null } }} />
                     </div>
                 </div>
             )}
