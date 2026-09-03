@@ -32,9 +32,20 @@ export default function CounterpartyPicker({ label, value, onChange, excludePrin
             setSearching(true);
             setHasSearched(false);
             try {
-                const profiles = await oneblock.searchProfilesByName(normalized);
+                const profileId = normalized.replace(/^@/, '');
+                const [byName, byId] = await Promise.all([
+                    oneblock.searchProfilesByName(normalized),
+                    oneblock.getProfile(profileId),
+                ]);
                 if (!cancelled) {
-                    setResults(profiles.filter((profile) => profile.owner.toString() !== excludePrincipal).slice(0, 8));
+                    const merged = [...byId, ...byName];
+                    const unique = new Map<string, Profile>();
+                    merged.forEach((profile) => unique.set(profile.owner.toString(), profile));
+                    setResults(
+                        Array.from(unique.values())
+                            .filter((profile) => profile.owner.toString() !== excludePrincipal)
+                            .slice(0, 8),
+                    );
                     setHasSearched(true);
                 }
             } catch (err) {
@@ -99,7 +110,7 @@ export default function CounterpartyPicker({ label, value, onChange, excludePrin
                             setHasSearched(false);
                             if (value) onChange('');
                         }}
-                        placeholder="Search a person or business by name"
+                        placeholder="Search a person, business, or @profile"
                         autoComplete="off"
                         className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 pr-10 text-sm text-slate-900 outline-none transition focus:border-cyan-500 focus:ring-2 focus:ring-cyan-100"
                     />
@@ -133,7 +144,7 @@ export default function CounterpartyPicker({ label, value, onChange, excludePrin
                     )}
 
                     {!searching && hasSearched && results.length === 0 && (
-                        <p className="mt-1 text-xs text-slate-500">No matching profile. Try another name, or use the advanced Principal option below.</p>
+                        <p className="mt-1 text-xs text-slate-500">No matching profile. Try another name or @profile, or use the advanced Principal option below.</p>
                     )}
                 </div>
             )}
