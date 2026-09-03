@@ -18,7 +18,6 @@ type OfferListProps = {
 
 type LoadOptions = {
   showError?: boolean;
-  background?: boolean;
   query?: string;
 }
 
@@ -45,12 +44,11 @@ export default ({ freeOnly = false }: OfferListProps) => {
   async function loadOffers(
     targetPage: number,
     replace = false,
-    { showError = true, background = false, query = searchTerm }: LoadOptions = {},
+    { showError = true, query = searchTerm }: LoadOptions = {},
   ) {
     const requestId = ++requestRef.current
     const normalizedQuery = query.trim()
-    if (background) setSearching(true)
-    else setLoading(true)
+    setSearching(true)
 
     try {
       const keywords = normalizedQuery.split(/[\s,]+/).filter(Boolean)
@@ -85,11 +83,7 @@ export default ({ freeOnly = false }: OfferListProps) => {
       console.error("Unable to load offers", err)
       return 0
     } finally {
-      if (background) {
-        if (requestId === requestRef.current) setSearching(false)
-      } else {
-        setLoading(false)
-      }
+      if (requestId === requestRef.current) setSearching(false)
     }
   }
 
@@ -99,7 +93,6 @@ export default ({ freeOnly = false }: OfferListProps) => {
       setPage(1)
       loadOffers(1, true, {
         showError: hasQuery,
-        background: hasQuery,
         query: searchTerm,
       })
     }, hasQuery ? 300 : 0)
