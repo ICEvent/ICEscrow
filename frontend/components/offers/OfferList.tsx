@@ -16,6 +16,12 @@ type OfferListProps = {
   freeOnly?: boolean;
 }
 
+type LoadOptions = {
+  showError?: boolean;
+  background?: boolean;
+  query?: string;
+}
+
 const PAGE_SIZE = 20;
 
 export default ({ freeOnly = false }: OfferListProps) => {
@@ -32,39 +38,28 @@ export default ({ freeOnly = false }: OfferListProps) => {
   const [servicesById, setServicesById] = React.useState<Record<string, ServiceInfo>>({})
   const [page, setPage] = React.useState(1)
   const [hasMore, setHasMore] = React.useState(true)
+  const [searchTerm, setSearchTerm] = React.useState('')
+  const [searching, setSearching] = React.useState(false)
+  const requestRef = React.useRef(0)
 
-  React.useEffect(() => {
-    setPage(1)
-    loadOffers(1, true, { showError: false })
-  }, [freeOnly])
-
-  const saveList = async (data) => {
-    setOpenListForm(false)
-    setLoading(true)
-    try {
-      const res = await escrow.listItem(data)
-      if (isCanisterOkResult(res)) {
-        toast.success("Item has been listed")
-        setPage(1)
-        await loadOffers(1, true, { showError: false })
-      } else {
-        toast.error(getCanisterErrorMessage(res, "Failed to list item"))
-      }
-    } catch (err) {
-      toast.error(err?.toString() ?? "Unable to list item")
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const loadOffers = async (
+  async function loadOffers(
     targetPage: number,
     replace = false,
-    { showError = true }: { showError?: boolean } = {},
-  ) => {
-    setLoading(true)
+    { showError = true, background = false, query = searchTerm }: LoadOptions = {},
+  ) {
+    const requestId = ++requestRef.current
+    const normalizedQuery = query.trim()
+    if (background) setSearching(true)
+    else setLoading(true)
+
     try {
-      const res = await escrow.getItemsWithAssociations(BigInt(targetPage))
+      const keywords = normalizedQuery.split(/[\s,]+/).filter(Boolean)
+      const res = keywords.length > 0
+        ? await escrow.searchItemsWithAssociations(keywords, [], [{ list: null }] as any, BigInt(targetPage))
+        : await escrow.getItemsWithAssociations(BigInt(targetPage))
+
+      if (requestId !== requestRef.current) return 0
+
       const incomingItems = res.map((entry) => entry.item)
       const incomingServices = Object.fromEntries(
         res.flatMap((entry) => entry.service[0]
@@ -84,11 +79,49 @@ export default ({ freeOnly = false }: OfferListProps) => {
       setHasMore(res.length === PAGE_SIZE)
       return res.length
     } catch (err) {
-      if (showError) {
+      if (requestId === requestRef.current && showError) {
         toast.error(err?.toString() ?? "Unable to load offers")
       }
       console.error("Unable to load offers", err)
       return 0
+    } finally {
+      if (background) {
+        if (requestId === requestRef.current) setSearching(false)
+      } else {
+        setLoading(false)
+      }
+    }
+  }
+
+  React.useEffect(() => {
+    const hasQuery = searchTerm.trim().length > 0
+    const timer = window.setTimeout(() => {
+      setPage(1)
+      loadOffers(1, true, {
+        showError: hasQuery,
+        background: hasQuery,
+        query: searchTerm,
+      })
+    }, hasQuery ? 300 : 0)
+
+    return () => window.clearTimeout(timer)
+  }, [freeOnly, searchTerm])
+
+  const saveList = async (data) => {
+    setOpenListForm(false)
+    setLoading(true)
+    try {
+      const res = await escrow.listItem(data)
+      if (isCanisterOkResult(res)) {
+        toast.success("Listing published")
+        setSearchTerm('')
+        setPage(1)
+        await loadOffers(1, true, { showError: false, query: '' })
+      } else {
+        toast.error(getCanisterErrorMessage(res, "Failed to list item"))
+      }
+    } catch (err) {
+      toast.error(err?.toString() ?? "Unable to list item")
     } finally {
       setLoading(false)
     }
@@ -96,10 +129,8 @@ export default ({ freeOnly = false }: OfferListProps) => {
 
   const loadMore = async () => {
     const nextPage = page + 1
-    const loaded = await loadOffers(nextPage, false)
-    if (loaded > 0) {
-      setPage(nextPage)
-    }
+    const loaded = await loadOffers(nextPage, false, { query: searchTerm })
+    if (loaded > 0) setPage(nextPage)
   }
 
   function buy(newOrder: NewOrder) {
@@ -142,14 +173,16 @@ export default ({ freeOnly = false }: OfferListProps) => {
     setOpenOrderForm(false)
   }
 
+  const visibleOffers = freeOnly ? offers.filter((offer) => offer.price === BigInt(0)) : offers
+
   return (
     <React.Fragment>
       <section className="reveal-up glass-panel rounded-3xl p-4 sm:p-5">
         <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>
-            <p className="text-xs font-bold uppercase tracking-[0.18em] text-orange-700">{freeOnly ? 'Free Item Menu' : 'Featured Catalog'}</p>
-            <h2 className="mt-1 text-2xl font-extrabold tracking-tight text-slate-900">{freeOnly ? 'Claim Free Items' : 'Explore Live Listings'}</h2>
-            <p className="mt-1 text-sm text-slate-600">{freeOnly ? 'Only zero-price listings. Claim in one click and complete delivery confirmation later.' : 'Browse items and services with escrow-first checkout protection.'}</p>
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-orange-700">{freeOnly ? 'Free Marketplace' : 'Marketplace'}</p>
+            <h2 className="mt-1 text-2xl font-extrabold tracking-tight text-slate-900">{freeOnly ? 'Claim Free Items' : 'Find an item or service'}</h2>
+            <p className="mt-1 text-sm text-slate-600">{freeOnly ? 'Browse zero-price listings and send a claim directly to the owner.' : 'Search the full marketplace, then let escrow guide the transaction.'}</p>
           </div>
 
           {isAuthed && (
@@ -158,14 +191,14 @@ export default ({ freeOnly = false }: OfferListProps) => {
                 onClick={() => setOpenListForm(true)}
                 className="btn-modern-primary commerce-gradient min-w-[170px] rounded-xl px-4 py-2.5 text-sm font-semibold text-white shadow-md"
               >
-                {freeOnly ? 'Give Away Item' : 'List Item'}
+                {freeOnly ? 'Give Something Away' : 'Create Listing'}
               </button>
               {!freeOnly && (
                 <button
                   onClick={() => setOpenOrderForm(true)}
                   className="btn-modern-secondary min-w-[170px] rounded-xl border border-teal-600/60 bg-white px-4 py-2.5 text-sm font-semibold text-teal-700 shadow-sm"
                 >
-                  Start Escrow Order
+                  Custom Escrow
                 </button>
               )}
             </div>
@@ -173,21 +206,31 @@ export default ({ freeOnly = false }: OfferListProps) => {
         </div>
       </section>
 
-      <ItemList items={freeOnly ? offers.filter(o => o.price === BigInt(0)) : offers} servicesById={servicesById} defaultFilter='all' freeOnly={freeOnly} />
+      <ItemList
+        items={visibleOffers}
+        servicesById={servicesById}
+        defaultFilter='all'
+        freeOnly={freeOnly}
+        searchTerm={searchTerm}
+        onSearchTermChange={setSearchTerm}
+        searching={searching}
+        remoteSearch
+      />
 
       {hasMore && (
         <div className="reveal-up reveal-delay-1 mt-4 flex items-center justify-center p-2">
           <button
             onClick={loadMore}
-            className="btn-modern-secondary rounded-xl border border-slate-300 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-orange-500 hover:text-orange-700"
+            disabled={searching}
+            className="btn-modern-secondary rounded-xl border border-slate-300 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-orange-500 hover:text-orange-700 disabled:opacity-50"
           >
-            Load More Listings
+            {searchTerm.trim() ? 'Load More Results' : 'Load More Listings'}
           </button>
         </div>
       )}
 
-      {!hasMore && offers.length > 0 && (
-        <p className="mt-4 text-center text-xs font-medium text-slate-500">You’ve reached the end of the current listings.</p>
+      {!hasMore && visibleOffers.length > 0 && (
+        <p className="mt-4 text-center text-xs font-medium text-slate-500">{searchTerm.trim() ? 'You’ve reached the end of these search results.' : 'You’ve reached the end of the current listings.'}</p>
       )}
 
       {openListForm && (
@@ -201,8 +244,8 @@ export default ({ freeOnly = false }: OfferListProps) => {
             >
               ×
             </button>
-            <h3 className="mb-1 text-lg font-bold text-slate-900">{freeOnly ? 'Give Away an Item' : 'Create a Listing'}</h3>
-            <p className="mb-4 text-sm text-slate-500">Add the essentials first. You can provide more detail when it helps buyers decide.</p>
+            <h3 className="mb-1 pr-10 text-lg font-bold text-slate-900">{freeOnly ? 'Give Something Away' : 'Create a Listing'}</h3>
+            <p className="mb-4 text-sm text-slate-500">Three short steps: describe it, set the terms, then review before publishing.</p>
             <ListItemForm submit={saveList} itype={LIST_ITEM_MERCHANDISE} freeOnly={freeOnly} />
           </div>
         </div>
@@ -219,8 +262,8 @@ export default ({ freeOnly = false }: OfferListProps) => {
             >
               ×
             </button>
-            <h3 className="mb-1 text-lg font-bold text-slate-900">New Escrow Contract</h3>
-            <p className="mb-4 text-sm text-slate-500">Create a direct escrow agreement with a buyer or seller.</p>
+            <h3 className="mb-1 pr-10 text-lg font-bold text-slate-900">New Escrow Contract</h3>
+            <p className="mb-4 text-sm text-slate-500">Choose the other party by profile instead of copying a Principal.</p>
             <OrderForm buy={buy} sell={sell} />
           </div>
         </div>
