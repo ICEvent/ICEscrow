@@ -8,7 +8,7 @@ import {
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
-import Store, { useGlobalContext } from "./components/Store";
+import Store from "./components/Store";
 import Header from './header';
 import { ProfilePage } from "./pages/Profile"
 import Item from "./pages/Item";
@@ -55,11 +55,6 @@ declare global {
   }
 }
 
-const RequireAuth = ({ children }: { children: React.ReactElement }) => {
-  const { state: { isAuthed } } = useGlobalContext();
-  return isAuthed ? children : <Navigate to="/market" replace />;
-};
-
 const AppRoutes = () => (
   <div className="fade-in relative min-h-screen w-full overflow-x-hidden px-4 pb-28 pt-24 sm:px-6 md:pb-14 lg:px-10">
     <div className="pointer-events-none absolute -left-24 top-16 h-72 w-72 rounded-full bg-orange-200/45 blur-3xl" />
@@ -76,30 +71,9 @@ const AppRoutes = () => (
         <Route path="/" element={<Navigate to="/market" replace />} />
         <Route path="/market" element={<OfferList />} />
         <Route path="/free" element={<OfferList freeOnly />} />
-        <Route
-          path="/orders"
-          element={(
-            <RequireAuth>
-              <OrderList />
-            </RequireAuth>
-          )}
-        />
-        <Route
-          path="/items"
-          element={(
-            <RequireAuth>
-              <MyItems />
-            </RequireAuth>
-          )}
-        />
-        <Route
-          path="/profile"
-          element={(
-            <RequireAuth>
-              <ProfilePage />
-            </RequireAuth>
-          )}
-        />
+        <Route path="/orders" element={<OrderList />} />
+        <Route path="/items" element={<MyItems />} />
+        <Route path="/profile" element={<ProfilePage />} />
         <Route path="/item/:id" element={<Item />} />
         <Route path="/userid/:userId" element={<UserItems />} />
         <Route path="/giveaway/:id" element={<GiveAwayPage />} />
