@@ -31,7 +31,13 @@ export default (props) => {
     const isFreeOrder = amount === 0;
     const amountLabel = isFreeOrder ? "FREE" : `${amount} (${currency})`;
     const isSeller = principal?.toString() === order.seller.toString();
-    const canCloseOrder = isSeller && (isFreeOrder || status === ORDER_STATUS_RELEASED);
+    const isTerminalOrder =
+        status === ORDER_STATUS_CLOSED ||
+        status === ORDER_STATUS_CANCELED ||
+        status === ORDER_STATUS_REFUNDED;
+    const canCloseOrder =
+        isSeller &&
+        ((isFreeOrder && !isTerminalOrder) || status === ORDER_STATUS_RELEASED);
     
     const activeStep = isFreeOrder ? 2 : (
         status == ORDER_STATUS_NEW ? 1 :
