@@ -971,18 +971,19 @@ persistent actor class EscrowService() = this {
 
     };
 
-    //buyer or seller
+    // Seller archives completed paid deals; free deals may be archived by the seller directly.
     public shared ({ caller }) func close(orderid : Nat) : async Result.Result<Nat, Text> {
         let order = Array.find<Order>(
             Iter.toArray(orders.vals()),
             func(o : Order) : Bool {
-                (o.id == orderid) and (o.buyer == caller or o.seller == caller)
+                (o.id == orderid) and (o.seller == caller)
             },
         );
 
         switch (order) {
             case (?order) {
-                let canCloseOrder = order.status != #closed and order.status != #canceled and order.status != #refunded;
+                let isFreeOrder = order.amount == 0;
+                let canCloseOrder = isFreeOrder or order.status == #released;
 
                 if (canCloseOrder) {
                     let log = {
@@ -1015,8 +1016,7 @@ persistent actor class EscrowService() = this {
                             logs = List.toArray(logs)
                         },
                     );
-                    let notifReceiver = if (caller == order.seller) { order.buyer } else { order.seller };
-                    ignore sendNotification(notifReceiver, "Escrow order #" # Nat.toText(orderid) # " has been closed", caller);
+                    ignore sendNotification(order.buyer, "Escrow order #" # Nat.toText(orderid) # " has been closed", caller);
                     #ok(1)
                 } else {
                     #err("wrong status or no permission")
