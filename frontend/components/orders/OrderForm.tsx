@@ -145,8 +145,8 @@ export default function OrderForm(props) {
                 <div className="mt-3 grid gap-2 text-xs sm:grid-cols-4">
                     <div className="rounded-lg bg-white px-3 py-2 text-center font-medium text-slate-700">1. Buyer funds escrow</div>
                     <div className="rounded-lg bg-white px-3 py-2 text-center font-medium text-slate-700">2. Seller delivers</div>
-                    <div className="rounded-lg bg-white px-3 py-2 text-center font-medium text-slate-700">3. Buyer confirms</div>
-                    <div className="rounded-lg bg-white px-3 py-2 text-center font-medium text-slate-700">4. Seller receives funds</div>
+                    <div className="rounded-lg bg-white px-3 py-2 text-center font-medium text-slate-700">3. Buyer confirms receipt</div>
+                    <div className="rounded-lg bg-white px-3 py-2 text-center font-medium text-slate-700">4. Seller receives payment</div>
                 </div>
             </div>
 
@@ -219,7 +219,7 @@ export default function OrderForm(props) {
 
                 <div className="sm:col-span-12 rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs text-slate-600">
                     <span className="font-semibold text-slate-800">You are the {state.yourside}.</span>{' '}
-                    Vansday will create the order now and guide both participants through each required action in Orders.
+                    Vansday will create the deal and guide both people through each required step in My Deals.
                 </div>
 
                 <div className="sm:col-span-12">
