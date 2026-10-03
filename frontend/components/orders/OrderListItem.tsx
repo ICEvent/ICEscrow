@@ -94,6 +94,28 @@ export default (props) => {
         }
     }
 
+    async function cancelDeal() {
+        setBusy(true);
+        try {
+            const res = await escrow.cancel(props.order.id);
+            if (res['ok'] !== undefined) {
+                const refreshed = await escrow.getOrder(props.order.id);
+                const current = refreshed?.[0];
+                const nextStatus = current ? Object.getOwnPropertyNames(current.status)[0] : ORDER_STATUS_CANCELED;
+                setStatus(nextStatus);
+                setConfirmed(false);
+                props.onStatusChange?.(props.order.id, nextStatus);
+                toast.success(nextStatus === 'refunded' ? 'Deal canceled and payment refunded' : 'Deal canceled');
+            } else {
+                toast.error(res['err'] ?? 'Action failed');
+            }
+        } catch {
+            toast.error('Action failed');
+        } finally {
+            setBusy(false);
+        }
+    }
+
     async function submitComment() {
         const text = commentText.trim();
         if (!text) return;
@@ -221,7 +243,7 @@ export default (props) => {
                                 className="rounded-md bg-cyan-600 px-3 py-1.5 text-sm font-semibold text-white transition hover:bg-cyan-700 disabled:cursor-not-allowed disabled:bg-slate-300">Receive Payment</button>
                         )}
                         {!isFreeOrder && status === ORDER_STATUS_NEW && isLockHolder && (
-                            <button disabled={busy} onClick={() => act(() => escrow.cancel(props.order.id), ORDER_STATUS_CANCELED)}
+                            <button disabled={busy} onClick={cancelDeal}
                                 className="rounded-md border border-rose-400 px-3 py-1.5 text-sm font-semibold text-rose-600 transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-50">Cancel Deal</button>
                         )}
                         {isSeller && (isFreeOrder || status === ORDER_STATUS_RELEASED) && (
