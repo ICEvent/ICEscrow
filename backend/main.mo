@@ -1152,7 +1152,8 @@ persistent actor class EscrowService() = this {
         switch (order) {
             case (?order) {
                 if (
-                    order.seller == caller or order.buyer == caller and (order.status == #new or order.status == #canceled)
+                    order.seller == caller or
+                    (order.buyer == caller and (order.status == #new or order.status == #canceled))
                 ) {
 
                     var balance : Nat64 = 0;
@@ -1196,7 +1197,29 @@ persistent actor class EscrowService() = this {
                                 logger = logger
                             };
 
-                            writeLog(order, log);
+                            var logs : List.List<Log> = List.fromArray(order.logs);
+                            logs := List.push(log, logs);
+                            orders.put(
+                                orderid,
+                                {
+                                    id = order.id;
+                                    buyer = order.buyer;
+                                    seller = order.seller;
+                                    memo = order.memo;
+                                    amount = order.amount;
+                                    currency = order.currency;
+                                    account = order.account;
+                                    blockin = order.blockin;
+                                    blockout = order.blockout;
+                                    createtime = order.createtime;
+                                    expiration = order.expiration;
+                                    lockedby = getPrincipal();
+                                    status = #refunded;
+                                    updatetime = Time.now();
+                                    comments = order.comments;
+                                    logs = List.toArray(logs)
+                                },
+                            );
 
                             ignore sendNotification(order.buyer, "Escrow order #" # Nat.toText(orderid) # " has been refunded", caller);
                             #ok(1)
