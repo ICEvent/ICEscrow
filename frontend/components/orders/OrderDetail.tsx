@@ -150,17 +150,24 @@ export default (props) => {
         })
     };
 
-    const cancelOrder = () => {
+    const cancelOrder = async () => {
         setLoading(true);
-        escrow.cancel(order.id).then(res => {
+        try {
+            const res = await escrow.cancel(order.id);
             if (res["ok"]) {
-                toast.success("Deal canceled");
-                setStatus(ORDER_STATUS_CANCELED)
+                const refreshed = await escrow.getOrder(order.id);
+                const current = refreshed?.[0];
+                const nextStatus = current ? Object.getOwnPropertyNames(current.status)[0] : ORDER_STATUS_CANCELED;
+                setStatus(nextStatus);
+                toast.success(nextStatus === ORDER_STATUS_REFUNDED ? "Deal canceled and payment refunded" : "Deal canceled");
             } else {
                 toast.error(res["err"])
             }
+        } catch (error) {
+            toast.error(error?.toString() ?? "Failed to cancel deal")
+        } finally {
             setLoading(false);
-        })
+        }
     };  
 
     const closeOrder = () => {
