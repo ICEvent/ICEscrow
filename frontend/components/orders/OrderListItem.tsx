@@ -115,6 +115,28 @@ export default (props) => {
     }
 
     const statusColor = STATUS_COLORS[status] ?? 'bg-slate-100 text-slate-600 border-slate-300';
+    const statusLabel = (() => {
+        if (status === ORDER_STATUS_NEW) return isBuyer ? 'Payment required' : 'Waiting for payment';
+        if (status === ORDER_STATUS_DEPOSITED) return 'Payment protected';
+        if (status === ORDER_STATUS_DELIVERED) return isBuyer ? 'Confirm receipt' : 'Waiting for confirmation';
+        if (status === ORDER_STATUS_RECEIVED) return isSeller ? 'Ready for payout' : 'Receipt confirmed';
+        if (status === ORDER_STATUS_RELEASED) return 'Payment completed';
+        if (status === ORDER_STATUS_CLOSED) return 'Completed';
+        if (status === ORDER_STATUS_CANCELED) return 'Canceled';
+        if (status === 'refunded') return 'Refunded';
+        return status;
+    })();
+    const paymentLabel = (() => {
+        if (isFreeOrder) return 'No payment required';
+        if (status === ORDER_STATUS_NEW) return 'Payment not protected yet';
+        if (status === ORDER_STATUS_DEPOSITED || status === ORDER_STATUS_DELIVERED || status === ORDER_STATUS_RECEIVED) {
+            return 'Payment protected in escrow';
+        }
+        if (status === ORDER_STATUS_RELEASED || status === ORDER_STATUS_CLOSED) return 'Payment completed';
+        if (status === 'refunded') return 'Payment refunded';
+        if (status === ORDER_STATUS_CANCELED) return 'Deal canceled';
+        return 'Payment status unavailable';
+    })();
 
     return (
         <>
@@ -130,7 +152,7 @@ export default (props) => {
                                 #{parseInt(props.order.id)}
                             </button>
                             <span className={`rounded-full border px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide ${statusColor}`}>
-                                {status}
+                                {statusLabel}
                             </span>
                             {needsAction && (
                                 <span className="rounded-full bg-orange-500 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">
@@ -145,20 +167,25 @@ export default (props) => {
                     </span>
                 </div>
 
-                <p className="mb-3 text-xs text-slate-500">
-                    {isBuyer ? 'You are buyer' : isSeller ? 'You are seller' : 'Participant'} · {moment.unix(parseInt(props.order.createtime) / 1_000_000_000).format('YYYY-MM-DD HH:mm')}
-                </p>
+                <div className="mb-3 flex flex-wrap items-center gap-2 text-xs">
+                    <span className="text-slate-500">
+                        {isBuyer ? 'You are buying' : isSeller ? 'You are selling' : 'Participant'} · {moment.unix(parseInt(props.order.createtime) / 1_000_000_000).format('YYYY-MM-DD HH:mm')}
+                    </span>
+                    <span className="rounded-full border border-slate-200 bg-slate-50 px-2 py-1 font-semibold text-slate-700">
+                        {paymentLabel}
+                    </span>
+                </div>
 
                 {!isFreeOrder && !isTerminal && (() => {
-                    if (status === ORDER_STATUS_NEW && isBuyer) return <p className="mb-2 rounded-md border border-sky-200 bg-sky-50 px-3 py-2 text-xs text-sky-800">Next: deposit {amount} {currency} into escrow to fund this order.</p>;
-                    if (status === ORDER_STATUS_NEW && isSeller) return <p className="mb-2 rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-700">Waiting for the buyer to fund escrow.</p>;
-                    if (status === ORDER_STATUS_DEPOSITED && isSeller) return <p className="mb-2 rounded-md border border-sky-200 bg-sky-50 px-3 py-2 text-xs text-sky-800">Next: deliver “{props.order.memo}”, then confirm delivery here.</p>;
-                    if (status === ORDER_STATUS_DEPOSITED && isBuyer) return <p className="mb-2 rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-700">Escrow is funded. Waiting for the seller to deliver.</p>;
-                    if (status === ORDER_STATUS_DELIVERED && isBuyer) return <p className="mb-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">Next: confirm receipt only after you have received the item or service.</p>;
+                    if (status === ORDER_STATUS_NEW && isBuyer) return <p className="mb-2 rounded-md border border-sky-200 bg-sky-50 px-3 py-2 text-xs text-sky-800">Protect your payment: deposit {amount} {currency} into escrow.</p>;
+                    if (status === ORDER_STATUS_NEW && isSeller) return <p className="mb-2 rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-700">Waiting for the buyer to protect the payment.</p>;
+                    if (status === ORDER_STATUS_DEPOSITED && isSeller) return <p className="mb-2 rounded-md border border-sky-200 bg-sky-50 px-3 py-2 text-xs text-sky-800">Payment is protected. Deliver “{props.order.memo}”, then confirm delivery here.</p>;
+                    if (status === ORDER_STATUS_DEPOSITED && isBuyer) return <p className="mb-2 rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-700">Payment is protected. Waiting for the seller to deliver.</p>;
+                    if (status === ORDER_STATUS_DELIVERED && isBuyer) return <p className="mb-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">Confirm receipt only after you have received the item or service.</p>;
                     if (status === ORDER_STATUS_DELIVERED && isSeller) return <p className="mb-2 rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-700">Waiting for the buyer to confirm receipt.</p>;
-                    if (status === ORDER_STATUS_RECEIVED && isSeller) return <p className="mb-2 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-800">Buyer confirmed receipt. You can now request release of the escrowed funds.</p>;
-                    if (status === ORDER_STATUS_RECEIVED && isBuyer) return <p className="mb-2 rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-700">Receipt confirmed. Waiting for the seller to request payout.</p>;
-                    if (status === ORDER_STATUS_RELEASED) return <p className="mb-2 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-800">Funds released. The financial flow is complete; closing this order is optional archival cleanup.</p>;
+                    if (status === ORDER_STATUS_RECEIVED && isSeller) return <p className="mb-2 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-800">Buyer confirmed receipt. Your payment is ready to be transferred. Vansday will verify the transfer on-chain.</p>;
+                    if (status === ORDER_STATUS_RECEIVED && isBuyer) return <p className="mb-2 rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-700">Receipt confirmed. The seller can now start payout.</p>;
+                    if (status === ORDER_STATUS_RELEASED) return <p className="mb-2 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-800">Payment completed and verified on-chain.</p>;
                     return null;
                 })()}
 
