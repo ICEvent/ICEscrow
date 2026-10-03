@@ -36,15 +36,9 @@ export default () => {
 
     const STATUS_FILTERS = [
         { label: 'Needs You', value: 'action' },
+        { label: 'Waiting', value: 'waiting' },
+        { label: 'Completed', value: 'complete' },
         { label: 'All', value: 'all' },
-        { label: 'New', value: ORDER_STATUS_NEW },
-        { label: 'Deposited', value: ORDER_STATUS_DEPOSITED },
-        { label: 'Delivered', value: ORDER_STATUS_DELIVERED },
-        { label: 'Received', value: ORDER_STATUS_RECEIVED },
-        { label: 'Released', value: ORDER_STATUS_RELEASED },
-        { label: 'Closed', value: ORDER_STATUS_CLOSED },
-        { label: 'Canceled', value: ORDER_STATUS_CANCELED },
-        { label: 'Refunded', value: ORDER_STATUS_REFUNDED },
     ];
 
     const getStatus = React.useCallback((order: any) => Object.getOwnPropertyNames(order.status)[0], []);
@@ -168,7 +162,7 @@ export default () => {
         try {
             const res = await escrow.buy(newOrder);
             if (res['ok'] !== undefined) {
-                toast.success('Order created. Next action is shown below.');
+                toast.success('Deal created. Your next step is shown below.');
                 setOpenOrderForm(false);
                 setStatusFilter('action');
                 await loadProcessingOrders();
@@ -187,7 +181,7 @@ export default () => {
         try {
             const res = await escrow.sell(newOrder);
             if (res['ok'] !== undefined) {
-                toast.success('Order created. Next action is shown below.');
+                toast.success('Deal created. Your next step is shown below.');
                 setOpenOrderForm(false);
                 setStatusFilter('action');
                 await loadProcessingOrders();
@@ -204,9 +198,9 @@ export default () => {
     if (!principal) {
         return (
             <section className="mx-auto mt-8 max-w-2xl rounded-3xl border border-white/60 bg-white/85 p-6 text-center shadow-lg backdrop-blur">
-                <p className="text-xs font-bold uppercase tracking-[0.18em] text-orange-700">Order Action Center</p>
-                <h1 className="mt-2 text-2xl font-extrabold tracking-tight text-slate-900">Sign in to manage your escrow activity</h1>
-                <p className="mt-2 text-sm leading-6 text-slate-600">Your active orders, required actions, and free-item claims will appear here after your identity session is restored.</p>
+                <p className="text-xs font-bold uppercase tracking-[0.18em] text-orange-700">My Deals</p>
+                <h1 className="mt-2 text-2xl font-extrabold tracking-tight text-slate-900">Sign in to manage your protected deals</h1>
+                <p className="mt-2 text-sm leading-6 text-slate-600">See what needs you, what is waiting on the other person, and where each payment stands.</p>
             </section>
         );
     }
@@ -309,9 +303,9 @@ export default () => {
             <section className="mb-4 mt-1 rounded-3xl border border-white/50 bg-white/80 p-4 shadow-sm backdrop-blur sm:p-5">
                 <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
                     <div>
-                        <p className="text-xs font-bold uppercase tracking-[0.18em] text-orange-700">Order Action Center</p>
+                        <p className="text-xs font-bold uppercase tracking-[0.18em] text-orange-700">My Deals</p>
                         <h1 className="mt-1 text-2xl font-extrabold tracking-tight text-slate-900">What needs your attention</h1>
-                        <p className="mt-1 text-sm text-slate-600">Vansday puts the next required action first and keeps protocol status in the background.</p>
+                        <p className="mt-1 text-sm text-slate-600">See your next step, what the other person is doing, and whether payment is protected.</p>
                     </div>
                     <div className="flex flex-wrap gap-2">
                         <button
@@ -340,7 +334,7 @@ export default () => {
                     >
                         <p className="text-xs font-semibold uppercase tracking-wide text-orange-700">Needs you</p>
                         <p className="mt-1 text-2xl font-extrabold text-slate-900">{needsActionCount}</p>
-                        <p className="mt-1 text-xs text-slate-500">Orders requiring your next action</p>
+                        <p className="mt-1 text-xs text-slate-500">Deals that need your next action</p>
                     </button>
                     <button
                         type="button"
@@ -349,7 +343,7 @@ export default () => {
                     >
                         <p className="text-xs font-semibold uppercase tracking-wide text-teal-700">Waiting</p>
                         <p className="mt-1 text-2xl font-extrabold text-slate-900">{waitingOrderCount}</p>
-                        <p className="mt-1 text-xs text-slate-500">Open orders waiting on the other party</p>
+                        <p className="mt-1 text-xs text-slate-500">Deals waiting on the other person</p>
                     </button>
                     <button
                         type="button"
@@ -358,7 +352,7 @@ export default () => {
                     >
                         <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Complete</p>
                         <p className="mt-1 text-2xl font-extrabold text-slate-900">{completeOrderCount}</p>
-                        <p className="mt-1 text-xs text-slate-500">Released, closed, canceled, or refunded orders</p>
+                        <p className="mt-1 text-xs text-slate-500">Finished, canceled, or refunded deals</p>
                     </button>
                 </div>
 
@@ -398,13 +392,13 @@ export default () => {
                         {statusFilter === 'action'
                             ? 'Nothing needs your action right now.'
                             : statusFilter === 'waiting'
-                                ? 'No orders are waiting on the other party.'
-                                : 'No orders match this filter.'}
+                                ? 'No deals are waiting on the other person.'
+                                : 'No deals match this filter.'}
                     </p>
                     <p className="mt-1 text-xs text-slate-500">
                         {statusFilter === 'action'
-                            ? 'You’re caught up. Waiting and completed orders are available from the summary above.'
-                            : 'Try another status or load older orders.'}
+                            ? 'You’re caught up. Waiting and completed deals are available above.'
+                            : 'Try another view or load older deals.'}
                     </p>
                 </div>
             )}
@@ -430,7 +424,7 @@ export default () => {
             )}
 
             <ClaimsSection
-                title="My Free Item Claims"
+                title="Free Items I Requested"
                 accentClass="text-emerald-700"
                 claims={buyerClaims}
                 role="buyer"
@@ -438,7 +432,7 @@ export default () => {
             />
 
             <ClaimsSection
-                title="Incoming Claims on My Items"
+                title="Requests for My Free Items"
                 accentClass="text-blue-700"
                 claims={sellerClaims}
                 role="seller"
@@ -456,8 +450,8 @@ export default () => {
                         >
                             ×
                         </button>
-                        <h3 className="mb-1 text-lg font-semibold text-slate-900">New Escrow Contract</h3>
-                        <p className="mb-4 text-sm text-slate-500">Create the agreement, then Vansday will guide each participant through the next action.</p>
+                        <h3 className="mb-1 text-lg font-semibold text-slate-900">New Protected Deal</h3>
+                        <p className="mb-4 text-sm text-slate-500">Create the agreement, then Vansday will guide both people through payment protection, delivery, and completion.</p>
                         <OrderForm buy={buy} sell={sell} />
                     </div>
                 </div>
