@@ -125,12 +125,8 @@ const Header: FC = () => {
             </button>
             {isAuthed && (
               <>
-                <button type="button" onClick={openOrders} className={desktopTabClass('/orders')}>
-                  Orders
-                </button>
-                <button type="button" onClick={openMyItems} className={desktopTabClass('/items')}>
-                  My Items
-                </button>
+                <button type="button" onClick={openOrders} className={desktopTabClass('/orders')}>My Deals</button>
+                <button type="button" onClick={openMyItems} className={desktopTabClass('/items')}>My Listings</button>
                 <button type="button" onClick={openProfile} className={desktopTabClass('/profile')}>
                   Profile
                 </button>
@@ -169,16 +165,12 @@ const Header: FC = () => {
                 type="button"
                 onClick={openOrders}
                 className="block w-full rounded-xl px-3 py-2 text-left text-sm font-semibold text-slate-700 transition hover:bg-slate-100"
-              >
-                Orders
-              </button>
+              >My Deals</button>
               <button
                 type="button"
                 onClick={openMyItems}
                 className="block w-full rounded-xl px-3 py-2 text-left text-sm font-semibold text-slate-700 transition hover:bg-slate-100"
-              >
-                My Items
-              </button>
+              >My Listings</button>
               <button
                 type="button"
                 onClick={logout}
@@ -206,13 +198,9 @@ const Header: FC = () => {
         {isAuthed && (
           <>
             <button type="button" onClick={openOrders} className={mobileTabClass('/orders')}>
-              <span className="mb-1 text-sm" aria-hidden="true">↔</span>
-              Orders
-            </button>
+              <span className="mb-1 text-sm" aria-hidden="true">↔</span>My Deals</button>
             <button type="button" onClick={openMyItems} className={mobileTabClass('/items')}>
-              <span className="mb-1 text-sm" aria-hidden="true">□</span>
-              Items
-            </button>
+              <span className="mb-1 text-sm" aria-hidden="true">□</span>Listings</button>
             <button type="button" onClick={openProfile} className={mobileTabClass('/profile')}>
               <span className="mb-1 text-sm" aria-hidden="true">●</span>
               Me
