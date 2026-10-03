@@ -194,11 +194,11 @@ export default (props) => {
                     <>
                         <div className="grid grid-cols-2 gap-2 text-xs sm:grid-cols-5">
                             {[
-                                { label: 'New', step: 1 },
-                                { label: 'Deposited', step: 2 },
+                                { label: 'Agreement', step: 1 },
+                                { label: 'Protected', step: 2 },
                                 { label: 'Delivered', step: 3 },
                                 { label: 'Received', step: 4 },
-                                { label: 'Close', step: 5 },
+                                { label: 'Complete', step: 5 },
                             ].map((s) => (
                                 <div
                                     key={s.step}
@@ -215,12 +215,12 @@ export default (props) => {
             <div className="space-y-2">
                 {!isFreeOrder && (
                     <>
-                        {status == ORDER_STATUS_NEW && principal.toString() == order.buyer.toString() && <div className="rounded-md border border-sky-200 bg-sky-50 px-3 py-2 text-sm text-sky-800">Before change the order status, make sure you already deposit [{amount} {currency}] to the escrow account {order.account.id}</div>}
-                        {status == ORDER_STATUS_NEW && principal.toString() == order.seller.toString() && <div className="rounded-md border border-sky-200 bg-sky-50 px-3 py-2 text-sm text-sky-800">Please wait for buyer to deposit fund [{amount} {currency}] to escrow account, or you can cancel it</div>}
-                        {status == ORDER_STATUS_DEPOSITED && principal.toString() == order.seller.toString() && <div className="rounded-md border border-sky-200 bg-sky-50 px-3 py-2 text-sm text-sky-800">Have you deliver {order.memo} to buyer?</div>}
-                        {status == ORDER_STATUS_DEPOSITED && principal.toString() == order.buyer.toString() && <div className="rounded-md border border-sky-200 bg-sky-50 px-3 py-2 text-sm text-sky-800">Before the following steps, please wait for seller to deliver {order.memo} to you.</div>}
-                        {status == ORDER_STATUS_DELIVERED && principal.toString() == order.buyer.toString() && <div className="rounded-md border border-sky-200 bg-sky-50 px-3 py-2 text-sm text-sky-800">Are you sure you receive {order.memo} from seller? Once you change order status, the fund will be released to seller and can't be refunded.</div>}
-                        {status == ORDER_STATUS_RECEIVED && principal.toString() == order.seller.toString() && <div className="rounded-md border border-sky-200 bg-sky-50 px-3 py-2 text-sm text-sky-800">Now you can request to fund release, note: transaction fee will be applied.</div>}
+                        {status == ORDER_STATUS_NEW && principal.toString() == order.buyer.toString() && <div className="rounded-md border border-sky-200 bg-sky-50 px-3 py-2 text-sm text-sky-800">Protect this deal by depositing [{amount} {currency}] into the escrow account {order.account.id}.</div>}
+                        {status == ORDER_STATUS_NEW && principal.toString() == order.seller.toString() && <div className="rounded-md border border-sky-200 bg-sky-50 px-3 py-2 text-sm text-sky-800">Waiting for the buyer to protect the payment [{amount} {currency}] in escrow. You can still cancel before payment is protected.</div>}
+                        {status == ORDER_STATUS_DEPOSITED && principal.toString() == order.seller.toString() && <div className="rounded-md border border-sky-200 bg-sky-50 px-3 py-2 text-sm text-sky-800">Payment is protected. Confirm after you have delivered {order.memo} to the buyer.</div>}
+                        {status == ORDER_STATUS_DEPOSITED && principal.toString() == order.buyer.toString() && <div className="rounded-md border border-sky-200 bg-sky-50 px-3 py-2 text-sm text-sky-800">Payment is protected. Waiting for the seller to deliver {order.memo}.</div>}
+                        {status == ORDER_STATUS_DELIVERED && principal.toString() == order.buyer.toString() && <div className="rounded-md border border-sky-200 bg-sky-50 px-3 py-2 text-sm text-sky-800">Confirm only after you have received {order.memo}. This allows the seller to start payout; the transfer is verified separately on-chain.</div>}
+                        {status == ORDER_STATUS_RECEIVED && principal.toString() == order.seller.toString() && <div className="rounded-md border border-sky-200 bg-sky-50 px-3 py-2 text-sm text-sky-800">The buyer confirmed receipt. You can now receive payment. Vansday will submit the transfer and verify it on-chain; transaction fees may apply.</div>}
 
                         {(status == ORDER_STATUS_NEW ||
                             status == ORDER_STATUS_DEPOSITED && principal.toString() == order.seller.toString() ||
@@ -236,16 +236,16 @@ export default (props) => {
                 <div className="flex flex-wrap gap-2">
                     {!isFreeOrder && (
                         <>
-                            {status == ORDER_STATUS_NEW && principal.toString() == order.buyer.toString() && <button type="button" disabled={!confirmed} onClick={deposit} className="rounded-md bg-cyan-600 px-3 py-2 text-sm font-semibold text-white transition hover:bg-cyan-700 disabled:cursor-not-allowed disabled:bg-slate-300">Deposit</button>}
-                            {status == ORDER_STATUS_DEPOSITED && principal.toString() == order.seller.toString() && <button type="button" disabled={!confirmed} onClick={deliver} className="rounded-md bg-cyan-600 px-3 py-2 text-sm font-semibold text-white transition hover:bg-cyan-700 disabled:cursor-not-allowed disabled:bg-slate-300">Deliver</button>}
-                            {status == ORDER_STATUS_DELIVERED && principal.toString() == order.buyer.toString() && <button type="button" disabled={!confirmed} onClick={receive} className="rounded-md bg-cyan-600 px-3 py-2 text-sm font-semibold text-white transition hover:bg-cyan-700 disabled:cursor-not-allowed disabled:bg-slate-300">Receive</button>}
+                            {status == ORDER_STATUS_NEW && principal.toString() == order.buyer.toString() && <button type="button" disabled={!confirmed} onClick={deposit} className="rounded-md bg-cyan-600 px-3 py-2 text-sm font-semibold text-white transition hover:bg-cyan-700 disabled:cursor-not-allowed disabled:bg-slate-300">Protect Payment</button>}
+                            {status == ORDER_STATUS_DEPOSITED && principal.toString() == order.seller.toString() && <button type="button" disabled={!confirmed} onClick={deliver} className="rounded-md bg-cyan-600 px-3 py-2 text-sm font-semibold text-white transition hover:bg-cyan-700 disabled:cursor-not-allowed disabled:bg-slate-300">Confirm Delivery</button>}
+                            {status == ORDER_STATUS_DELIVERED && principal.toString() == order.buyer.toString() && <button type="button" disabled={!confirmed} onClick={receive} className="rounded-md bg-cyan-600 px-3 py-2 text-sm font-semibold text-white transition hover:bg-cyan-700 disabled:cursor-not-allowed disabled:bg-slate-300">Confirm Receipt</button>}
                             {status == ORDER_STATUS_CANCELED && principal.toString() == order.buyer.toString() && <button type="button" className="rounded-md bg-cyan-600 px-3 py-2 text-sm font-semibold text-white">Request to refund</button>}
-                            {status == ORDER_STATUS_RECEIVED && principal.toString() == order.seller.toString() && <button type="button" onClick={release} className="rounded-md bg-cyan-600 px-3 py-2 text-sm font-semibold text-white transition hover:bg-cyan-700">Request to release fund</button>}
+                            {status == ORDER_STATUS_RECEIVED && principal.toString() == order.seller.toString() && <button type="button" onClick={release} className="rounded-md bg-cyan-600 px-3 py-2 text-sm font-semibold text-white transition hover:bg-cyan-700">Receive Payment</button>}
                             {status == ORDER_STATUS_NEW && <button type="button" disabled={!confirmed} onClick={cancelOrder} className="rounded-md border border-rose-500 px-3 py-2 text-sm font-semibold text-rose-600 transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-50">Cancel</button>}
                         </>
                     )}
 
-                    {canCloseOrder && <button type="button" onClick={closeOrder} className="rounded-md border border-slate-500 px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">Close Order</button>}
+                    {canCloseOrder && <button type="button" onClick={closeOrder} className="rounded-md border border-slate-500 px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">Archive Deal</button>}
 
                     <CommentButton id={order.id} reload={loadOrder}/>
                 </div>
