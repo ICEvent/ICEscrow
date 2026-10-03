@@ -1045,7 +1045,6 @@ persistent actor class EscrowService() = this {
 
     //buyer submit cancel request if status is #deposited
     public shared ({ caller }) func cancel(orderid : Nat) : async Result.Result<Nat, Text> {
-
         switch (orders.get(orderid)) {
             case (?order) {
                 let canCancel =
@@ -1056,15 +1055,16 @@ persistent actor class EscrowService() = this {
                     return #err("no cancel allowed")
                 };
 
-                // Commit the terminal cancellation before any ledger await so a
-                // concurrent deposit cannot later overwrite this deal as deposited.
-                let log = {
+                // Commit cancellation before any ledger await so concurrent deposit
+                // confirmation cannot later overwrite the deal with #deposited.
+                let cancelLog = {
                     ltime = Time.now();
                     log = "cancel order";
                     logger = if (order.seller == caller) { #seller } else { #buyer }
                 };
-                var logs : List.List<Log> = List.fromArray(order.logs);
-                logs := List.push(log, logs);
+                var cancelLogs : List.List<Log> = List.fromArray(order.logs);
+                cancelLogs := List.push(cancelLog, cancelLogs);
+
                 orders.put(
                     orderid,
                     {
@@ -1083,37 +1083,37 @@ persistent actor class EscrowService() = this {
                         status = #canceled;
                         updatetime = Time.now();
                         comments = order.comments;
-                        logs = List.toArray(logs)
+                        logs = List.toArray(cancelLogs)
                     },
                 );
 
                 let notifReceiver = if (caller == order.seller) { order.buyer } else { order.seller };
-                ignore sendNotification(notifReceiver, "Escrow order #" # Nat.toText(orderid) # " has been canceled", caller);
+                ignore sendNotification(
+                    notifReceiver,
+                    "Escrow order #" # Nat.toText(orderid) # " has been canceled",
+                    caller
+                );
 
-                // Best-effort immediate refund. Any ledger rejection after the
-                // cancellation commit must not turn a successful cancellation into a failed call.
+                // Immediate refund is best-effort. Cancellation is already committed;
+                // any rejection leaves the deal recoverable through repeatable refund().
                 try {
-                    // Best-effort immediate refund. If no funds are visible yet, or the
-                    // transfer fails, the canceled deal remains recoverable through refund().
                     var balance : Nat64 = 0;
                     let bb = await getBalanceBySub(order.account.index, order.currency);
                     switch (bb) {
                         case (#e8s(a)) { balance := a };
                         case (#e6s(a)) { balance := a };
                     };
-    
+
                     if (balance == 0) {
                         return #ok(1)
                     };
-    
+
                     switch (payoutAmount(balance, order.currency)) {
                         case (#ok(value)) { balance := value };
-                        case (#err(_)) {
-                            return #ok(1)
-                        }
+                        case (#err(_)) { return #ok(1) };
                     };
-    
-                    let r = await transfer({
+
+                    let transferResult = await transfer({
                         memo = 1;
                         from = order.account.index;
                         to = Account.getAccountTextId(order.buyer, 0);
@@ -1121,8 +1121,8 @@ persistent actor class EscrowService() = this {
                         amount = balance;
                         currency = order.currency
                     });
-    
-                    switch (r) {
+
+                    switch (transferResult) {
                         case (#ok(_block)) {
                             switch (orders.get(orderid)) {
                                 case (?current) {
@@ -1134,6 +1134,7 @@ persistent actor class EscrowService() = this {
                                         };
                                         var refundLogs : List.List<Log> = List.fromArray(current.logs);
                                         refundLogs := List.push(refundLog, refundLogs);
+
                                         orders.put(
                                             orderid,
                                             {
@@ -1155,7 +1156,11 @@ persistent actor class EscrowService() = this {
                                                 logs = List.toArray(refundLogs)
                                             },
                                         );
-                                        ignore sendNotification(current.buyer, "Escrow order #" # Nat.toText(orderid) # " has been refunded", caller);
+                                        ignore sendNotification(
+                                            current.buyer,
+                                            "Escrow order #" # Nat.toText(orderid) # " has been refunded",
+                                            caller
+                                        );
                                     }
                                 };
                                 case null {};
@@ -1163,13 +1168,12 @@ persistent actor class EscrowService() = this {
                             #ok(1)
                         };
                         case (#err(_)) {
-                            // Keep #canceled so either participant can retry refund later.
                             #ok(1)
-                        }
-    
+                        };
+                    }
                 } catch (_) {
                     #ok(1)
-                }                }
+                }
             };
             case null {
                 #err("no order found")
