@@ -49,6 +49,7 @@ export default (props) => {
     const isFreeOrder = amount === 0;
     const isBuyer = principal?.toString() === props.order.buyer.toString();
     const isSeller = principal?.toString() === props.order.seller.toString();
+    const isLockHolder = principal?.toString() === props.order.lockedby?.toString();
     const isTerminal = status === ORDER_STATUS_CLOSED || status === ORDER_STATUS_CANCELED || status === 'refunded';
 
     const needsConfirm =
@@ -219,7 +220,7 @@ export default (props) => {
                             <button disabled={busy} onClick={() => act(() => escrow.release(props.order.id), ORDER_STATUS_RELEASED)}
                                 className="rounded-md bg-cyan-600 px-3 py-1.5 text-sm font-semibold text-white transition hover:bg-cyan-700 disabled:cursor-not-allowed disabled:bg-slate-300">Receive Payment</button>
                         )}
-                        {!isFreeOrder && status === ORDER_STATUS_NEW && (
+                        {!isFreeOrder && status === ORDER_STATUS_NEW && isLockHolder && (
                             <button disabled={busy} onClick={() => act(() => escrow.cancel(props.order.id), ORDER_STATUS_CANCELED)}
                                 className="rounded-md border border-rose-400 px-3 py-1.5 text-sm font-semibold text-rose-600 transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-50">Cancel Deal</button>
                         )}
