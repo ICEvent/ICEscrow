@@ -137,6 +137,19 @@ export default (props) => {
             setLoading(false);
         })
     };
+    const refundOrder = () => {
+        setLoading(true);
+        escrow.refund(order.id).then(res => {
+            if (res["ok"]) {
+                toast.success("Refund sent to buyer");
+                setStatus(ORDER_STATUS_REFUNDED)
+            } else {
+                toast.error(res["err"])
+            }
+            setLoading(false);
+        })
+    };
+
     const cancelOrder = () => {
         setLoading(true);
         escrow.cancel(order.id).then(res => {
@@ -230,7 +243,7 @@ export default (props) => {
                         {status == ORDER_STATUS_DELIVERED && principal.toString() == order.buyer.toString() && <div className="rounded-md border border-sky-200 bg-sky-50 px-3 py-2 text-sm text-sky-800">Confirm only after you have received {order.memo}. This allows the seller to start payout; the transfer is verified separately on-chain.</div>}
                         {status == ORDER_STATUS_RECEIVED && principal.toString() == order.seller.toString() && <div className="rounded-md border border-sky-200 bg-sky-50 px-3 py-2 text-sm text-sky-800">The buyer confirmed receipt. You can now receive payment. Vansday will submit the transfer and verify it on-chain; transaction fees may apply.</div>}
 
-                        {((status == ORDER_STATUS_NEW && isLockHolder) ||
+                        {((status == ORDER_STATUS_NEW && principal.toString() == order.buyer.toString()) ||
                             status == ORDER_STATUS_DEPOSITED && principal.toString() == order.seller.toString() ||
                             status == ORDER_STATUS_DELIVERED && principal.toString() == order.buyer.toString()) && (
                             <label className="inline-flex items-center gap-2 text-sm text-slate-700">
@@ -247,7 +260,7 @@ export default (props) => {
                             {status == ORDER_STATUS_NEW && principal.toString() == order.buyer.toString() && <button type="button" disabled={!confirmed} onClick={deposit} className="rounded-md bg-cyan-600 px-3 py-2 text-sm font-semibold text-white transition hover:bg-cyan-700 disabled:cursor-not-allowed disabled:bg-slate-300">Protect Payment</button>}
                             {status == ORDER_STATUS_DEPOSITED && principal.toString() == order.seller.toString() && <button type="button" disabled={!confirmed} onClick={deliver} className="rounded-md bg-cyan-600 px-3 py-2 text-sm font-semibold text-white transition hover:bg-cyan-700 disabled:cursor-not-allowed disabled:bg-slate-300">Confirm Delivery</button>}
                             {status == ORDER_STATUS_DELIVERED && principal.toString() == order.buyer.toString() && <button type="button" disabled={!confirmed} onClick={receive} className="rounded-md bg-cyan-600 px-3 py-2 text-sm font-semibold text-white transition hover:bg-cyan-700 disabled:cursor-not-allowed disabled:bg-slate-300">Confirm Receipt</button>}
-                            {status == ORDER_STATUS_CANCELED && principal.toString() == order.buyer.toString() && <button type="button" className="rounded-md bg-cyan-600 px-3 py-2 text-sm font-semibold text-white">Request to refund</button>}
+                            {status == ORDER_STATUS_CANCELED && (principal.toString() == order.buyer.toString() || principal.toString() == order.seller.toString()) && <button type="button" onClick={refundOrder} className="rounded-md bg-cyan-600 px-3 py-2 text-sm font-semibold text-white transition hover:bg-cyan-700">Check & Refund Payment</button>}
                             {status == ORDER_STATUS_RECEIVED && principal.toString() == order.seller.toString() && <button type="button" onClick={release} className="rounded-md bg-cyan-600 px-3 py-2 text-sm font-semibold text-white transition hover:bg-cyan-700">Receive Payment</button>}
                             {status == ORDER_STATUS_NEW && isLockHolder && <button type="button" disabled={!confirmed} onClick={cancelOrder} className="rounded-md border border-rose-500 px-3 py-2 text-sm font-semibold text-rose-600 transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-50">Cancel</button>}
                         </>
