@@ -1153,7 +1153,7 @@ persistent actor class EscrowService() = this {
             case (?order) {
                 if (
                     order.seller == caller or
-                    (order.buyer == caller and (order.status == #new or order.status == #canceled))
+                    (order.buyer == caller and (order.status == #new or order.status == #canceled or order.status == #refunded))
                 ) {
 
                     var balance : Nat64 = 0;
@@ -1166,6 +1166,10 @@ persistent actor class EscrowService() = this {
                             balance := a
                         };
 
+                    };
+
+                    if (balance == 0) {
+                        return #err("no escrow balance to refund")
                     };
 
                     switch (payoutAmount(balance, order.currency)) {
