@@ -92,7 +92,7 @@ const DropdownMenu: React.FC = () => {
         `left=${window.screen.width / 2 - 525}, ` +
         `top=${window.screen.height / 2 - 705},` +
         `toolbar=0,location=0,menubar=0,width=525,height=705`,
-      onSuccess: () => {handleLogin()},
+      onSuccess: async () => { await handleAuthenticated(authClient) },
     })
   }
 
@@ -102,7 +102,7 @@ const DropdownMenu: React.FC = () => {
       derivationOrigin: DERIVATION_ORIGION,
       identityProvider: IDENTITY_PROVIDER_IC,
       maxTimeToLive: ONE_WEEK_NS,
-      onSuccess: () => {handleLogin()},
+      onSuccess: async () => { await handleAuthenticated(authClient) },
     })
   }
   const handlePlugLogin = async () => {
@@ -131,21 +131,6 @@ const DropdownMenu: React.FC = () => {
     }
   }
 
-  async function handleLogin() {
-    const authClient = await AuthClient.create(
-      {
-        idleOptions: {
-          disableIdle: true,
-          disableDefaultIdleCallback: true
-        }
-      }
-    );
-    setAuthClient(authClient);
-
-    if (await authClient.isAuthenticated()) {
-      handleAuthenticated(authClient);
-    };
-  };
 
   return (
     <div className="relative">
