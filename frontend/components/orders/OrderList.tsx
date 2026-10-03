@@ -95,7 +95,7 @@ export default () => {
             setPage(1);
             setHasOlderOrders(true);
         } catch (err) {
-            toast.error(err?.toString() ?? 'Failed to load orders');
+            toast.error(err?.toString() ?? 'Failed to load deals');
         } finally {
             setLoading(false);
         }
@@ -114,7 +114,7 @@ export default () => {
             setPage((current) => current + 1);
             setHasOlderOrders(os.length === PAGE_SIZE);
         } catch (err) {
-            toast.error(err?.toString() ?? 'Failed to load older orders');
+            toast.error(err?.toString() ?? 'Failed to load older deals');
         } finally {
             setLoading(false);
         }
@@ -167,10 +167,10 @@ export default () => {
                 setStatusFilter('action');
                 await loadProcessingOrders();
             } else {
-                toast.error(res['err']?.toString() ?? 'Failed to create order');
+                toast.error(res['err']?.toString() ?? 'Failed to create deal');
             }
         } catch (err) {
-            toast.error(err?.toString() ?? 'Failed to create order');
+            toast.error(err?.toString() ?? 'Failed to create deal');
         } finally {
             setLoading(false);
         }
@@ -186,10 +186,10 @@ export default () => {
                 setStatusFilter('action');
                 await loadProcessingOrders();
             } else {
-                toast.error(res['err']?.toString() ?? 'Failed to create order');
+                toast.error(res['err']?.toString() ?? 'Failed to create deal');
             }
         } catch (err) {
-            toast.error(err?.toString() ?? 'Failed to create order');
+            toast.error(err?.toString() ?? 'Failed to create deal');
         } finally {
             setLoading(false);
         }
@@ -279,7 +279,7 @@ export default () => {
                 )}
                 {!claimsLoading && visibleClaims.length === 0 && (
                     <p className="text-sm text-slate-500">
-                        {claims.length === 0 ? 'No claims here yet.' : 'No open claims. Use "Show closed" to view resolved claims.'}
+                        {claims.length === 0 ? 'No requests here yet.' : 'No open requests. Use "Show closed" to view resolved requests.'}
                     </p>
                 )}
                 {!claimsLoading && visibleClaims.length > 0 && (
