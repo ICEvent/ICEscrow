@@ -1042,7 +1042,7 @@ persistent actor class EscrowService() = this {
             case (?order) {
                 if (
                     order.status == #deposited and order.seller == caller and order.lockedby == caller //seller
-                    or order.status == #new and order.buyer == caller and order.lockedby == caller,
+                    or order.status == #new and order.lockedby == caller,
                 ) {
                     var balance : Nat64 = 0;
                     let bb = await getBalanceBySub(order.account.index, order.currency);
