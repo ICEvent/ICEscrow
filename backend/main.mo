@@ -983,7 +983,8 @@ persistent actor class EscrowService() = this {
         switch (order) {
             case (?order) {
                 let isFreeOrder = order.amount == 0;
-                let canCloseOrder = isFreeOrder or order.status == #released;
+                let isTerminalOrder = order.status == #closed or order.status == #canceled or order.status == #refunded;
+                let canCloseOrder = (isFreeOrder and not isTerminalOrder) or order.status == #released;
 
                 if (canCloseOrder) {
                     let log = {
