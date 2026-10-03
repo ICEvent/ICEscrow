@@ -79,7 +79,7 @@ export default (props) => {
         try {
             const res = await fn();
             if (res['ok'] !== undefined) {
-                toast.success('Order updated');
+                toast.success('Deal updated');
                 setStatus(nextStatus);
                 setConfirmed(false);
                 props.onStatusChange?.(props.order.id, nextStatus);
@@ -121,7 +121,7 @@ export default (props) => {
         if (status === ORDER_STATUS_DELIVERED) return isBuyer ? 'Confirm receipt' : 'Waiting for confirmation';
         if (status === ORDER_STATUS_RECEIVED) return isSeller ? 'Ready for payout' : 'Receipt confirmed';
         if (status === ORDER_STATUS_RELEASED) return 'Payment completed';
-        if (status === ORDER_STATUS_CLOSED) return 'Completed';
+        if (status === ORDER_STATUS_CLOSED) return 'Archived';
         if (status === ORDER_STATUS_CANCELED) return 'Canceled';
         if (status === 'refunded') return 'Refunded';
         return status;
@@ -132,7 +132,8 @@ export default (props) => {
         if (status === ORDER_STATUS_DEPOSITED || status === ORDER_STATUS_DELIVERED || status === ORDER_STATUS_RECEIVED) {
             return 'Payment protected in escrow';
         }
-        if (status === ORDER_STATUS_RELEASED || status === ORDER_STATUS_CLOSED) return 'Payment completed';
+        if (status === ORDER_STATUS_RELEASED) return 'Payment completed';
+        if (status === ORDER_STATUS_CLOSED) return 'Deal archived';
         if (status === 'refunded') return 'Payment refunded';
         if (status === ORDER_STATUS_CANCELED) return 'Deal canceled';
         return 'Payment status unavailable';
@@ -200,9 +201,7 @@ export default (props) => {
                     <div className="flex flex-wrap gap-2">
                         {!isFreeOrder && status === ORDER_STATUS_NEW && isBuyer && (
                             <button disabled={!confirmed || busy} onClick={() => act(() => escrow.deposit(props.order.id), ORDER_STATUS_DEPOSITED)}
-                                className="rounded-md bg-cyan-600 px-3 py-1.5 text-sm font-semibold text-white transition hover:bg-cyan-700 disabled:cursor-not-allowed disabled:bg-slate-300">
-                                Deposit to Escrow
-                            </button>
+                                className="rounded-md bg-cyan-600 px-3 py-1.5 text-sm font-semibold text-white transition hover:bg-cyan-700 disabled:cursor-not-allowed disabled:bg-slate-300">Protect Payment</button>
                         )}
                         {!isFreeOrder && status === ORDER_STATUS_DEPOSITED && isSeller && (
                             <button disabled={!confirmed || busy} onClick={() => act(() => escrow.deliver(props.order.id), ORDER_STATUS_DELIVERED)}
@@ -218,21 +217,15 @@ export default (props) => {
                         )}
                         {!isFreeOrder && status === ORDER_STATUS_RECEIVED && isSeller && (
                             <button disabled={busy} onClick={() => act(() => escrow.release(props.order.id), ORDER_STATUS_RELEASED)}
-                                className="rounded-md bg-cyan-600 px-3 py-1.5 text-sm font-semibold text-white transition hover:bg-cyan-700 disabled:cursor-not-allowed disabled:bg-slate-300">
-                                Release Funds
-                            </button>
+                                className="rounded-md bg-cyan-600 px-3 py-1.5 text-sm font-semibold text-white transition hover:bg-cyan-700 disabled:cursor-not-allowed disabled:bg-slate-300">Receive Payment</button>
                         )}
                         {!isFreeOrder && status === ORDER_STATUS_NEW && (
                             <button disabled={busy} onClick={() => act(() => escrow.cancel(props.order.id), ORDER_STATUS_CANCELED)}
-                                className="rounded-md border border-rose-400 px-3 py-1.5 text-sm font-semibold text-rose-600 transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-50">
-                                Cancel Order
-                            </button>
+                                className="rounded-md border border-rose-400 px-3 py-1.5 text-sm font-semibold text-rose-600 transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-50">Cancel Deal</button>
                         )}
                         {isSeller && (isFreeOrder || status === ORDER_STATUS_RELEASED) && (
                             <button disabled={busy} onClick={() => act(() => escrow.close(props.order.id), ORDER_STATUS_CLOSED)}
-                                className="rounded-md border border-slate-400 px-3 py-1.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50">
-                                Close Order
-                            </button>
+                                className="rounded-md border border-slate-400 px-3 py-1.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50">Archive Deal</button>
                         )}
                         <button type="button" onClick={() => setShowComment(v => !v)}
                             className="rounded-md border border-slate-300 px-3 py-1.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-50">
@@ -286,10 +279,10 @@ export default (props) => {
                     <div className="relative max-h-[90vh] w-full max-w-3xl overflow-auto rounded-2xl bg-white p-4 shadow-2xl" onClick={(e) => e.stopPropagation()}>
                         <button type="button" onClick={() => setOpenOrder(false)}
                             className="absolute right-3 top-3 h-8 w-8 rounded-full text-slate-500 transition hover:bg-slate-100"
-                            aria-label="Close order details">
+                            aria-label="Close deal details">
                             ✕
                         </button>
-                        <h3 className="mb-4 pr-10 text-lg font-semibold text-slate-900">Order: {props.order.memo}</h3>
+                        <h3 className="mb-4 pr-10 text-lg font-semibold text-slate-900">Deal: {props.order.memo}</h3>
                         <OrderDetail order={{ ...props.order, status: { [status]: null } }} />
                     </div>
                 </div>
