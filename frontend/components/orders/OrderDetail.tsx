@@ -84,7 +84,7 @@ export default (props) => {
         setLoading(true)
         escrow.deposit(order.id).then(res => {
             if (res["ok"]) {
-                toast.success("Status has changed");
+                toast.success("Deal updated");
                 setStatus(ORDER_STATUS_DEPOSITED)
             } else {
                 toast.error(res["err"])
@@ -121,7 +121,7 @@ export default (props) => {
         setLoading(true);
         escrow.release(order.id).then(res => {
             if (res["ok"]) {
-                toast.success("Status has changed, check your fund ");
+                toast.success("Payment transfer completed");
                 setStatus(ORDER_STATUS_RELEASED)
             } else {
                 toast.error(res["err"])
@@ -133,7 +133,7 @@ export default (props) => {
         setLoading(true);
         escrow.cancel(order.id).then(res => {
             if (res["ok"]) {
-                toast.success("the order has been canceled");
+                toast.success("Deal canceled");
                 setStatus(ORDER_STATUS_CANCELED)
             } else {
                 toast.error(res["err"])
@@ -146,7 +146,7 @@ export default (props) => {
         setLoading(true);
         escrow.close(order.id).then(res => {
             if (res["ok"]) {
-                toast.success("the order has been closed");
+                toast.success("Deal archived");
                 setStatus(ORDER_STATUS_CLOSED)
             } else {
                 toast.error(res["err"])
@@ -159,15 +159,15 @@ export default (props) => {
     return (
         <div className="space-y-4 rounded-lg border border-slate-200 bg-white p-4">
             <div className="grid grid-cols-1 gap-2 text-sm sm:grid-cols-2">
-                <div className="rounded-md bg-slate-50 px-3 py-2 text-slate-900"><span className="font-semibold text-slate-800">Create Time:</span> {moment.unix(parseInt(order.createtime) / 1000000000).format("YYYY-MM-DD hh:mm")}</div>
-                <div className="rounded-md bg-slate-50 px-3 py-2 text-slate-900"><span className="font-semibold text-slate-800">ID:</span> {parseInt(order.id)}</div>
+                <div className="rounded-md bg-slate-50 px-3 py-2 text-slate-900"><span className="font-semibold text-slate-800">Created:</span> {moment.unix(parseInt(order.createtime) / 1000000000).format("YYYY-MM-DD hh:mm")}</div>
+                <div className="rounded-md bg-slate-50 px-3 py-2 text-slate-900"><span className="font-semibold text-slate-800">Deal ID:</span> {parseInt(order.id)}</div>
                 <div className="rounded-md bg-slate-50 px-3 py-2 text-slate-900"><span className="font-semibold text-slate-800">Amount:</span> {amountLabel}</div>
-                {!isFreeOrder && <div className="rounded-md bg-slate-50 px-3 py-2 text-slate-900 break-all"><span className="font-semibold text-slate-800">Escrow Account:</span> {order.account.id}</div>}
+                {!isFreeOrder && <div className="rounded-md bg-slate-50 px-3 py-2 text-slate-900 break-all"><span className="font-semibold text-slate-800">Protected payment account:</span> {order.account.id}</div>}
                 <div className="rounded-md bg-slate-50 px-3 py-2 text-slate-900 sm:col-span-2"><span className="font-semibold text-slate-800">Buyer {order.buyer.toString() == principal.toString() ? "(you)" : ""}:</span> <PrincipalName principal={order.buyer} /></div>
                 <div className="rounded-md bg-slate-50 px-3 py-2 text-slate-900 sm:col-span-2"><span className="font-semibold text-slate-800">Seller {order.seller.toString() == principal.toString() ? "(you)" : ""}:</span> <PrincipalName principal={order.seller} /></div>
                 {!isFreeOrder && (
                     <div className="rounded-md bg-slate-50 px-3 py-2 text-slate-900 sm:col-span-2">
-                        <span className="font-semibold text-slate-800">Balance:</span> {balance}
+                        <span className="font-semibold text-slate-800">Protected balance:</span> {balance}
                         <button
                             type="button"
                             onClick={fetchBalance}
