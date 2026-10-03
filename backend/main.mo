@@ -989,7 +989,7 @@ persistent actor class EscrowService() = this {
                     let log = {
                         ltime = Time.now();
                         log = "close order";
-                        logger = if (caller == order.seller) { #seller } else { #buyer }
+                        logger = #seller
                     };
                     var logs : List.List<Log> = List.fromArray(order.logs);
                     logs := List.push(log, logs);
