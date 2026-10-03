@@ -1090,80 +1090,86 @@ persistent actor class EscrowService() = this {
                 let notifReceiver = if (caller == order.seller) { order.buyer } else { order.seller };
                 ignore sendNotification(notifReceiver, "Escrow order #" # Nat.toText(orderid) # " has been canceled", caller);
 
-                // Best-effort immediate refund. If no funds are visible yet, or the
-                // transfer fails, the canceled deal remains recoverable through refund().
-                var balance : Nat64 = 0;
-                let bb = await getBalanceBySub(order.account.index, order.currency);
-                switch (bb) {
-                    case (#e8s(a)) { balance := a };
-                    case (#e6s(a)) { balance := a };
-                };
-
-                if (balance == 0) {
-                    return #ok(1)
-                };
-
-                switch (payoutAmount(balance, order.currency)) {
-                    case (#ok(value)) { balance := value };
-                    case (#err(_)) {
-                        return #ok(1)
-                    }
-                };
-
-                let r = await transfer({
-                    memo = 1;
-                    from = order.account.index;
-                    to = Account.getAccountTextId(order.buyer, 0);
-                    toPrincipal = ?order.buyer;
-                    amount = balance;
-                    currency = order.currency
-                });
-
-                switch (r) {
-                    case (#ok(_block)) {
-                        switch (orders.get(orderid)) {
-                            case (?current) {
-                                if (current.status == #canceled) {
-                                    let refundLog = {
-                                        ltime = Time.now();
-                                        log = "refund canceled order";
-                                        logger = #escrow
-                                    };
-                                    var refundLogs : List.List<Log> = List.fromArray(current.logs);
-                                    refundLogs := List.push(refundLog, refundLogs);
-                                    orders.put(
-                                        orderid,
-                                        {
-                                            id = current.id;
-                                            buyer = current.buyer;
-                                            seller = current.seller;
-                                            memo = current.memo;
-                                            amount = current.amount;
-                                            currency = current.currency;
-                                            account = current.account;
-                                            blockin = current.blockin;
-                                            blockout = current.blockout;
-                                            createtime = current.createtime;
-                                            expiration = current.expiration;
-                                            lockedby = current.lockedby;
-                                            status = #refunded;
-                                            updatetime = Time.now();
-                                            comments = current.comments;
-                                            logs = List.toArray(refundLogs)
-                                        },
-                                    );
-                                    ignore sendNotification(current.buyer, "Escrow order #" # Nat.toText(orderid) # " has been refunded", caller);
-                                }
-                            };
-                            case null {};
-                        };
-                        #ok(1)
+                // Best-effort immediate refund. Any ledger rejection after the
+                // cancellation commit must not turn a successful cancellation into a failed call.
+                try {
+                    // Best-effort immediate refund. If no funds are visible yet, or the
+                    // transfer fails, the canceled deal remains recoverable through refund().
+                    var balance : Nat64 = 0;
+                    let bb = await getBalanceBySub(order.account.index, order.currency);
+                    switch (bb) {
+                        case (#e8s(a)) { balance := a };
+                        case (#e6s(a)) { balance := a };
                     };
-                    case (#err(_)) {
-                        // Keep #canceled so either participant can retry refund later.
-                        #ok(1)
-                    }
-                }
+    
+                    if (balance == 0) {
+                        return #ok(1)
+                    };
+    
+                    switch (payoutAmount(balance, order.currency)) {
+                        case (#ok(value)) { balance := value };
+                        case (#err(_)) {
+                            return #ok(1)
+                        }
+                    };
+    
+                    let r = await transfer({
+                        memo = 1;
+                        from = order.account.index;
+                        to = Account.getAccountTextId(order.buyer, 0);
+                        toPrincipal = ?order.buyer;
+                        amount = balance;
+                        currency = order.currency
+                    });
+    
+                    switch (r) {
+                        case (#ok(_block)) {
+                            switch (orders.get(orderid)) {
+                                case (?current) {
+                                    if (current.status == #canceled) {
+                                        let refundLog = {
+                                            ltime = Time.now();
+                                            log = "refund canceled order";
+                                            logger = #escrow
+                                        };
+                                        var refundLogs : List.List<Log> = List.fromArray(current.logs);
+                                        refundLogs := List.push(refundLog, refundLogs);
+                                        orders.put(
+                                            orderid,
+                                            {
+                                                id = current.id;
+                                                buyer = current.buyer;
+                                                seller = current.seller;
+                                                memo = current.memo;
+                                                amount = current.amount;
+                                                currency = current.currency;
+                                                account = current.account;
+                                                blockin = current.blockin;
+                                                blockout = current.blockout;
+                                                createtime = current.createtime;
+                                                expiration = current.expiration;
+                                                lockedby = current.lockedby;
+                                                status = #refunded;
+                                                updatetime = Time.now();
+                                                comments = current.comments;
+                                                logs = List.toArray(refundLogs)
+                                            },
+                                        );
+                                        ignore sendNotification(current.buyer, "Escrow order #" # Nat.toText(orderid) # " has been refunded", caller);
+                                    }
+                                };
+                                case null {};
+                            };
+                            #ok(1)
+                        };
+                        case (#err(_)) {
+                            // Keep #canceled so either participant can retry refund later.
+                            #ok(1)
+                        }
+    
+                } catch (_) {
+                    #ok(1)
+                }                }
             };
             case null {
                 #err("no order found")
