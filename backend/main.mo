@@ -693,38 +693,52 @@ persistent actor class EscrowService() = this {
                     } else if (Nat64.less(balance, order.amount)) {
                         #err("deposit (" # Nat64.toText(balance) # ") is less order ammount" # Nat64.toText(order.amount))
                     } else {
-                        let log = {
-                            ltime = Time.now();
-                            log = "make deposit";
-                            logger = #buyer
-                        };
-                        var logs : List.List<Log> = List.fromArray(order.logs);
-                        logs := List.push(log, logs);
+                        // Re-read after the ledger await. A concurrent cancel may have
+                        // transitioned the deal while this balance lookup was in flight.
+                        switch (orders.get(orderid)) {
+                            case (?current) {
+                                if (current.status != #new) {
+                                    return #err("order changed while confirming deposit")
+                                };
+                                if (current.buyer != caller) {
+                                    return #err("only buyer can confirm deposit")
+                                };
 
-                        orders.put(
-                            orderid,
-                            {
-                                id = orderid;
-                                buyer = order.buyer;
-                                seller = order.seller;
-                                memo = order.memo;
-                                amount = order.amount;
-                                currency = order.currency;
-                                account = order.account;
-                                blockin = order.blockin;
-                                blockout = order.blockout;
-                                expiration = order.expiration;
-                                createtime = order.createtime;
+                                let log = {
+                                    ltime = Time.now();
+                                    log = "make deposit";
+                                    logger = #buyer
+                                };
+                                var logs : List.List<Log> = List.fromArray(current.logs);
+                                logs := List.push(log, logs);
 
-                                status = #deposited;
-                                lockedby = order.seller;
-                                updatetime = Time.now();
-                                comments = order.comments;
-                                logs = List.toArray(logs)
-                            },
-                        );
-                        ignore sendNotification(order.seller, "Escrow order #" # Nat.toText(orderid) # " has been deposited", caller);
-                        #ok(1)
+                                orders.put(
+                                    orderid,
+                                    {
+                                        id = orderid;
+                                        buyer = current.buyer;
+                                        seller = current.seller;
+                                        memo = current.memo;
+                                        amount = current.amount;
+                                        currency = current.currency;
+                                        account = current.account;
+                                        blockin = current.blockin;
+                                        blockout = current.blockout;
+                                        expiration = current.expiration;
+                                        createtime = current.createtime;
+
+                                        status = #deposited;
+                                        lockedby = current.seller;
+                                        updatetime = Time.now();
+                                        comments = current.comments;
+                                        logs = List.toArray(logs)
+                                    },
+                                );
+                                ignore sendNotification(current.seller, "Escrow order #" # Nat.toText(orderid) # " has been deposited", caller);
+                                #ok(1)
+                            };
+                            case null { #err("no order found") };
+                        }
                     }
                 }
 
@@ -971,24 +985,26 @@ persistent actor class EscrowService() = this {
 
     };
 
-    //buyer or seller
+    // Seller archives completed paid deals; free deals may be archived by the seller directly.
     public shared ({ caller }) func close(orderid : Nat) : async Result.Result<Nat, Text> {
         let order = Array.find<Order>(
             Iter.toArray(orders.vals()),
             func(o : Order) : Bool {
-                (o.id == orderid) and (o.buyer == caller or o.seller == caller)
+                (o.id == orderid) and (o.seller == caller)
             },
         );
 
         switch (order) {
             case (?order) {
-                let canCloseOrder = order.status != #closed and order.status != #canceled and order.status != #refunded;
+                let isFreeOrder = order.amount == 0;
+                let isTerminalOrder = order.status == #closed or order.status == #canceled or order.status == #refunded;
+                let canCloseOrder = (isFreeOrder and not isTerminalOrder) or order.status == #released;
 
                 if (canCloseOrder) {
                     let log = {
                         ltime = Time.now();
                         log = "close order";
-                        logger = if (caller == order.seller) { #seller } else { #buyer }
+                        logger = #seller
                     };
                     var logs : List.List<Log> = List.fromArray(order.logs);
                     logs := List.push(log, logs);
@@ -1015,8 +1031,7 @@ persistent actor class EscrowService() = this {
                             logs = List.toArray(logs)
                         },
                     );
-                    let notifReceiver = if (caller == order.seller) { order.buyer } else { order.seller };
-                    ignore sendNotification(notifReceiver, "Escrow order #" # Nat.toText(orderid) # " has been closed", caller);
+                    ignore sendNotification(order.buyer, "Escrow order #" # Nat.toText(orderid) # " has been closed", caller);
                     #ok(1)
                 } else {
                     #err("wrong status or no permission")
@@ -1030,114 +1045,140 @@ persistent actor class EscrowService() = this {
 
     //buyer submit cancel request if status is #deposited
     public shared ({ caller }) func cancel(orderid : Nat) : async Result.Result<Nat, Text> {
-
-        let order = Array.find<Order>(
-            Iter.toArray(orders.vals()),
-            func(o : Order) : Bool {
-                (o.id == orderid) and (o.buyer == caller or o.seller == caller)
-            },
-        );
-        switch (order) {
+        switch (orders.get(orderid)) {
             case (?order) {
-                if (
-                    order.status == #deposited and order.seller == caller and order.lockedby == caller //seller
-                    or order.status == #new and order.buyer == caller and order.lockedby == caller,
-                ) {
+                let canCancel =
+                    (order.status == #deposited and order.seller == caller and order.lockedby == caller) or
+                    (order.status == #new and order.lockedby == caller);
+
+                if (not canCancel) {
+                    return #err("no cancel allowed")
+                };
+
+                // Commit cancellation before any ledger await so concurrent deposit
+                // confirmation cannot later overwrite the deal with #deposited.
+                let cancelLog = {
+                    ltime = Time.now();
+                    log = "cancel order";
+                    logger = if (order.seller == caller) { #seller } else { #buyer }
+                };
+                var cancelLogs : List.List<Log> = List.fromArray(order.logs);
+                cancelLogs := List.push(cancelLog, cancelLogs);
+
+                orders.put(
+                    orderid,
+                    {
+                        id = order.id;
+                        buyer = order.buyer;
+                        seller = order.seller;
+                        memo = order.memo;
+                        amount = order.amount;
+                        currency = order.currency;
+                        account = order.account;
+                        blockin = order.blockin;
+                        blockout = order.blockout;
+                        createtime = order.createtime;
+                        expiration = order.expiration;
+                        lockedby = getPrincipal();
+                        status = #canceled;
+                        updatetime = Time.now();
+                        comments = order.comments;
+                        logs = List.toArray(cancelLogs)
+                    },
+                );
+
+                let notifReceiver = if (caller == order.seller) { order.buyer } else { order.seller };
+                ignore sendNotification(
+                    notifReceiver,
+                    "Escrow order #" # Nat.toText(orderid) # " has been canceled",
+                    caller
+                );
+
+                // Immediate refund is best-effort. Cancellation is already committed;
+                // any rejection leaves the deal recoverable through repeatable refund().
+                try {
                     var balance : Nat64 = 0;
                     let bb = await getBalanceBySub(order.account.index, order.currency);
                     switch (bb) {
-                        case (#e8s(a)) {
-                            balance := a
-                        };
-                        case (#e6s(a)) {
-                            balance := a
-                        };
-
+                        case (#e8s(a)) { balance := a };
+                        case (#e6s(a)) { balance := a };
                     };
 
-                    var refunded = false;
-                    var err = "";
-                    if (balance > 0) {
-                        //refund
-                        switch (payoutAmount(balance, order.currency)) {
-                            case (#ok(value)) { balance := value };
-                            case (#err(message)) { return #err(message) }
-                        };
+                    if (balance == 0) {
+                        return #ok(1)
+                    };
 
-                        let r = await transfer({
-                            memo = 1;
-                            from = order.account.index;
-                            to = Account.getAccountTextId(order.buyer, 0);
-                            toPrincipal = ?order.buyer;
-                            amount = balance;
-                            currency = order.currency
-                        });
-                        switch (r) {
-                            case (#ok(_block)) {
-                                refunded := true
+                    switch (payoutAmount(balance, order.currency)) {
+                        case (#ok(value)) { balance := value };
+                        case (#err(_)) { return #ok(1) };
+                    };
+
+                    let transferResult = await transfer({
+                        memo = 1;
+                        from = order.account.index;
+                        to = Account.getAccountTextId(order.buyer, 0);
+                        toPrincipal = ?order.buyer;
+                        amount = balance;
+                        currency = order.currency
+                    });
+
+                    switch (transferResult) {
+                        case (#ok(_block)) {
+                            switch (orders.get(orderid)) {
+                                case (?current) {
+                                    if (current.status == #canceled) {
+                                        let refundLog = {
+                                            ltime = Time.now();
+                                            log = "refund canceled order";
+                                            logger = #escrow
+                                        };
+                                        var refundLogs : List.List<Log> = List.fromArray(current.logs);
+                                        refundLogs := List.push(refundLog, refundLogs);
+
+                                        orders.put(
+                                            orderid,
+                                            {
+                                                id = current.id;
+                                                buyer = current.buyer;
+                                                seller = current.seller;
+                                                memo = current.memo;
+                                                amount = current.amount;
+                                                currency = current.currency;
+                                                account = current.account;
+                                                blockin = current.blockin;
+                                                blockout = current.blockout;
+                                                createtime = current.createtime;
+                                                expiration = current.expiration;
+                                                lockedby = current.lockedby;
+                                                status = #refunded;
+                                                updatetime = Time.now();
+                                                comments = current.comments;
+                                                logs = List.toArray(refundLogs)
+                                            },
+                                        );
+                                        ignore sendNotification(
+                                            current.buyer,
+                                            "Escrow order #" # Nat.toText(orderid) # " has been refunded",
+                                            caller
+                                        );
+                                    }
+                                };
+                                case null {};
                             };
-                            case (#err(e)) {
-                                err := e
-                            }
-                        }
-                    } else {
-                        //no refund needed
-                        refunded := true
-                    };
-                    if (refunded) {
-                        var logger : {
-                            #buyer;
-                            #seller;
-                            #escrow
-                        } = #buyer;
-                        if (order.seller == caller) {
-                            logger := #seller
+                            #ok(1)
                         };
-                        let log = {
-                            ltime = Time.now();
-                            log = "cancel order";
-                            logger = logger
+                        case (#err(_)) {
+                            #ok(1)
                         };
-                        var logs : List.List<Log> = List.fromArray(order.logs);
-                        logs := List.push(log, logs);
-                        orders.put(
-                            orderid,
-                            {
-                                id = orderid;
-                                buyer = order.buyer;
-                                seller = order.seller;
-                                memo = order.memo;
-                                amount = order.amount;
-                                currency = order.currency;
-                                account = order.account;
-                                blockin = order.blockin;
-                                blockout = order.blockout;
-                                createtime = order.createtime;
-                                expiration = order.expiration;
-                                lockedby = getPrincipal();
-                                status = #canceled;
-                                updatetime = Time.now();
-
-                                comments = order.comments;
-                                logs = List.toArray(logs)
-                            },
-                        );
-                        let notifReceiver = if (caller == order.seller) { order.buyer } else { order.seller };
-                        ignore sendNotification(notifReceiver, "Escrow order #" # Nat.toText(orderid) # " has been canceled", caller);
-                        #ok(1)
-                    } else {
-                        #err(err)
                     }
-
-                } else {
-                    #err("no cancel allowed")
+                } catch (_) {
+                    #ok(1)
                 }
             };
-            case (_) {
+            case null {
                 #err("no order found")
             }
-        };
-
+        }
     };
 
     //seller refund to buyer anytime
@@ -1151,7 +1192,8 @@ persistent actor class EscrowService() = this {
         switch (order) {
             case (?order) {
                 if (
-                    order.seller == caller or order.buyer == caller and (order.status == #new or order.status == #canceled)
+                    order.seller == caller or
+                    (order.buyer == caller and (order.status == #new or order.status == #canceled or order.status == #refunded))
                 ) {
 
                     var balance : Nat64 = 0;
@@ -1164,6 +1206,10 @@ persistent actor class EscrowService() = this {
                             balance := a
                         };
 
+                    };
+
+                    if (balance == 0) {
+                        return #err("no escrow balance to refund")
                     };
 
                     switch (payoutAmount(balance, order.currency)) {
@@ -1181,24 +1227,71 @@ persistent actor class EscrowService() = this {
                     });
                     switch (r) {
                         case (#ok(_block)) {
-                            var logger : {
-                                #buyer;
-                                #seller;
-                                #escrow
-                            } = #buyer;
-                            if (order.seller == caller) {
-                                logger := #seller
-                            };
-                            let log = {
-                                ltime = Time.now();
-                                log = "refund order";
-                                logger = logger
-                            };
+                            switch (orders.get(orderid)) {
+                                case (?current) {
+                                    var logger : {
+                                        #buyer;
+                                        #seller;
+                                        #escrow
+                                    } = #buyer;
+                                    if (current.seller == caller) {
+                                        logger := #seller
+                                    };
 
-                            writeLog(order, log);
+                                    let preservesCompletion =
+                                        current.status == #released or current.status == #closed;
+                                    let nextStatus = if (preservesCompletion) {
+                                        current.status
+                                    } else {
+                                        #refunded
+                                    };
+                                    let log = {
+                                        ltime = Time.now();
+                                        log = if (preservesCompletion) {
+                                            "sweep late escrow balance to buyer"
+                                        } else {
+                                            "refund order"
+                                        };
+                                        logger = logger
+                                    };
 
-                            ignore sendNotification(order.buyer, "Escrow order #" # Nat.toText(orderid) # " has been refunded", caller);
-                            #ok(1)
+                                    var logs : List.List<Log> = List.fromArray(current.logs);
+                                    logs := List.push(log, logs);
+                                    orders.put(
+                                        orderid,
+                                        {
+                                            id = current.id;
+                                            buyer = current.buyer;
+                                            seller = current.seller;
+                                            memo = current.memo;
+                                            amount = current.amount;
+                                            currency = current.currency;
+                                            account = current.account;
+                                            blockin = current.blockin;
+                                            blockout = current.blockout;
+                                            createtime = current.createtime;
+                                            expiration = current.expiration;
+                                            lockedby = current.lockedby;
+                                            status = nextStatus;
+                                            updatetime = Time.now();
+                                            comments = current.comments;
+                                            logs = List.toArray(logs)
+                                        },
+                                    );
+
+                                    ignore sendNotification(
+                                        current.buyer,
+                                        if (preservesCompletion) {
+                                            "A late escrow balance for order #" # Nat.toText(orderid) # " has been returned"
+                                        } else {
+                                            "Escrow order #" # Nat.toText(orderid) # " has been refunded"
+                                        },
+                                        caller
+                                    );
+                                    #ok(1)
+                                };
+                                case null { #err("no order found") };
+                            }
                         };
                         case (#err(e)) {
                             #err(e)

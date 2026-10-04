@@ -225,10 +225,10 @@ const MyItems: React.FC = () => {
             <div className="mb-4 flex items-center justify-between gap-2">
                 <div>
                     <p className="text-xs font-bold uppercase tracking-[0.18em] text-orange-700">Seller Dashboard</p>
-                    <h2 className="mt-1 text-xl font-extrabold tracking-tight text-slate-900">My Items</h2>
+                    <h2 className="mt-1 text-xl font-extrabold tracking-tight text-slate-900">My Listings</h2>
                 </div>
                 <p className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-slate-600">
-                    {items.length} items
+                    {items.length} listings
                 </p>
             </div>
 

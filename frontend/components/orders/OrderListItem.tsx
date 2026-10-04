@@ -49,6 +49,7 @@ export default (props) => {
     const isFreeOrder = amount === 0;
     const isBuyer = principal?.toString() === props.order.buyer.toString();
     const isSeller = principal?.toString() === props.order.seller.toString();
+    const isLockHolder = principal?.toString() === props.order.lockedby?.toString();
     const isTerminal = status === ORDER_STATUS_CLOSED || status === ORDER_STATUS_CANCELED || status === 'refunded';
 
     const needsConfirm =
@@ -79,10 +80,32 @@ export default (props) => {
         try {
             const res = await fn();
             if (res['ok'] !== undefined) {
-                toast.success('Order updated');
+                toast.success('Deal updated');
                 setStatus(nextStatus);
                 setConfirmed(false);
                 props.onStatusChange?.(props.order.id, nextStatus);
+            } else {
+                toast.error(res['err'] ?? 'Action failed');
+            }
+        } catch {
+            toast.error('Action failed');
+        } finally {
+            setBusy(false);
+        }
+    }
+
+    async function cancelDeal() {
+        setBusy(true);
+        try {
+            const res = await escrow.cancel(props.order.id);
+            if (res['ok'] !== undefined) {
+                const refreshed = await escrow.getOrder(props.order.id);
+                const current = refreshed?.[0];
+                const nextStatus = current ? Object.getOwnPropertyNames(current.status)[0] : ORDER_STATUS_CANCELED;
+                setStatus(nextStatus);
+                setConfirmed(false);
+                props.onStatusChange?.(props.order.id, nextStatus);
+                toast.success(nextStatus === 'refunded' ? 'Deal canceled and payment refunded' : 'Deal canceled');
             } else {
                 toast.error(res['err'] ?? 'Action failed');
             }
@@ -115,6 +138,29 @@ export default (props) => {
     }
 
     const statusColor = STATUS_COLORS[status] ?? 'bg-slate-100 text-slate-600 border-slate-300';
+    const statusLabel = (() => {
+        if (status === ORDER_STATUS_NEW) return isBuyer ? 'Payment required' : 'Waiting for payment';
+        if (status === ORDER_STATUS_DEPOSITED) return 'Payment protected';
+        if (status === ORDER_STATUS_DELIVERED) return isBuyer ? 'Confirm receipt' : 'Waiting for confirmation';
+        if (status === ORDER_STATUS_RECEIVED) return isSeller ? 'Ready for payout' : 'Receipt confirmed';
+        if (status === ORDER_STATUS_RELEASED) return 'Payment completed';
+        if (status === ORDER_STATUS_CLOSED) return 'Archived';
+        if (status === ORDER_STATUS_CANCELED) return 'Canceled';
+        if (status === 'refunded') return 'Refunded';
+        return status;
+    })();
+    const paymentLabel = (() => {
+        if (isFreeOrder) return 'No payment required';
+        if (status === ORDER_STATUS_NEW) return 'Payment not protected yet';
+        if (status === ORDER_STATUS_DEPOSITED || status === ORDER_STATUS_DELIVERED || status === ORDER_STATUS_RECEIVED) {
+            return 'Payment protected in escrow';
+        }
+        if (status === ORDER_STATUS_RELEASED) return 'Payment completed';
+        if (status === ORDER_STATUS_CLOSED) return 'Deal archived';
+        if (status === 'refunded') return 'Payment refunded';
+        if (status === ORDER_STATUS_CANCELED) return 'Deal canceled';
+        return 'Payment status unavailable';
+    })();
 
     return (
         <>
@@ -130,7 +176,7 @@ export default (props) => {
                                 #{parseInt(props.order.id)}
                             </button>
                             <span className={`rounded-full border px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide ${statusColor}`}>
-                                {status}
+                                {statusLabel}
                             </span>
                             {needsAction && (
                                 <span className="rounded-full bg-orange-500 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">
@@ -145,20 +191,25 @@ export default (props) => {
                     </span>
                 </div>
 
-                <p className="mb-3 text-xs text-slate-500">
-                    {isBuyer ? 'You are buyer' : isSeller ? 'You are seller' : 'Participant'} · {moment.unix(parseInt(props.order.createtime) / 1_000_000_000).format('YYYY-MM-DD HH:mm')}
-                </p>
+                <div className="mb-3 flex flex-wrap items-center gap-2 text-xs">
+                    <span className="text-slate-500">
+                        {isBuyer ? 'You are buying' : isSeller ? 'You are selling' : 'Participant'} · {moment.unix(parseInt(props.order.createtime) / 1_000_000_000).format('YYYY-MM-DD HH:mm')}
+                    </span>
+                    <span className="rounded-full border border-slate-200 bg-slate-50 px-2 py-1 font-semibold text-slate-700">
+                        {paymentLabel}
+                    </span>
+                </div>
 
                 {!isFreeOrder && !isTerminal && (() => {
-                    if (status === ORDER_STATUS_NEW && isBuyer) return <p className="mb-2 rounded-md border border-sky-200 bg-sky-50 px-3 py-2 text-xs text-sky-800">Next: deposit {amount} {currency} into escrow to fund this order.</p>;
-                    if (status === ORDER_STATUS_NEW && isSeller) return <p className="mb-2 rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-700">Waiting for the buyer to fund escrow.</p>;
-                    if (status === ORDER_STATUS_DEPOSITED && isSeller) return <p className="mb-2 rounded-md border border-sky-200 bg-sky-50 px-3 py-2 text-xs text-sky-800">Next: deliver “{props.order.memo}”, then confirm delivery here.</p>;
-                    if (status === ORDER_STATUS_DEPOSITED && isBuyer) return <p className="mb-2 rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-700">Escrow is funded. Waiting for the seller to deliver.</p>;
-                    if (status === ORDER_STATUS_DELIVERED && isBuyer) return <p className="mb-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">Next: confirm receipt only after you have received the item or service.</p>;
+                    if (status === ORDER_STATUS_NEW && isBuyer) return <p className="mb-2 rounded-md border border-sky-200 bg-sky-50 px-3 py-2 text-xs text-sky-800">Protect your payment: deposit {amount} {currency} into escrow.</p>;
+                    if (status === ORDER_STATUS_NEW && isSeller) return <p className="mb-2 rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-700">Waiting for the buyer to protect the payment.</p>;
+                    if (status === ORDER_STATUS_DEPOSITED && isSeller) return <p className="mb-2 rounded-md border border-sky-200 bg-sky-50 px-3 py-2 text-xs text-sky-800">Payment is protected. Deliver “{props.order.memo}”, then confirm delivery here.</p>;
+                    if (status === ORDER_STATUS_DEPOSITED && isBuyer) return <p className="mb-2 rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-700">Payment is protected. Waiting for the seller to deliver.</p>;
+                    if (status === ORDER_STATUS_DELIVERED && isBuyer) return <p className="mb-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">Confirm receipt only after you have received the item or service.</p>;
                     if (status === ORDER_STATUS_DELIVERED && isSeller) return <p className="mb-2 rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-700">Waiting for the buyer to confirm receipt.</p>;
-                    if (status === ORDER_STATUS_RECEIVED && isSeller) return <p className="mb-2 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-800">Buyer confirmed receipt. You can now request release of the escrowed funds.</p>;
-                    if (status === ORDER_STATUS_RECEIVED && isBuyer) return <p className="mb-2 rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-700">Receipt confirmed. Waiting for the seller to request payout.</p>;
-                    if (status === ORDER_STATUS_RELEASED) return <p className="mb-2 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-800">Funds released. The financial flow is complete; closing this order is optional archival cleanup.</p>;
+                    if (status === ORDER_STATUS_RECEIVED && isSeller) return <p className="mb-2 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-800">Buyer confirmed receipt. Your payment is ready to be transferred. Vansday will verify the transfer on-chain.</p>;
+                    if (status === ORDER_STATUS_RECEIVED && isBuyer) return <p className="mb-2 rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-700">Receipt confirmed. The seller can now start payout.</p>;
+                    if (status === ORDER_STATUS_RELEASED) return <p className="mb-2 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-800">Payment completed and verified on-chain.</p>;
                     return null;
                 })()}
 
@@ -173,9 +224,7 @@ export default (props) => {
                     <div className="flex flex-wrap gap-2">
                         {!isFreeOrder && status === ORDER_STATUS_NEW && isBuyer && (
                             <button disabled={!confirmed || busy} onClick={() => act(() => escrow.deposit(props.order.id), ORDER_STATUS_DEPOSITED)}
-                                className="rounded-md bg-cyan-600 px-3 py-1.5 text-sm font-semibold text-white transition hover:bg-cyan-700 disabled:cursor-not-allowed disabled:bg-slate-300">
-                                Deposit to Escrow
-                            </button>
+                                className="rounded-md bg-cyan-600 px-3 py-1.5 text-sm font-semibold text-white transition hover:bg-cyan-700 disabled:cursor-not-allowed disabled:bg-slate-300">Protect Payment</button>
                         )}
                         {!isFreeOrder && status === ORDER_STATUS_DEPOSITED && isSeller && (
                             <button disabled={!confirmed || busy} onClick={() => act(() => escrow.deliver(props.order.id), ORDER_STATUS_DELIVERED)}
@@ -191,21 +240,15 @@ export default (props) => {
                         )}
                         {!isFreeOrder && status === ORDER_STATUS_RECEIVED && isSeller && (
                             <button disabled={busy} onClick={() => act(() => escrow.release(props.order.id), ORDER_STATUS_RELEASED)}
-                                className="rounded-md bg-cyan-600 px-3 py-1.5 text-sm font-semibold text-white transition hover:bg-cyan-700 disabled:cursor-not-allowed disabled:bg-slate-300">
-                                Release Funds
-                            </button>
+                                className="rounded-md bg-cyan-600 px-3 py-1.5 text-sm font-semibold text-white transition hover:bg-cyan-700 disabled:cursor-not-allowed disabled:bg-slate-300">Receive Payment</button>
                         )}
-                        {!isFreeOrder && status === ORDER_STATUS_NEW && (
-                            <button disabled={busy} onClick={() => act(() => escrow.cancel(props.order.id), ORDER_STATUS_CANCELED)}
-                                className="rounded-md border border-rose-400 px-3 py-1.5 text-sm font-semibold text-rose-600 transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-50">
-                                Cancel Order
-                            </button>
+                        {!isFreeOrder && status === ORDER_STATUS_NEW && isLockHolder && (
+                            <button disabled={busy} onClick={cancelDeal}
+                                className="rounded-md border border-rose-400 px-3 py-1.5 text-sm font-semibold text-rose-600 transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-50">Cancel Deal</button>
                         )}
                         {isSeller && (isFreeOrder || status === ORDER_STATUS_RELEASED) && (
                             <button disabled={busy} onClick={() => act(() => escrow.close(props.order.id), ORDER_STATUS_CLOSED)}
-                                className="rounded-md border border-slate-400 px-3 py-1.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50">
-                                Close Order
-                            </button>
+                                className="rounded-md border border-slate-400 px-3 py-1.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50">Archive Deal</button>
                         )}
                         <button type="button" onClick={() => setShowComment(v => !v)}
                             className="rounded-md border border-slate-300 px-3 py-1.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-50">
@@ -259,10 +302,10 @@ export default (props) => {
                     <div className="relative max-h-[90vh] w-full max-w-3xl overflow-auto rounded-2xl bg-white p-4 shadow-2xl" onClick={(e) => e.stopPropagation()}>
                         <button type="button" onClick={() => setOpenOrder(false)}
                             className="absolute right-3 top-3 h-8 w-8 rounded-full text-slate-500 transition hover:bg-slate-100"
-                            aria-label="Close order details">
+                            aria-label="Close deal details">
                             ✕
                         </button>
-                        <h3 className="mb-4 pr-10 text-lg font-semibold text-slate-900">Order: {props.order.memo}</h3>
+                        <h3 className="mb-4 pr-10 text-lg font-semibold text-slate-900">Deal: {props.order.memo}</h3>
                         <OrderDetail order={{ ...props.order, status: { [status]: null } }} />
                     </div>
                 </div>
