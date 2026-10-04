@@ -1227,46 +1227,71 @@ persistent actor class EscrowService() = this {
                     });
                     switch (r) {
                         case (#ok(_block)) {
-                            var logger : {
-                                #buyer;
-                                #seller;
-                                #escrow
-                            } = #buyer;
-                            if (order.seller == caller) {
-                                logger := #seller
-                            };
-                            let log = {
-                                ltime = Time.now();
-                                log = "refund order";
-                                logger = logger
-                            };
+                            switch (orders.get(orderid)) {
+                                case (?current) {
+                                    var logger : {
+                                        #buyer;
+                                        #seller;
+                                        #escrow
+                                    } = #buyer;
+                                    if (current.seller == caller) {
+                                        logger := #seller
+                                    };
 
-                            var logs : List.List<Log> = List.fromArray(order.logs);
-                            logs := List.push(log, logs);
-                            orders.put(
-                                orderid,
-                                {
-                                    id = order.id;
-                                    buyer = order.buyer;
-                                    seller = order.seller;
-                                    memo = order.memo;
-                                    amount = order.amount;
-                                    currency = order.currency;
-                                    account = order.account;
-                                    blockin = order.blockin;
-                                    blockout = order.blockout;
-                                    createtime = order.createtime;
-                                    expiration = order.expiration;
-                                    lockedby = getPrincipal();
-                                    status = #refunded;
-                                    updatetime = Time.now();
-                                    comments = order.comments;
-                                    logs = List.toArray(logs)
-                                },
-                            );
+                                    let preservesCompletion =
+                                        current.status == #released or current.status == #closed;
+                                    let nextStatus = if (preservesCompletion) {
+                                        current.status
+                                    } else {
+                                        #refunded
+                                    };
+                                    let log = {
+                                        ltime = Time.now();
+                                        log = if (preservesCompletion) {
+                                            "sweep late escrow balance to buyer"
+                                        } else {
+                                            "refund order"
+                                        };
+                                        logger = logger
+                                    };
 
-                            ignore sendNotification(order.buyer, "Escrow order #" # Nat.toText(orderid) # " has been refunded", caller);
-                            #ok(1)
+                                    var logs : List.List<Log> = List.fromArray(current.logs);
+                                    logs := List.push(log, logs);
+                                    orders.put(
+                                        orderid,
+                                        {
+                                            id = current.id;
+                                            buyer = current.buyer;
+                                            seller = current.seller;
+                                            memo = current.memo;
+                                            amount = current.amount;
+                                            currency = current.currency;
+                                            account = current.account;
+                                            blockin = current.blockin;
+                                            blockout = current.blockout;
+                                            createtime = current.createtime;
+                                            expiration = current.expiration;
+                                            lockedby = current.lockedby;
+                                            status = nextStatus;
+                                            updatetime = Time.now();
+                                            comments = current.comments;
+                                            logs = List.toArray(logs)
+                                        },
+                                    );
+
+                                    ignore sendNotification(
+                                        current.buyer,
+                                        if (preservesCompletion) {
+                                            "A late escrow balance for order #" # Nat.toText(orderid) # " has been returned"
+                                        } else {
+                                            "Escrow order #" # Nat.toText(orderid) # " has been refunded"
+                                        },
+                                        caller
+                                    );
+                                    #ok(1)
+                                };
+                                case null { #err("no order found") };
+                            }
                         };
                         case (#err(e)) {
                             #err(e)
