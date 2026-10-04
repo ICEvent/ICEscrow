@@ -137,17 +137,28 @@ export default (props) => {
             setLoading(false);
         })
     };
-    const refundOrder = () => {
+    const refundOrder = async () => {
         setLoading(true);
-        escrow.refund(order.id).then(res => {
+        try {
+            const res = await escrow.refund(order.id);
             if (res["ok"]) {
-                toast.success("Refund sent to buyer");
-                setStatus(ORDER_STATUS_REFUNDED)
+                const refreshed = await escrow.getOrder(order.id);
+                const current = refreshed?.[0];
+                const nextStatus = current ? Object.getOwnPropertyNames(current.status)[0] : status;
+                setStatus(nextStatus);
+                toast.success(
+                    nextStatus === ORDER_STATUS_REFUNDED
+                        ? "Refund sent to buyer"
+                        : "Escrow balance returned to buyer"
+                );
             } else {
                 toast.error(res["err"])
             }
+        } catch (error) {
+            toast.error(error?.toString() ?? "Failed to refund payment")
+        } finally {
             setLoading(false);
-        })
+        }
     };
 
     const cancelOrder = async () => {
