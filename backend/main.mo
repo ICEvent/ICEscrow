@@ -852,7 +852,8 @@ persistent actor class EscrowService() = this {
                             logs = List.toArray(logs)
                         },
                     );
-                    ignore sendNotification(order.seller, "Escrow order #" # Nat.toText(orderid) # " has been received by the buyer", caller)
+                    ignore sendNotification(order.seller, "Escrow order #" # Nat.toText(orderid) # " has been received by the buyer", caller);
+                    #ok(1)
                 } else {
                     #err("status is not right or no permission")
                 };
