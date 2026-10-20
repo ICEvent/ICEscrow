@@ -634,6 +634,10 @@ persistent actor class EscrowService() = this {
 
         switch (order) {
             case (?order) {
+                // Apply identical caller and lifecycle gates to free and paid
+                // orders. The paid path also rechecks after its ledger await.
+                if (order.buyer != caller) return #err("only buyer can confirm deposit");
+                if (order.status != #new) return #err("order is not awaiting deposit");
                 //check expired time
                 if (Int.less(order.expiration * 1_000_000_000, Time.now())) {
                     #err("order is expired")
@@ -849,8 +853,9 @@ persistent actor class EscrowService() = this {
                         },
                     );
                     ignore sendNotification(order.seller, "Escrow order #" # Nat.toText(orderid) # " has been received by the buyer", caller)
+                } else {
+                    #err("status is not right or no permission")
                 };
-                #ok(1)
             };
             case (_) {
                 #err("no order found")
