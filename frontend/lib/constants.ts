@@ -118,7 +118,7 @@ export const WHITELIST = [
 );
 export const IDENTITY_PROVIDER_IC = "https://id.ai";//'https://identity.ic0.app';
 export const IDENTITY_PROVIDER_NFID = "https://nfid.one";
-export const DERIVATION_ORIGION = "https://32pz7-5qaaa-aaaag-qacra-cai.raw.ic0.app";
+export const DERIVATION_ORIGION = "https://oneblock.page";
 export const APP_LOGO = "/blocklist_logo.png";
 
 export const ckETH_DECIMALS = 1_000_000_000_000_000_000;
